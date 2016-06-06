@@ -74,12 +74,6 @@ ssl_version(void)
 	sys_dbg("openssl-%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
 }
 
-void
-die(const char *fmt, ...)
-{
-	exit(1);
-}
-
 int
 main(int argc, char *argv[])
 {

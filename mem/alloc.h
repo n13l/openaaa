@@ -34,16 +34,4 @@ xrealloc(void *addr, size_t size);
 void
 xfree(void *ptr);
 
-struct mem {
-	void *ctx;
-	void *(*alloc)(struct mem*, size_t size);
-	void *(*realloc)(struct mem*, void *addr, size_t osize, size_t nsize);
-	void (*free)(struct mem*, void *addr);
-};
-
-extern struct mem mem_std;
-extern struct mem mem_std_zero;
-extern struct mem mem_ext;
-extern struct mem mem_ext_zero;
-
 #endif
