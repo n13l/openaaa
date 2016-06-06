@@ -1,0 +1,30 @@
+obj-m := entry.o
+entry-objs := pkcs11.o
+
+lib                := aaa-pkcs11
+libname            := lib$(lib)-$(PACKAGEVERSION)
+
+always             += $(if $(CONFIG_MODULES),$(libname).$(so),)
+
+#swflags           := -debug-module 1
+
+lib$(lib)-dirs := mem net crypto lib/aaa sys/$(PLATFORM)
+lib$(lib)-objs := $(patsubst %,%/built-in.o, $(lib$(lib)-dirs)) \
+                      modules/pkcs11/entry.o
+
+lib$(lib)-libs := $(patsubst %,%/lib.a, $(libs-y))
+lib$(lib)-all  := $(lib$(lib)-objs) $(lib$(lib)-libs) $(KBUILD_LIBS)
+
+$(obj)/$(libname).$(so): $(lib$(lib)-objs) $(lib$(lib)-libs)
+	$(call if_changed,$(libname).$(so))
+
+quiet_cmd_$(libname).$(so) = LD [M]  $@
+	cmd_$(libname).$(so) = $(CC) $(LDFLAGS) $(SHLIB_LDFLAGS) -o $@ \
+	                             $(lib$(lib)-all)
+
+PHONY += $(lib$(lib)-dirs)
+$(lib$(lib)-dirs): scripts_basic
+	$(Q)$(MAKE) $(build)=$@
+clean-files  += $(libname).$(so) $(libname).jar
+
+

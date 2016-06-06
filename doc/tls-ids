@@ -1,0 +1,24 @@
+Interaction with TLS Session ID
+
+   If a server is planning on issuing a session ticket to a client that
+   does not present one, it SHOULD include an empty Session ID in the
+   ServerHello.  If the server rejects the ticket and falls back to the
+   full handshake then it may include a non-empty Session ID to indicate
+   its support for stateful session resumption.  If the client receives
+   a session ticket from the server, then it discards any Session ID
+   that was sent in the ServerHello.
+
+   When presenting a ticket, the client MAY generate and include a
+   Session ID in the TLS ClientHello.  If the server accepts the ticket
+   and the Session ID is not empty, then it MUST respond with the same
+   Session ID present in the ClientHello.  This allows the client to
+   easily differentiate when the server is resuming a session from when
+   it is falling back to a full handshake.  Since the client generates a
+   Session ID, the server MUST NOT rely upon the Session ID having a
+   particular value when validating the ticket.  If a ticket is
+   presented by the client, the server MUST NOT attempt to use the
+   Session ID in the ClientHello for stateful session resumption.
+   Alternatively, the client MAY include an empty Session ID in the
+   ClientHello.  In this case, the client ignores the Session ID sent in
+   the ServerHello and determines if the server is resuming a session by
+   the subsequent handshake messages.

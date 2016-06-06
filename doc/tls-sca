@@ -1,0 +1,442 @@
+AAA-TLS-SCA                                         Daniel Kubec <niel@rtfm.cz>
+                                                                 September 2013
+
+              TLS side channel authentication and straightforward
+                  bindings of AAA information to application
+                    layer using well-defined mechanism.
+
+
+Abstract
+
+   This document specifies proof of concept and prototype of TLS side channel 
+   autentication based on standard and well defined mechanism. TLS hello 
+   message extensions are used to determine which attributes, operations and 
+   secure channel protocols are supported by both TLS endpoints.
+
+
+Table of Contents
+
+   1.  Introduction
+   1.1   Terminology
+   2.  TLS Side Channel Authentication
+     2.1.  The Initial SCA Handshake 
+     2.1.1.  Message flow for the initial handshake
+     2.2.  The Initial SCA Double Handshake
+     2.2.1.  Message flow for the double handshake technique
+     2.3.  The Renegotiation Handshake
+   3.  Operations
+     3.1.  ExportKeyingMaterial
+     3.2.  ChannelValidate
+     3.3.  ChannelBindingCheck
+     3.4.  ChannelBindingStart
+     3.5.  ChannelBindingWait
+   4.  Terminology
+     4.1.  Keywords
+     4.2.  Attributes
+   5.  Security Considerations
+     5.1.  Keying Material Exporters
+     5.2.  Handshake Message for Supplemental Data
+     5.3.  Renegotiation Indication Extension
+     5.4.  Session Hash and Extended Master Secret Extension
+   6.  References
+     6.1.  Normative References
+     6.2.  Informative References
+     6.3.  URL References
+   
+   Author's Address
+
+
+1. Introduction
+
+   Keying Material Exporter allow additional keying material to be derived from
+   existing TLS channel and this exported keying material can then be used for 
+   a variety of purposes. 
+
+   This document specifies attributes, operations and authentication workflow 
+   for the process of channel binding on top of secure channel protocols with 
+   cryptographic integrity, confidentiality and straightforward bindings of
+   AAA information to application layer using well-defined mechanism.
+
+
+1.1. Terminology
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in RFC 2119 [N1].
+
+   The syntax for the supplemental_data and other attributes in handshake 
+   message are defined in Terminology section 4.2. of this document.
+
+
+2.  TLS side channel authentication
+
+2.1.  The Initial SCA Handshake
+
+   Alternately, it is also possible to do a double handshake where the server 
+   sends the SupplementalData information during both the first and the second 
+   handshake. Depending on the configuration, the server can decide if a 
+   second handshake is required.
+
+2.2.  The Initial SCA Double Handshake
+
+   The double handshake technique can be used to provide protection for the 
+   SupplementalData information and mechanism for synchronization channel 
+   binding process.
+
+   Figure 2.2.1. illustrates the message flow for the double handshake 
+   technique. 
+
+
+2.2.1.  Message flow for initial handshake
+
+   Client                                                   Server
+
+   ClientHello
+                               -------->                            |0
+                                                       ServerHello  |0
+                                                  SupplementalData  |0
+                                                 [ChannelValidate]  |0
+                                                      Certificate*  |0
+                                                ServerKeyExchange*  |0
+                                               CertificateRequest*  |0
+                               <--------           ServerHelloDone  |0
+   SupplementalData                                                 |0 
+   [ChannelValidate]                                                |0
+   Certificate*                                                     |0
+   ClientKeyExchange                                                |0
+   CertificateVerify*                                               |0
+   [ChangeCipherSpec]                                               |0
+   Finished                                                         |0
+   [ExportKeyingMaterial]                                           |0
+                               -------->                            |0
+                                                [ChangeCipherSpec]  |0
+                                                          Finished  |1
+                                            [ExportKeyingMaterial]  |1
+                                             [ChannelBindingStart]  |1
+                               <--------                            |1
+   ClientHello                 -------->                            |1
+                                                       ServerHello  |1
+                                                  SupplementalData  |1
+                                                 [ChannelValidate]  |1
+                                                      Certificate*  |1
+                                                ServerKeyExchange*  |1
+                                               CertificateRequest*  |1
+                               <--------           ServerHelloDone  |1
+   SupplementalData                                                 |1
+   [ChannelValidate]                                                |1
+   [ChannelBindingCheck]                                            |1
+   Certificate*                                                     |1
+   ClientKeyExchange                                                |1
+   CertificateVerify*                                               |1
+   [ChangeCipherSpec]                                               |1
+   Finished                                                         |1
+   [ChannelBindingStart]                                            |1
+                               -------->                            |1
+                                                [ChangeCipherSpec]  |1
+                                              [ChannelBindingWait]  |1
+   [ChannelBindingWait]*                                            |1
+                               <--------                  Finished  |2
+   Application Data            <------->          Application Data  |2
+
+   A zero (0) indicates that there is no communication protection; a one (1) 
+   indicates that protection is provided for the succesfull authentication
+   process and a two (2) indicates that protection is provided by both TLS 
+   end points.
+
+   *  Indicates optional or situation-dependent operation or message.
+
+   [] Indicates that operation or message is an TLS protocol independent. 
+      It is not a TLS handshake message.
+
+
+3.  Operations
+
+3.1.  ExportKeyingMaterial
+
+      ExportKeyingMaterial(tls_channel, 
+                           tls_config.rfc5705_label,
+                           tls_config.rfc5705_label_length,
+                           tls_config.rfc5705_context_value
+                           tls_config.rfc5705_context_value_length)
+
+      If no context is provided, it then computes:
+      tls_channel.tls_binding_key:= PRF(SecurityParameters.master_secret, 
+                                        tls_config.rfc5705.label,
+                                        SecurityParameters.client_random +
+                                        SecurityParameters.server_random
+                                       )[length]
+
+      If context is provided, it computes:
+      tls_channel.tls_binding_key:= PRF(SecurityParameters.master_secret, 
+                                        tls_config.rfc5705.label,
+                                        SecurityParameters.client_random +
+                                        SecurityParameters.server_random +
+                                        context_value_length + context_value
+                                       )[length]
+
+      In case of server public key it computes:
+      tls_channel.aaa_binding_key := PRF(tls_channel.tls_binding_key,
+                                         tls_channel.server_public_key)
+
+      In case of certificate public key it computes:
+      tls_channel.aaa_binding_key := PRF(tls_channel.tls_binding_key, 
+                                         tls_channel.server_cert_public_key)
+
+
+
+
+
+3.2.  ChannelValidate(tls_channel) 
+
+   Checking for required TLS Extension [RFC-5746] on this TLS Channel
+   Checking for required TLS Extension [RFC-4680] on this TLS Channel
+   Checking for required (SupplementalData.aaa_protocol==aaa)
+
+3.3.  ChannelBindingCheck(tls_channel)
+
+   ChannelBindingCheck(tls_channel)
+
+   If tls_channel.endpoint is server, it then checks:
+
+   Checking for required attribute tls_channel.aaa_session_id
+   Checking for required attribute tls_channel.aaa_binding_id
+   Checking for required attribute tls_channel.aaa_authority
+
+   If tls_channel.endpoint is client, it then checks:
+
+   Checking for required supplemental_data.aaa_session_id
+   Checking for required supplemental_data.aaa_binding_id
+   Checking for required supplemental_data.aaa_authority
+
+3.4.  ChannelBindingStart
+
+   ChannelBindingStart(tls_channel, 
+                       aaa_authority,
+                       aaa_session_id, 
+                       aaa_binding_id, 
+                       aaa_binding_key)
+
+   Starts channel binding process on tls_channel endpoint.  
+ 
+
+3.5.  ChannelBindingWait
+
+   ChannelBindingWait(tls_channel, 
+                      aaa_authority,
+                      aaa_session_id, 
+                      aaa_binding_id, 
+                      aaa_binding_key)
+
+   Waits for the result of channel binding process on tls_channel endpoint.
+
+
+4. Terminology
+
+4.1.  Keywords
+
+   AAA                     Authentication, Authorization, and Accounting:
+                           functions that are generally required to control 
+                           access to a service and support auditing.
+
+   PRF                     Pseudorandom functions are deterministic functions 
+                           which return pseudorandom output indistinguishable 
+                           from random sequences. 
+
+                           They are made based on pseudorandom generators but 
+                           contrary to them, in addition to the internal state, 
+                           they can accept any input data. The input may be 
+                           arbitrary but the output must always look completely 
+                           random.
+
+                           A pseudorandom function, which output is 
+                           indistinguishable from random sequences, is called 
+                           a secure one.a
+
+   Confidentiality         Ensuring the information exchanged between two 
+                           parties is confidential between them and is not 
+                           visible to anyone else.
+
+   Integrity               Ensuring that message integrity is not changed while
+                           in transit.
+
+   Secure channel          A packet, datagram, octet stream connection, or
+                           sequence of connections between two end-points that 
+                           affords cryptographic integrity and confidentiality 
+                           to data exchanged over it. 
+
+   Channel binding         the process of establishing that no MITM exists 
+                           between two end-points that have been authenticated
+                           using secure channel.
+
+4.2.  Attributes
+
+   tls_channel             Abstract attribute asociation with TLS Channel
+
+   tls_session_id          TLS Session identifier is a unique value generated 
+                           by a server that identifies a particular session.
+
+                           Interaction with TLS Session ID
+                           https://tools.ietf.org/html/rfc5077#page-9
+
+   tls_binding_id          Uniquely identifies Channel Binding process.
+
+   tls_binding_key         Exported Keying Material [RFC-5705]
+
+                           TLS Binding Key is derived keying material from 
+                           existing TLS channel exactly after initial full 
+                           handshake and before any application layer data are 
+                           transmitted over TLS.
+
+                           This keying material can then used for mutual side 
+                           channel authentication using process of channel 
+                           binding on top of secure channel with cryptographic
+                           integrity and confidentiality.
+
+                           If no context is provided, it then computes:
+                           PRF(SecurityParameters.master_secret, label,
+                               SecurityParameters.client_random +
+                               SecurityParameters.server_random
+                           )[length]
+
+                           If context is provided, it computes:
+                           PRF(SecurityParameters.master_secret, label,
+                               SecurityParameters.client_random +
+                               SecurityParameters.server_random +
+                               context_value_length + context_value
+                           )[length]
+
+                           Note that exporter labels have the potential to 
+                           collide with existing PRF labels. In order to 
+                           prevent this, tls_binding_key labels MUST begin 
+                           with "AAA_BINDING".
+
+   aaa_binding_key         TLS side channel authentication requires one more 
+                           key derivation because exported keying material and
+                           master secret is not cryptographically bound to 
+                           important session parameters such as server public.
+
+                           In case of server public key it computes:
+                           PRF(tls_binding_key,
+                               tls_channel.server_public_key)
+
+                           In case of certificate public key it computes:
+                           computes:
+                           PRF(tls_binding_key, 
+                               tls_channel.server_cert_public_key)
+
+   aaa_session_id          The AAA Session ID MUST be assigned by the server 
+                           which is protected by double handshake technique for 
+                           the succesfull authentication process.
+
+                           Interaction with TLS Session ID
+                           https://tools.ietf.org/html/rfc5077#page-9
+
+   aaa_protocol            Identifies secure channel protocol.
+
+   aaa_authority           Uniquely identifies secure channel authority.
+
+   aaa_message_type        Custom message types
+   aaa_message_text        Custom message text related to aaa_message_type
+
+
+5.  Security Considerations
+
+5.1.  Keying Material Exporters for TLS 
+
+   Keying Material Exporter labels have the potential to collide with existing 
+   PRF labels. In order to prevent this, tls_binding_key labels MUST begin with 
+   "AAA_BINDING" and aaa_session_key MUST begin with "AAA_SESSION".
+
+
+5.2.  Handshake Message for Supplemental Data
+
+   This specification defines a new handshake message type that bundles 
+   together all data objects that are to be delivered to the protected 
+   application layer and sends them in a single handshake message. 
+
+   This extension MUST be enabled on TLS channel.
+
+
+5.3.  Renegotiation Indication Extension
+
+   This specification defines a TLS extension to cryptographically tie 
+   renegotiations to the TLS connections they are being performed over. 
+
+   This extension MUST be must be enabled for the double handshake technique.
+
+
+5.4.  Session Hash and Extended Master Secret Extension
+
+   Exported keying material and master secret is not cryptographically bound 
+   to important session parameters such as the server certificate and/or server
+   public key and that is the reason why we introduce aaa_binding_key.
+
+   Consequently, it is possible for an active attacker to set up two sessions,
+   one with a client and another with a server, such that the master secrets on
+   the two sessions are the same.  Thereafter, any mechanism that relies on the
+   master secret for authentication, including session resumption, becomes 
+   vulnerable to a man-in-the-middle attack, where the attacker can simply 
+   forward messages back and forth between the client and server. 
+
+
+6. Reference
+
+6.1.  Normative References
+
+   [RFC5705]               "Keying Material Exporters for TLS" 
+                           E. Rescorla, RFC 5705 March 2010
+                           http://tools.ietf.org/html/rfc5705
+
+   [RFC5929]               "Channel Bindings for TLS" 
+                           J. Altman, N. Williams, L. Zhu, RFC 5929, July 2010
+                           http://tools.ietf.org/html/rfc5929
+
+   [RFC4680]               "TLS Handshake Message for Supplemental Data"
+                           S. Santesson, RFC 4680, September 2006
+                           http://tools.ietf.org/html/rfc4680
+
+   [RFC5878]               "TLS Authorization Extension"
+                           M. Brown, R. Housley, RFC 5878, May 2010
+                           http://tools.ietf.org/html/rfc5878
+
+   [RFC5746]               "TLS Renegotiation Indication Extension"
+                           E. Rescorla, M. Raym, S. Dispensa, N. Oskov
+                           RFC 5746, February 2010
+                           http://tools.ietf.org/html/rfc5746
+
+   [RFC7627]               "TLS Session Hash and Extended Master Secret Ext."
+                           A. Delignat-Lavaud, A. Pironti, 
+                           Inria Paris-Rocquencourt, A. Langley
+                           Google Inc. Microsoft Corp. RFC 7627 September 2015
+                           https://tools.ietf.org/html/rfc7627
+
+   [RFC7301]               "TLS Application-Layer Protocol Negotiation Ext."
+                           S. Friedl, A. Popov, A. Langley, E.Stephan 
+                           Cisco Systems, Microsoft, Google   RFC7301 July 2014
+                           https://tools.ietf.org/html/rfc7301
+
+6.2.  Informative References
+
+   [CHANNEL-BINDING]               
+                           Channel binding unique prefix: aaa
+                           Channel binding type: endpoint
+                           Channel binding is secret
+                           https://tools.ietf.org/html/rfc5056#page-6
+
+6.3.  URL References
+
+   [OPENAAA]               TLS side channel authentication and straightforward
+                           bindings of AAA information to application layer 
+                           using well-defined mechanism. 
+                           "https://github.com/n13l/openaaa/blob/master/doc/tls"
+
+   [OPENVPN]               Added support for TLS Keying Material Exporters 
+                           "https://github.com/OpenVPN/openvpn/blob/master/doc"
+                           "/keying-material-exporter.txt"
+
+
+Appendix A.  Change Log
+
+Author's Address
+
+   Daniel Kubec <niel@rtfm.cz>

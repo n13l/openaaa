@@ -1,0 +1,24 @@
+AAA {
+
+# TLS Keying Material Exporter [RFC-5705]
+#
+# Label values beginning with "EXPERIMENTAL" MAY be used for private 
+# use without registration.  Note that exporter labels have the 
+# potential to collide with existing PRF labels.  In order to prevent 
+# this, labels SHOULD begin with "EXPORTER".  
+#
+# The output is a pseudorandom bit string of length bytes generated 
+# from the master_secret.
+
+TLS.ExportedKeyingMaterial.Context "OpenAAA"
+TLS.ExportedKeyingMaterial.Label   "EXPORTER_AAA"
+TLS.ExportedKeyingMaterial.Length  "8"
+
+# TLS Handshake Message for Supplemental Data [RFC-4680]
+#
+# TLS.SupplementalData.Server.Set AAA_Authority
+# TLS.SupplementalData.Server.Set AAA_Protocol
+# TLS.SupplementalData.Client.Get AAA_Authority
+# TLS.SupplementalData.Client.Get AAA_Protocol
+
+}

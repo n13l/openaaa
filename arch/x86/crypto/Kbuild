@@ -1,0 +1,1 @@
+obj-y += crc32c.o

@@ -1,0 +1,177 @@
+sudo: required
+services:
+  - docker
+language:
+  - c
+compiler:
+  - gcc
+  - clang
+os:
+  - linux
+  - osx
+addons:
+  apt:
+    packages:
+    - flex
+    - bison
+    - gperf
+    - pkg-config
+    - binutils-mingw-w64-i686
+    - gcc-mingw-w64-i686
+    - binutils-mingw-w64
+    - gcc-mingw-w64
+env:
+  global:
+    - BUILD_BRANCH=$TRAVIS_BRANCH
+    - BUILD_ID=$TRAVIS_BUILD_NUMBER
+  matrix:
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux PACK=none
+    - BUILD_DEPLOY=1 BUILD_TARGET=osx PACK=none
+    - BUILD_DEPLOY=1 BUILD_TARGET=win32 PACK=none
+    - BUILD_DEPLOY=1 BUILD_TARGET=win64 PACK=none
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=22 PACK=rpm
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=23 PACK=rpm
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=rawhide PACK=rpm
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=trusty PACK=deb
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=precise PACK=deb
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=wily PACK=deb
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=xenial PACK=deb
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=jessie PACK=deb
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=wheezy PACK=deb
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=stretch PACK=deb
+    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=sid PACK=deb
+matrix:
+  allow_failures:
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=22 PACK=rpm
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=23 PACK=rpm
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=rawhide PACK=rpm
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=precise PACK=deb
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=trusty PACK=deb
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=wily PACK=deb
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=xenial PACK=deb
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=jessie PACK=deb
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=wheezy PACK=deb
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=stretch PACK=deb
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=sid PACK=deb
+  exclude:
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=22 PACK=rpm
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=23 PACK=rpm
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=rawhide PACK=rpm
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=precise PACK=deb
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=trusty PACK=deb
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=wily PACK=deb
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=xenial PACK=deb
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=wheezy PACK=deb
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=jessie PACK=deb
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=stretch PACK=deb
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=sid PACK=deb
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=22 PACK=rpm
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=23 PACK=rpm
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=rawhide PACK=rpm
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=precise PACK=deb
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=trusty PACK=deb
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=wily PACK=deb
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=xenial PACK=deb
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=wheezy PACK=deb
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=jessie PACK=deb
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=stretch PACK=deb
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=sid PACK=deb
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux PACK=none
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=osx PACK=none
+      os: linux
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=win32 PACK=none
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=win64 PACK=none 
+      os: osx
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=win32 PACK=none
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=win64 PACK=none
+      compiler: clang
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
+      osx_image: xcode7.3
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
+      osx_image: xcode7.3
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=22 PACK=rpm
+      osx_image: xcode7.3
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=23 PACK=rpm
+      osx_image: xcode7.3
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=rawhide PACK=rpm
+      osx_image: xcode7.3
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=precise PACK=deb
+      osx_image: xcode7.3
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=trusty PACK=deb
+      osx_image: xcode7.3
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=wily PACK=deb
+      osx_image: xcode7.3
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=xenial PACK=deb
+      osx_image: xcode7.3
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=wheezy PACK=deb
+      osx_image: xcode7.3
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=jessie PACK=deb
+      osx_image: xcode7.3
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=stretch PACK=deb
+      osx_image: xcode7.3
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=sid PACK=deb
+      osx_image: xcode7.3
+before_deploy:
+- export BUILD_ARCHIVE=openaaa-$BUILD_MAJOR.$BUILD_MINOR.$BUILD_REVISION-$BUILD_OS_NAME-$BUILD_OS_ARCH-$BUILD_OS_RELEASE.tar.gz
+- ./scripts/travis/archive.sh $BUILD_ARCHIVE
+before_install:
+- source ./scripts/travis/before_install.sh
+script:
+- git clone https://github.com/tarantool/build.git
+- ./build/pack/travis.sh
+- uname -a
+- make defconfig
+- make
+notifications:
+  on_success: never
+  on_failure: never
+  email: false
+git:
+  depth: 5
+deploy:
+  provider: releases
+  api_key:
+    secure: jXSZuvXQzlli8DIEvDfIiqYYTgYGqjNCZaZzkV1xzNNzmLfzHR3Rp50DlkfBvg6AEQeeA5si2xBtXfYcjehgljdzdUxrMs3L0YUi7gG7WtzVU5v2GErgqWdpTWH+MAshPL6TAFGpnThdJPFADzhHgW4BdosKQQCOghnVZq4e3N1+9OkKBqlTF5xqmVruo9wlrh0JbImKJ/XPY/KcxQH1BkG53jWXnvF/6SjHshDXNdgzp6Jp41/ucJTVlScKTt5sNf+n44t9DFHFUrrcF7kS2c8UJfKZPN0zm9EnGw24eSoU/gzcLTG/5yUQQHtwID8jVrEFW53K9pypULEo6exbQI9e5Cy8vWMZm3NtI8CnMKE4N/H+rQIokrSP/SWPauLYFb7cRYPJpPdSR3bQ9XFV32V8PaoDI50B0xJvqyGgs3HcVeat6MU2oj7LFLkdkWkhkMm22PlSh+ot7+ukcK2GH4fI60nBbdGJNFAK21PGwUbcA+ThugsvaJwNzLmiF5XzRtkjAfsWGFs7EfP2XsCC3iUA42C7eoabpIQ/CU6I5KAWFlZSWV8b7MEU2YovVI5vEVhQ0SshqhoSGqgbOj65gwul/Z9FSldVSyjSHOl6wKiZSrkIugqdl8y8N26kBxrLD9fKqBRjVHKgVBqDd8rg9HM3Xx0pWscmjk0Y5IKTZ/k=
+  file: "$BUILD_ARCHIVE"
+  skip_cleanup: true
+  on:
+    tags: yes
+    repo: n13l/openaaa
+    condition: "$BUILD_DEPLOY = 1"

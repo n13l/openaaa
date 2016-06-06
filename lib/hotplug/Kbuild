@@ -1,0 +1,51 @@
+libname               := libhotplug-$(PACKAGEVERSION)
+always                += $(libname).$(so)
+always                += $(if $(JDK_HOME),$(libname).jar,)
+
+obj-y                 += dev.o usb.o
+obj-$(CONFIG_JNI)     += jvm.o jni.o
+
+ccflags-$(CONFIG_JNI) += -I$(JDK_HOME)/include -I$(JDK_HOME)/include/$(PLATFORM)
+ccflags-$(CONFIG_JNI) += -DBUILD_JNI=1
+
+#swig-flags            := -debug-module 1
+
+hotplug-dirs          := clib mem lib/hotplug sys/$(PLATFORM)
+hotplug-objs          := $(patsubst %,%/built-in.o, $(hotplug-dirs))
+hotplug-libs          := $(patsubst %,%/lib.a, $(libs-y))
+hotplug-all           := $(hotplug-objs) $(hotplug-libs) $(KBUILD_LIBS)
+
+$(obj)/$(libname).$(so): $(hotplug-objs) $(hotplug-libs)
+	$(call if_changed,$(libname).$(so))
+
+quiet_cmd_$(libname).$(so) = LD [M]  $@
+	cmd_$(libname).$(so) = $(CC) $(LDFLAGS) $(SHLIB_LDFLAGS) -o $@ \
+	                             $(hotplug-all)
+
+PHONY += $(hotplug-dirs)
+$(hotplug-dirs): scripts_basic
+	$(Q)$(MAKE) $(build)=$@
+clean-files  += $(libname).$(so) $(libname).jar
+
+$(obj)/$(libname).jar: $(obj)/jvm.c
+	$(call if_changed,$(libname).jar)
+
+quiet_cmd_$(libname).jar = JR      $@
+	cmd_$(libname).jar = javac  $(obj)/*.java -d $(obj) && \
+	                     jar cf $(obj)/$(libname).jar \
+	                         -C $(obj) sys/plugable/Device.class \
+	                         -C $(obj) sys/plugable/Module.class \
+	                         -C $(obj) sys/plugable/DeviceConstants.class \
+	                         -C $(obj) sys/plugable/HotPlug.class \
+	                         -C $(obj) sys/plugable/Notification.class \
+	                         -C $(obj) sys/plugable/Test.class
+
+$(obj)/Test.java: $(KBUILD_SRC)/$(src)/java/Test.java
+	@cp $(KBUILD_SRC)/$(src)/java/Test.java $(obj)/Test.java
+
+$(obj)/Notification.java: $(KBUILD_SRC)/$(src)/java/Notification.java
+	@cp $(KBUILD_SRC)/$(src)/java/Notification.java $(obj)/Notification.java
+
+$(obj)/jvm.c: $(src)/lib.i $(obj)/Test.java $(obj)/Notification.java
+	@swig $(swig-flags) -package sys.plugable -I$(s) -java \
+	      -outdir $(obj)/ -o $@ $<

@@ -1,0 +1,89 @@
+#
+# General architecture dependent options
+#
+#
+
+config HAVE_64BIT_ALIGNED_ACCESS
+	def_bool 64BIT && !HAVE_EFFICIENT_UNALIGNED_ACCESS
+	help
+	  Some architectures require 64 bit accesses to be 64 bit
+	  aligned, which also requires structs containing 64 bit values
+	  to be 64 bit aligned too. This includes some 32 bit
+	  architectures which can do 64 bit accesses, as well as 64 bit
+	  architectures without unaligned access.
+
+	  This symbol should be selected by an architecture if 64 bit
+	  accesses are required to be 64 bit aligned in this way even
+	  though it is not a 64 bit architecture.
+
+	  See Documentation/unaligned-memory-access.txt for more
+	  information on the topic of unaligned memory accesses.
+
+config HAVE_EFFICIENT_UNALIGNED_ACCESS
+	bool
+	help
+	  Some architectures are unable to perform unaligned accesses
+	  without the use of get_unaligned/put_unaligned. Others are
+	  unable to perform such accesses efficiently (e.g. trap on
+	  unaligned access and require fixing it up in the exception
+	  handler.)
+
+	  This symbol should be selected by an architecture if it can
+	  perform unaligned accesses efficiently to allow different
+	  code paths to be selected for these cases. Some network
+	  drivers, for example, could opt to not fix up alignment
+	  problems with received packets if doing so would not help
+	  much.
+
+	  See Documentation/unaligned-memory-access.txt for more
+	  information on the topic of unaligned memory accesses.
+
+config HAVE_ALIGNED_STRUCT_PAGE
+	bool
+	help
+	  This makes sure that struct pages are double word aligned and that
+	  e.g. the SLUB allocator can perform double word atomic operations
+	  on a struct page for better performance. However selecting this
+	  might increase the size of a struct page by a word.
+
+config HAVE_CC_STACKPROTECTOR
+	bool
+	help
+	  An arch should select this symbol if:
+	  - its compiler supports the -fstack-protector option
+	  - it has implemented a stack canary (e.g. __stack_chk_guard)
+
+config CC_STACKPROTECTOR
+	def_bool n
+	help
+	  Set when a stack-protector mode is enabled, so that the build
+	  can enable kernel-side support for the GCC feature.
+
+config HOST
+	string
+
+config TARGET
+	string
+
+config MEMORY_HOTPLUG
+	def_bool n
+config MEMORY_HOTREMOVE
+	def_bool n
+
+config ARCH_ENABLE_MEMORY_HOTPLUG                                               
+        def_bool y                                                              
+        depends on X86_64 || (X86_32 && HIGHMEM)                                
+                                                                                
+config ARCH_ENABLE_MEMORY_HOTREMOVE                                             
+        def_bool y                                                              
+        depends on MEMORY_HOTPLUG                                               
+                                                                                
+config USE_PERCPU_NUMA_NODE_ID                                                  
+        def_bool y                                                              
+        depends on NUMA
+
+config HAVE_CMPXCHG_LOCAL                                                       
+        bool                                                                    
+                                                                                
+config HAVE_CMPXCHG_DOUBLE                                                      
+        bool

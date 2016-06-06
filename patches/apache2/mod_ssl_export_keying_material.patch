@@ -1,0 +1,62 @@
+diff --git a/modules/ssl/mod_ssl.c b/modules/ssl/mod_ssl.c
+index d699d2e..8f65181 100644
+--- a/modules/ssl/mod_ssl.c
++++ b/modules/ssl/mod_ssl.c
+@@ -432,6 +432,23 @@ static int ssl_engine_disable(conn_rec *c)
+     return 1;
+ }
+ 
++static int ssl_export_keying_material(conn_rec *c, 
++                                      unsigned char *out, size_t olen, 
++                                      const char *label, size_t llen,
++                                      const unsigned char *p, size_t plen,
++                                      int use_ctx)
++{
++
++#if OPENSSL_VERSION_NUMBER >= 0x1000000fL	
++    SSLConnRec *sslconn = myConnConfig(c);
++    return SSL_export_keying_material(sslconn->ssl, out, olen, label, 
++                                      llen, p, plen, use_ctx) ? OK : DECLINED;
++#else
++    return DECLINED;
++#endif    
++}
++
++
+ static int modssl_register_npn(conn_rec *c, 
+                                ssl_npn_advertise_protos advertisefn,
+                                ssl_npn_proto_negotiated negotiatedfn)
+@@ -625,6 +642,7 @@ static void ssl_register_hooks(apr_pool_t *p)
+ 
+     APR_REGISTER_OPTIONAL_FN(ssl_proxy_enable);
+     APR_REGISTER_OPTIONAL_FN(ssl_engine_disable);
++    APR_REGISTER_OPTIONAL_FN(ssl_export_keying_material);
+     APR_REGISTER_OPTIONAL_FN(modssl_register_npn);
+ 
+     ap_register_auth_provider(p, AUTHZ_PROVIDER_GROUP, "ssl",
+diff --git a/modules/ssl/mod_ssl.h b/modules/ssl/mod_ssl.h
+index 5213ec0..0f1333a 100644
+--- a/modules/ssl/mod_ssl.h
++++ b/modules/ssl/mod_ssl.h
+@@ -63,6 +63,21 @@ APR_DECLARE_OPTIONAL_FN(int, ssl_proxy_enable, (conn_rec *));
+ 
+ APR_DECLARE_OPTIONAL_FN(int, ssl_engine_disable, (conn_rec *));
+ 
++/** The ssl_export_keying_material exports a value derived from the master
++ * secret, as specified in RFC 5705. It writes |olen| bytes to |out| given
++ * a label and optional context. (Since a zero length context is allowed,
++ * the |use_ctx| flag controls whether a context is included.)
++ *
++ * It returns OK on success and DECLINED otherwise.
++ */
++
++APR_DECLARE_OPTIONAL_FN(int, ssl_export_keying_material,
++                        (conn_rec *c,
++                        unsigned char *out, size_t olen, 
++                        const char *label, size_t llen,
++                        const unsigned char *p, size_t plen, 
++                        int use_ctx));
++
+ /** The npn_advertise_protos callback allows another modules to add
+  * entries to the list of protocol names advertised by the server
+  * during the Next Protocol Negotiation (NPN) portion of the SSL

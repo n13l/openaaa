@@ -1,0 +1,13 @@
+config SUPPORT_LANGUAGE
+        bool "Language Binding Support"
+        default n
+
+config SUPPORT_JAVA
+        bool "Enable API bindings for Java"
+        depends on SUPPORT_LANGUAGE
+        default y
+
+config SUPPORT_PYTHON
+        bool "Enable API bindings for Python (EXPERIMENTAL)"
+        depends on SUPPORT_LANGUAGE
+        default y

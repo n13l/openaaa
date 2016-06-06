@@ -1,0 +1,2 @@
+obj-y += aaa/
+#obj-y += hotplug/

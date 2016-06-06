@@ -1,0 +1,14 @@
+obj-y += crypto/
+obj-y += asm/
+ifeq ($(PLATFORM),darwin)
+obj-y += mach/
+endif
+ifeq ($(PLATFORM),linux)
+obj-y += elf/
+endif
+ifeq ($(PLATFORM),windows)
+obj-y += pe/
+endif
+ifeq ($(PLATFORM),win32)
+obj-y += pe/
+endif

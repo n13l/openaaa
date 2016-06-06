@@ -1,0 +1,904 @@
+config LITTLE_ENDIAN                                                            
+        def_bool y                                                              
+                                                                                
+config PAGE_SIZE                                                                
+        int                                                                     
+        default 4096
+
+config ARM
+	bool
+	default y
+	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+	select ARCH_HAS_ELF_RANDOMIZE
+	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+	select ARCH_HAVE_CUSTOM_GPIO_H
+	select ARCH_HAS_GCOV_PROFILE_ALL
+	select ARCH_MIGHT_HAVE_PC_PARPORT
+	select ARCH_SUPPORTS_ATOMIC_RMW
+	select ARCH_USE_BUILTIN_BSWAP
+	select ARCH_USE_CMPXCHG_LOCKREF
+	select ARCH_WANT_IPC_PARSE_VERSION
+	select BUILDTIME_EXTABLE_SORT if MMU
+	select CLONE_BACKWARDS
+	select CPU_PM if (SUSPEND || CPU_IDLE)
+	select DCACHE_WORD_ACCESS if HAVE_EFFICIENT_UNALIGNED_ACCESS
+	select GENERIC_ALLOCATOR
+	select GENERIC_ATOMIC64 if (CPU_V7M || CPU_V6 || !CPU_32v6K || !AEABI)
+	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
+	select GENERIC_IDLE_POLL_SETUP
+	select GENERIC_IRQ_PROBE
+	select GENERIC_IRQ_SHOW
+	select GENERIC_IRQ_SHOW_LEVEL
+	select GENERIC_PCI_IOMAP
+	select GENERIC_SCHED_CLOCK
+	select GENERIC_SMP_IDLE_THREAD
+	select GENERIC_STRNCPY_FROM_USER
+	select GENERIC_STRNLEN_USER
+	select HANDLE_DOMAIN_IRQ
+	select HARDIRQS_SW_RESEND
+	select HAVE_ARCH_AUDITSYSCALL if (AEABI && !OABI_COMPAT)
+	select HAVE_ARCH_BITREVERSE if (CPU_32v7M || CPU_32v7) && !CPU_32v6
+	select HAVE_ARCH_JUMP_LABEL if !XIP_KERNEL
+	select HAVE_ARCH_KGDB
+	select HAVE_ARCH_SECCOMP_FILTER if (AEABI && !OABI_COMPAT)
+	select HAVE_ARCH_TRACEHOOK
+	select HAVE_BPF_JIT
+	select HAVE_CC_STACKPROTECTOR
+	select HAVE_CONTEXT_TRACKING
+	select HAVE_C_RECORDMCOUNT
+	select HAVE_DEBUG_KMEMLEAK
+	select HAVE_DMA_API_DEBUG
+	select HAVE_DMA_ATTRS
+	select HAVE_DMA_CONTIGUOUS if MMU
+	select HAVE_DYNAMIC_FTRACE if (!XIP_KERNEL)
+	select HAVE_EFFICIENT_UNALIGNED_ACCESS if (CPU_V6 || CPU_V6K || CPU_V7) && MMU
+	select HAVE_FTRACE_MCOUNT_RECORD if (!XIP_KERNEL)
+	select HAVE_FUNCTION_GRAPH_TRACER if (!THUMB2_KERNEL)
+	select HAVE_FUNCTION_TRACER if (!XIP_KERNEL)
+	select HAVE_GENERIC_DMA_COHERENT
+	select HAVE_HW_BREAKPOINT if (PERF_EVENTS && (CPU_V6 || CPU_V6K || CPU_V7))
+	select HAVE_IDE if PCI || ISA || PCMCIA
+	select HAVE_IRQ_TIME_ACCOUNTING
+	select HAVE_KERNEL_GZIP
+	select HAVE_KERNEL_LZ4
+	select HAVE_KERNEL_LZMA
+	select HAVE_KERNEL_LZO
+	select HAVE_KERNEL_XZ
+	select HAVE_KPROBES if !XIP_KERNEL
+	select HAVE_KRETPROBES if (HAVE_KPROBES)
+	select HAVE_MEMBLOCK
+	select HAVE_MOD_ARCH_SPECIFIC if ARM_UNWIND
+	select HAVE_OPROFILE if (HAVE_PERF_EVENTS)
+	select HAVE_OPTPROBES if !THUMB2_KERNEL
+	select HAVE_PERF_EVENTS
+	select HAVE_PERF_REGS
+	select HAVE_PERF_USER_STACK_DUMP
+	select HAVE_RCU_TABLE_FREE if (SMP && ARM_LPAE)
+	select HAVE_REGS_AND_STACK_ACCESS_API
+	select HAVE_SYSCALL_TRACEPOINTS
+	select HAVE_UID16
+	select HAVE_VIRT_CPU_ACCOUNTING_GEN
+	select IRQ_FORCED_THREADING
+	select MODULES_USE_ELF_REL
+	select NO_BOOTMEM
+	select OLD_SIGACTION
+	select OLD_SIGSUSPEND3
+	select PERF_USE_VMALLOC
+	select RTC_LIB
+	select SYS_SUPPORTS_APM_EMULATION
+	# Above selects are sorted alphabetically; please add new ones
+	# according to that.  Thanks.
+	help
+	  The ARM series is a line of low-power-consumption RISC chip designs
+	  licensed by ARM Ltd and targeted at embedded applications and
+	  handhelds such as the Compaq IPAQ.  ARM-based PCs are no longer
+	  manufactured, but legacy ARM-based PC hardware remains popular in
+	  Europe.  There is an ARM Linux project with a web page at
+	  <http://www.arm.linux.org.uk/>.
+
+config ARM_HAS_SG_CHAIN
+	select ARCH_HAS_SG_CHAIN
+	bool
+
+config NEED_SG_DMA_LENGTH
+	bool
+
+config ARM_DMA_USE_IOMMU
+	bool
+	select ARM_HAS_SG_CHAIN
+	select NEED_SG_DMA_LENGTH
+
+config SYS_SUPPORTS_APM_EMULATION
+	bool
+
+config HAVE_PROC_CPU
+	bool
+
+config LOCKDEP_SUPPORT
+	bool
+	default y
+
+config TRACE_IRQFLAGS_SUPPORT
+	bool
+	default y
+
+config RWSEM_XCHGADD_ALGORITHM
+	bool
+	default y
+
+config ARCH_HAS_ILOG2_U32
+	bool
+
+config ARCH_HAS_ILOG2_U64
+	bool
+
+config ARCH_HAS_BANDGAP
+	bool
+
+config GENERIC_HWEIGHT
+	bool
+	default y
+
+config GENERIC_CALIBRATE_DELAY
+	bool
+	default y
+
+config ARCH_MAY_HAVE_PC_FDC
+	bool
+
+config ZONE_DMA
+	bool
+
+config NEED_DMA_MAP_STATE
+       def_bool y
+
+config ARCH_SUPPORTS_UPROBES
+	def_bool y
+
+config ARCH_HAS_DMA_SET_COHERENT_MASK
+	bool
+
+config GENERIC_BUG
+	def_bool y
+	depends on BUG
+
+config MMU
+	bool "MMU-based Paged Memory Management Support"
+	default y
+	help
+	  Select if you want MMU-based virtualised addressing space
+	  support by paged memory management. If unsure, say 'Y'.
+
+#
+# The "ARM system type" choice list is ordered alphabetically by option
+# text.  Please add new entries in the option alphabetic order.
+#
+choice
+	prompt "ARM system type"
+	default ARCH_VERSATILE if !MMU
+	default ARCH_MULTIPLATFORM if MMU
+
+config ARCH_MULTIPLATFORM
+	bool "Allow multiple platforms to be selected"
+	depends on MMU
+	select ARCH_WANT_OPTIONAL_GPIOLIB
+	select ARM_HAS_SG_CHAIN
+	select ARM_PATCH_PHYS_VIRT
+	select AUTO_ZRELADDR
+	select CLKSRC_OF
+	select COMMON_CLK
+	select GENERIC_CLOCKEVENTS
+	select MIGHT_HAVE_PCI
+	select MULTI_IRQ_HANDLER
+	select SPARSE_IRQ
+	select USE_OF
+
+config ARCH_REALVIEW
+	bool "ARM Ltd. RealView family"
+	select ARCH_WANT_OPTIONAL_GPIOLIB
+	select ARM_AMBA
+	select ARM_TIMER_SP804
+	select COMMON_CLK
+	select COMMON_CLK_VERSATILE
+	select GENERIC_CLOCKEVENTS
+	select GPIO_PL061 if GPIOLIB
+	select ICST
+	select NEED_MACH_MEMORY_H
+	select PLAT_VERSATILE
+	select PLAT_VERSATILE_SCHED_CLOCK
+	help
+	  This enables support for ARM Ltd RealView boards.
+
+config ARCH_VERSATILE
+	bool "ARM Ltd. Versatile family"
+	select ARCH_WANT_OPTIONAL_GPIOLIB
+	select ARM_AMBA
+	select ARM_TIMER_SP804
+	select ARM_VIC
+	select CLKDEV_LOOKUP
+	select GENERIC_CLOCKEVENTS
+	select HAVE_MACH_CLKDEV
+	select ICST
+	select PLAT_VERSATILE
+	select PLAT_VERSATILE_CLOCK
+	select PLAT_VERSATILE_SCHED_CLOCK
+	select VERSATILE_FPGA_IRQ
+	help
+	  This enables support for ARM Ltd Versatile board.
+
+config ARCH_CLPS711X
+	bool "Cirrus Logic CLPS711x/EP721x/EP731x-based"
+	select ARCH_REQUIRE_GPIOLIB
+	select AUTO_ZRELADDR
+	select CLKSRC_MMIO
+	select COMMON_CLK
+	select CPU_ARM720T
+	select GENERIC_CLOCKEVENTS
+	select MFD_SYSCON
+	select SOC_BUS
+	help
+	  Support for Cirrus Logic 711x/721x/731x based boards.
+
+config ARCH_GEMINI
+	bool "Cortina Systems Gemini"
+	select ARCH_REQUIRE_GPIOLIB
+	select CLKSRC_MMIO
+	select CPU_FA526
+	select GENERIC_CLOCKEVENTS
+	help
+	  Support for the Cortina Systems Gemini family SoCs
+
+config ARCH_EBSA110
+	bool "EBSA-110"
+	select ARCH_USES_GETTIMEOFFSET
+	select CPU_SA110
+	select ISA
+	select NEED_MACH_IO_H
+	select NEED_MACH_MEMORY_H
+	select NO_IOPORT_MAP
+	help
+	  This is an evaluation board for the StrongARM processor available
+	  from Digital. It has limited hardware on-board, including an
+	  Ethernet interface, two PCMCIA sockets, two serial ports and a
+	  parallel port.
+
+config ARCH_EFM32
+	bool "Energy Micro efm32"
+	depends on !MMU
+	select ARCH_REQUIRE_GPIOLIB
+	select ARM_NVIC
+	select AUTO_ZRELADDR
+	select CLKSRC_OF
+	select COMMON_CLK
+	select CPU_V7M
+	select GENERIC_CLOCKEVENTS
+	select NO_DMA
+	select NO_IOPORT_MAP
+	select SPARSE_IRQ
+	select USE_OF
+	help
+	  Support for Energy Micro's (now Silicon Labs) efm32 Giant Gecko
+	  processors.
+
+config ARCH_EP93XX
+	bool "EP93xx-based"
+	select ARCH_HAS_HOLES_MEMORYMODEL
+	select ARCH_REQUIRE_GPIOLIB
+	select ARCH_USES_GETTIMEOFFSET
+	select ARM_AMBA
+	select ARM_VIC
+	select CLKDEV_LOOKUP
+	select CPU_ARM920T
+	help
+	  This enables support for the Cirrus EP93xx series of CPUs.
+
+config ARCH_FOOTBRIDGE
+	bool "FootBridge"
+	select CPU_SA110
+	select FOOTBRIDGE
+	select GENERIC_CLOCKEVENTS
+	select HAVE_IDE
+	select NEED_MACH_IO_H if !MMU
+	select NEED_MACH_MEMORY_H
+	help
+	  Support for systems based on the DC21285 companion chip
+	  ("FootBridge"), such as the Simtec CATS and the Rebel NetWinder.
+
+config ARCH_NETX
+	bool "Hilscher NetX based"
+	select ARM_VIC
+	select CLKSRC_MMIO
+	select CPU_ARM926T
+	select GENERIC_CLOCKEVENTS
+	help
+	  This enables support for systems based on the Hilscher NetX Soc
+
+config ARCH_IOP13XX
+	bool "IOP13xx-based"
+	depends on MMU
+	select CPU_XSC3
+	select NEED_MACH_MEMORY_H
+	select NEED_RET_TO_USER
+	select PCI
+	select PLAT_IOP
+	select VMSPLIT_1G
+	select SPARSE_IRQ
+	help
+	  Support for Intel's IOP13XX (XScale) family of processors.
+
+config ARCH_IOP32X
+	bool "IOP32x-based"
+	depends on MMU
+	select ARCH_REQUIRE_GPIOLIB
+	select CPU_XSCALE
+	select GPIO_IOP
+	select NEED_RET_TO_USER
+	select PCI
+	select PLAT_IOP
+	help
+	  Support for Intel's 80219 and IOP32X (XScale) family of
+	  processors.
+
+config ARCH_IOP33X
+	bool "IOP33x-based"
+	depends on MMU
+	select ARCH_REQUIRE_GPIOLIB
+	select CPU_XSCALE
+	select GPIO_IOP
+	select NEED_RET_TO_USER
+	select PCI
+	select PLAT_IOP
+	help
+	  Support for Intel's IOP33X (XScale) family of processors.
+
+config ARCH_IXP4XX
+	bool "IXP4xx-based"
+	depends on MMU
+	select ARCH_HAS_DMA_SET_COHERENT_MASK
+	select ARCH_REQUIRE_GPIOLIB
+	select ARCH_SUPPORTS_BIG_ENDIAN
+	select CLKSRC_MMIO
+	select CPU_XSCALE
+	select DMABOUNCE if PCI
+	select GENERIC_CLOCKEVENTS
+	select MIGHT_HAVE_PCI
+	select NEED_MACH_IO_H
+	select USB_EHCI_BIG_ENDIAN_DESC
+	select USB_EHCI_BIG_ENDIAN_MMIO
+	help
+	  Support for Intel's IXP4XX (XScale) family of processors.
+
+config ARCH_DOVE
+	bool "Marvell Dove"
+	select ARCH_REQUIRE_GPIOLIB
+	select CPU_PJ4
+	select GENERIC_CLOCKEVENTS
+	select MIGHT_HAVE_PCI
+	select MVEBU_MBUS
+	select PINCTRL
+	select PINCTRL_DOVE
+	select PLAT_ORION_LEGACY
+	help
+	  Support for the Marvell Dove SoC 88AP510
+
+config ARCH_MV78XX0
+	bool "Marvell MV78xx0"
+	select ARCH_REQUIRE_GPIOLIB
+	select CPU_FEROCEON
+	select GENERIC_CLOCKEVENTS
+	select MVEBU_MBUS
+	select PCI
+	select PLAT_ORION_LEGACY
+	help
+	  Support for the following Marvell MV78xx0 series SoCs:
+	  MV781x0, MV782x0.
+
+config ARCH_ORION5X
+	bool "Marvell Orion"
+	depends on MMU
+	select ARCH_REQUIRE_GPIOLIB
+	select CPU_FEROCEON
+	select GENERIC_CLOCKEVENTS
+	select MVEBU_MBUS
+	select PCI
+	select PLAT_ORION_LEGACY
+	help
+	  Support for the following Marvell Orion 5x series SoCs:
+	  Orion-1 (5181), Orion-VoIP (5181L), Orion-NAS (5182),
+	  Orion-2 (5281), Orion-1-90 (6183).
+
+config ARCH_MMP
+	bool "Marvell PXA168/910/MMP2"
+	depends on MMU
+	select ARCH_REQUIRE_GPIOLIB
+	select CLKDEV_LOOKUP
+	select GENERIC_ALLOCATOR
+	select GENERIC_CLOCKEVENTS
+	select GPIO_PXA
+	select IRQ_DOMAIN
+	select MULTI_IRQ_HANDLER
+	select PINCTRL
+	select PLAT_PXA
+	select SPARSE_IRQ
+	help
+	  Support for Marvell's PXA168/PXA910(MMP) and MMP2 processor line.
+
+config ARCH_KS8695
+	bool "Micrel/Kendin KS8695"
+	select ARCH_REQUIRE_GPIOLIB
+	select CLKSRC_MMIO
+	select CPU_ARM922T
+	select GENERIC_CLOCKEVENTS
+	select NEED_MACH_MEMORY_H
+	help
+	  Support for Micrel/Kendin KS8695 "Centaur" (ARM922T) based
+	  System-on-Chip devices.
+
+config ARCH_W90X900
+	bool "Nuvoton W90X900 CPU"
+	select ARCH_REQUIRE_GPIOLIB
+	select CLKDEV_LOOKUP
+	select CLKSRC_MMIO
+	select CPU_ARM926T
+	select GENERIC_CLOCKEVENTS
+	help
+	  Support for Nuvoton (Winbond logic dept.) ARM9 processor,
+	  At present, the w90x900 has been renamed nuc900, regarding
+	  the ARM series product line, you can login the following
+	  link address to know more.
+
+	  <http://www.nuvoton.com/hq/enu/ProductAndSales/ProductLines/
+		ConsumerElectronicsIC/ARMMicrocontroller/ARMMicrocontroller>
+
+config ARCH_LPC32XX
+	bool "NXP LPC32XX"
+	select ARCH_REQUIRE_GPIOLIB
+	select ARM_AMBA
+	select CLKDEV_LOOKUP
+	select CLKSRC_MMIO
+	select CPU_ARM926T
+	select GENERIC_CLOCKEVENTS
+	select HAVE_IDE
+	select USE_OF
+	help
+	  Support for the NXP LPC32XX family of processors
+
+config ARCH_PXA
+	bool "PXA2xx/PXA3xx-based"
+	depends on MMU
+	select ARCH_MTD_XIP
+	select ARCH_REQUIRE_GPIOLIB
+	select ARM_CPU_SUSPEND if PM
+	select AUTO_ZRELADDR
+	select CLKDEV_LOOKUP
+	select CLKSRC_MMIO
+	select CLKSRC_OF
+	select GENERIC_CLOCKEVENTS
+	select GPIO_PXA
+	select HAVE_IDE
+	select IRQ_DOMAIN
+	select MULTI_IRQ_HANDLER
+	select PLAT_PXA
+	select SPARSE_IRQ
+	help
+	  Support for Intel/Marvell's PXA2xx/PXA3xx processor line.
+
+config ARCH_SHMOBILE_LEGACY
+	bool "Renesas ARM SoCs (non-multiplatform)"
+	select ARCH_SHMOBILE
+	select ARM_PATCH_PHYS_VIRT if MMU
+	select CLKDEV_LOOKUP
+	select CPU_V7
+	select GENERIC_CLOCKEVENTS
+	select HAVE_ARM_SCU if SMP
+	select HAVE_ARM_TWD if SMP
+	select HAVE_SMP
+	select MIGHT_HAVE_CACHE_L2X0
+	select MULTI_IRQ_HANDLER
+	select NO_IOPORT_MAP
+	select PINCTRL
+	select PM_GENERIC_DOMAINS if PM
+	select SH_CLK_CPG
+	select SPARSE_IRQ
+	help
+	  Support for Renesas ARM SoC platforms using a non-multiplatform
+	  kernel. This includes the SH-Mobile, R-Mobile, EMMA-Mobile, R-Car
+	  and RZ families.
+
+config ARCH_RPC
+	bool "RiscPC"
+	select ARCH_ACORN
+	select ARCH_MAY_HAVE_PC_FDC
+	select ARCH_SPARSEMEM_ENABLE
+	select ARCH_USES_GETTIMEOFFSET
+	select CPU_SA110
+	select FIQ
+	select HAVE_IDE
+	select HAVE_PATA_PLATFORM
+	select ISA_DMA_API
+	select NEED_MACH_IO_H
+	select NEED_MACH_MEMORY_H
+	select NO_IOPORT_MAP
+	select VIRT_TO_BUS
+	help
+	  On the Acorn Risc-PC, Linux can support the internal IDE disk and
+	  CD-ROM interface, serial and parallel port, and the floppy drive.
+
+config ARCH_SA1100
+	bool "SA1100-based"
+	select ARCH_MTD_XIP
+	select ARCH_REQUIRE_GPIOLIB
+	select ARCH_SPARSEMEM_ENABLE
+	select CLKDEV_LOOKUP
+	select CLKSRC_MMIO
+	select CPU_FREQ
+	select CPU_SA1100
+	select GENERIC_CLOCKEVENTS
+	select HAVE_IDE
+	select IRQ_DOMAIN
+	select ISA
+	select MULTI_IRQ_HANDLER
+	select NEED_MACH_MEMORY_H
+	select SPARSE_IRQ
+	help
+	  Support for StrongARM 11x0 based boards.
+
+config ARCH_S3C24XX
+	bool "Samsung S3C24XX SoCs"
+	select ARCH_REQUIRE_GPIOLIB
+	select ATAGS
+	select CLKDEV_LOOKUP
+	select CLKSRC_SAMSUNG_PWM
+	select GENERIC_CLOCKEVENTS
+	select GPIO_SAMSUNG
+	select HAVE_S3C2410_I2C if I2C
+	select HAVE_S3C2410_WATCHDOG if WATCHDOG
+	select HAVE_S3C_RTC if RTC_CLASS
+	select MULTI_IRQ_HANDLER
+	select NEED_MACH_IO_H
+	select SAMSUNG_ATAGS
+	help
+	  Samsung S3C2410, S3C2412, S3C2413, S3C2416, S3C2440, S3C2442, S3C2443
+	  and S3C2450 SoCs based systems, such as the Simtec Electronics BAST
+	  (<http://www.simtec.co.uk/products/EB110ITX/>), the IPAQ 1940 or the
+	  Samsung SMDK2410 development board (and derivatives).
+
+config ARCH_S3C64XX
+	bool "Samsung S3C64XX"
+	select ARCH_REQUIRE_GPIOLIB
+	select ARM_AMBA
+	select ARM_VIC
+	select ATAGS
+	select CLKDEV_LOOKUP
+	select CLKSRC_SAMSUNG_PWM
+	select COMMON_CLK_SAMSUNG
+	select CPU_V6K
+	select GENERIC_CLOCKEVENTS
+	select GPIO_SAMSUNG
+	select HAVE_S3C2410_I2C if I2C
+	select HAVE_S3C2410_WATCHDOG if WATCHDOG
+	select HAVE_TCM
+	select NO_IOPORT_MAP
+	select PLAT_SAMSUNG
+	select PM_GENERIC_DOMAINS if PM
+	select S3C_DEV_NAND
+	select S3C_GPIO_TRACK
+	select SAMSUNG_ATAGS
+	select SAMSUNG_WAKEMASK
+	select SAMSUNG_WDT_RESET
+	help
+	  Samsung S3C64XX series based systems
+
+config ARCH_DAVINCI
+	bool "TI DaVinci"
+	select ARCH_HAS_HOLES_MEMORYMODEL
+	select ARCH_REQUIRE_GPIOLIB
+	select CLKDEV_LOOKUP
+	select GENERIC_ALLOCATOR
+	select GENERIC_CLOCKEVENTS
+	select GENERIC_IRQ_CHIP
+	select HAVE_IDE
+	select TI_PRIV_EDMA
+	select USE_OF
+	select ZONE_DMA
+	help
+	  Support for TI's DaVinci platform.
+
+config ARCH_OMAP1
+	bool "TI OMAP1"
+	depends on MMU
+	select ARCH_HAS_HOLES_MEMORYMODEL
+	select ARCH_OMAP
+	select ARCH_REQUIRE_GPIOLIB
+	select CLKDEV_LOOKUP
+	select CLKSRC_MMIO
+	select GENERIC_CLOCKEVENTS
+	select GENERIC_IRQ_CHIP
+	select HAVE_IDE
+	select IRQ_DOMAIN
+	select NEED_MACH_IO_H if PCCARD
+	select NEED_MACH_MEMORY_H
+	help
+	  Support for older TI OMAP1 (omap7xx, omap15xx or omap16xx)
+
+endchoice
+
+menu "Multiple platform selection"
+	depends on ARCH_MULTIPLATFORM
+
+comment "CPU Core family selection"
+
+config ARCH_MULTI_V4
+	bool "ARMv4 based platforms (FA526)"
+	depends on !ARCH_MULTI_V6_V7
+	select ARCH_MULTI_V4_V5
+	select CPU_FA526
+
+config ARCH_MULTI_V4T
+	bool "ARMv4T based platforms (ARM720T, ARM920T, ...)"
+	depends on !ARCH_MULTI_V6_V7
+	select ARCH_MULTI_V4_V5
+	select CPU_ARM920T if !(CPU_ARM7TDMI || CPU_ARM720T || \
+		CPU_ARM740T || CPU_ARM9TDMI || CPU_ARM922T || \
+		CPU_ARM925T || CPU_ARM940T)
+
+config ARCH_MULTI_V5
+	bool "ARMv5 based platforms (ARM926T, XSCALE, PJ1, ...)"
+	depends on !ARCH_MULTI_V6_V7
+	select ARCH_MULTI_V4_V5
+	select CPU_ARM926T if !(CPU_ARM946E || CPU_ARM1020 || \
+		CPU_ARM1020E || CPU_ARM1022 || CPU_ARM1026 || \
+		CPU_XSCALE || CPU_XSC3 || CPU_MOHAWK || CPU_FEROCEON)
+
+config ARCH_MULTI_V4_V5
+	bool
+
+config ARCH_MULTI_V6
+	bool "ARMv6 based platforms (ARM11)"
+	select ARCH_MULTI_V6_V7
+	select CPU_V6K
+
+config ARCH_MULTI_V7
+	bool "ARMv7 based platforms (Cortex-A, PJ4, Scorpion, Krait)"
+	default y
+	select ARCH_MULTI_V6_V7
+	select CPU_V7
+	select HAVE_SMP
+
+config ARCH_MULTI_V6_V7
+	bool
+	select MIGHT_HAVE_CACHE_L2X0
+
+config ARCH_MULTI_CPU_AUTO
+	def_bool !(ARCH_MULTI_V4 || ARCH_MULTI_V4T || ARCH_MULTI_V6_V7)
+	select ARCH_MULTI_V5
+
+endmenu
+
+config HAVE_SMP
+	bool
+	help
+	  This option should be selected by machines which have an SMP-
+	  capable CPU.
+
+	  The only effect of this option is to make the SMP-related
+	  options available to the user for configuration.
+
+config SMP
+	bool "Symmetric Multi-Processing"
+	depends on CPU_V6K || CPU_V7
+	depends on GENERIC_CLOCKEVENTS
+	depends on HAVE_SMP
+	depends on MMU || ARM_MPU
+	help
+	  This enables support for systems with more than one CPU. If you have
+	  a system with only one CPU, say N. If you have a system with more
+	  than one CPU, say Y.
+
+	  If you say N here, the kernel will run on uni- and multiprocessor
+	  machines, but will use only one CPU of a multiprocessor machine. If
+	  you say Y here, the kernel will run on many, but not all,
+	  uniprocessor machines. On a uniprocessor machine, the kernel
+	  will run faster if you say N here.
+
+	  See also <file:Documentation/x86/i386/IO-APIC.txt>,
+	  <file:Documentation/nmi_watchdog.txt> and the SMP-HOWTO available at
+	  <http://tldp.org/HOWTO/SMP-HOWTO.html>.
+
+	  If you don't know what to do here, say N.
+
+config SMP_ON_UP
+	bool "Allow booting SMP kernel on uniprocessor systems"
+	depends on SMP && !XIP_KERNEL && MMU
+	default y
+	help
+	  SMP kernels contain instructions which fail on non-SMP processors.
+	  Enabling this option allows the kernel to modify itself to make
+	  these instructions safe.  Disabling it allows about 1K of space
+	  savings.
+
+	  If you don't know what to do here, say Y.
+
+config ARM_CPU_TOPOLOGY
+	bool "Support cpu topology definition"
+	depends on SMP && CPU_V7
+	default y
+	help
+	  Support ARM cpu topology definition. The MPIDR register defines
+	  affinity between processors which is then used to describe the cpu
+	  topology of an ARM System.
+
+config SCHED_MC
+	bool "Multi-core scheduler support"
+	depends on ARM_CPU_TOPOLOGY
+	help
+	  Multi-core scheduler support improves the CPU scheduler's decision
+	  making when dealing with multi-core CPU chips at a cost of slightly
+	  increased overhead in some places. If unsure say N here.
+
+config SCHED_SMT
+	bool "SMT scheduler support"
+	depends on ARM_CPU_TOPOLOGY
+	help
+	  Improves the CPU scheduler's decision making when dealing with
+	  MultiThreading at a cost of slightly increased overhead in some
+	  places. If unsure say N here.
+
+config HAVE_ARM_SCU
+	bool
+	help
+	  This option enables support for the ARM system coherency unit
+
+config HAVE_ARM_ARCH_TIMER
+	bool "Architected timer support"
+	depends on CPU_V7
+	select ARM_ARCH_TIMER
+	select GENERIC_CLOCKEVENTS
+	help
+	  This option enables support for the ARM architected timer
+
+config HAVE_ARM_TWD
+	bool
+	depends on SMP
+	select CLKSRC_OF if OF
+	help
+	  This options enables support for the ARM timer and watchdog unit
+
+config MCPM
+	bool "Multi-Cluster Power Management"
+	depends on CPU_V7 && SMP
+	help
+	  This option provides the common power management infrastructure
+	  for (multi-)cluster based systems, such as big.LITTLE based
+	  systems.
+
+config MCPM_QUAD_CLUSTER
+	bool
+	depends on MCPM
+	help
+	  To avoid wasting resources unnecessarily, MCPM only supports up
+	  to 2 clusters by default.
+	  Platforms with 3 or 4 clusters that use MCPM must select this
+	  option to allow the additional clusters to be managed.
+
+config BIG_LITTLE
+	bool "big.LITTLE support (Experimental)"
+	depends on CPU_V7 && SMP
+	select MCPM
+	help
+	  This option enables support selections for the big.LITTLE
+	  system architecture.
+
+config BL_SWITCHER
+	bool "big.LITTLE switcher support"
+	depends on BIG_LITTLE && MCPM && HOTPLUG_CPU
+	select ARM_CPU_SUSPEND
+	select CPU_PM
+	help
+	  The big.LITTLE "switcher" provides the core functionality to
+	  transparently handle transition between a cluster of A15's
+	  and a cluster of A7's in a big.LITTLE system.
+
+config BL_SWITCHER_DUMMY_IF
+	tristate "Simple big.LITTLE switcher user interface"
+	depends on BL_SWITCHER && DEBUG_KERNEL
+	help
+	  This is a simple and dummy char dev interface to control
+	  the big.LITTLE switcher core code.  It is meant for
+	  debugging purposes only.
+
+config NR_CPUS
+	int "Maximum number of CPUs (2-32)"
+	range 2 32
+	depends on SMP
+	default "4"
+
+config HOTPLUG_CPU
+	bool "Support for hot-pluggable CPUs"
+	depends on SMP
+	help
+	  Say Y here to experiment with turning CPUs off and on.  CPUs
+	  can be controlled through /sys/devices/system/cpu.
+
+config ARM_ASM_UNIFIED
+	bool
+
+config AEABI
+	bool "Use the ARM EABI to compile the kernel"
+	help
+	  This option allows for the kernel to be compiled using the latest
+	  ARM ABI (aka EABI).  This is only useful if you are using a user
+	  space environment that is also compiled with EABI.
+
+	  Since there are major incompatibilities between the legacy ABI and
+	  EABI, especially with regard to structure member alignment, this
+	  option also changes the kernel syscall calling convention to
+	  disambiguate both ABIs and allow for backward compatibility support
+	  (selected with CONFIG_OABI_COMPAT).
+
+	  To use this you need GCC version 4.0.0 or later.
+
+config OABI_COMPAT
+	bool "Allow old ABI binaries to run with this kernel (EXPERIMENTAL)"
+	depends on AEABI && !THUMB2_KERNEL
+	help
+	  This option preserves the old syscall interface along with the
+	  new (ARM EABI) one. It also provides a compatibility layer to
+	  intercept syscalls that have structure arguments which layout
+	  in memory differs between the legacy ABI and the new ARM EABI
+	  (only for non "thumb" binaries). This option adds a tiny
+	  overhead to all syscalls and produces a slightly larger kernel.
+
+	  The seccomp filter system will not be available when this is
+	  selected, since there is no way yet to sensibly distinguish
+	  between calling conventions during filtering.
+
+	  If you know you'll be using only pure EABI user space then you
+	  can say N here. If this option is not selected and you attempt
+	  to execute a legacy ABI binary then the result will be
+	  UNPREDICTABLE (in fact it can be predicted that it won't work
+	  at all). If in doubt say N.
+
+config ARCH_HAS_HOLES_MEMORYMODEL
+	bool
+
+config ARCH_SPARSEMEM_ENABLE
+	bool
+
+config ARCH_SPARSEMEM_DEFAULT
+	def_bool ARCH_SPARSEMEM_ENABLE
+
+config ARCH_SELECT_MEMORY_MODEL
+	def_bool ARCH_SPARSEMEM_ENABLE
+
+config HAVE_ARCH_PFN_VALID
+	def_bool ARCH_HAS_HOLES_MEMORYMODEL || !SPARSEMEM
+
+config HAVE_GENERIC_RCU_GUP
+	def_bool y
+	depends on ARM_LPAE
+
+config SYS_SUPPORTS_HUGETLBFS
+       def_bool y
+       depends on ARM_LPAE
+
+config HAVE_ARCH_TRANSPARENT_HUGEPAGE
+       def_bool y
+       depends on ARM_LPAE
+
+config ARCH_WANT_GENERAL_HUGETLB
+	def_bool y
+
+config SWIOTLB
+	def_bool y
+
+config NEON
+	bool "Advanced SIMD (NEON) Extension support"
+	depends on VFPv3 && CPU_V7
+	help
+	  Say Y to include support code for NEON, the ARMv7 Advanced SIMD
+	  Extension.
+
+if CRYPTO
+#source "arch/arm/crypto/Kconfig"
+endif

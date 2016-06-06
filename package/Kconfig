@@ -1,0 +1,108 @@
+
+config OPENAAA_MODULES
+        bool "OpenAAA Module Support"
+	depends on MODULES
+	default y
+        help
+          Package modules are small pieces of compiled code which can
+          be inserted in the running software, rather than being
+          permanently built into the package.  If you say Y here,
+          many parts of the package can be built as modules (by
+          answering M instead of Y where indicated): this is most
+          useful for infrequently used options which are not required
+          for use.  For more information, see the man pages for
+          modprobe, lsmod, modinfo, insmod and rmmod.
+
+          If you say Y here, you will need to run "make
+          modules_install" to put the modules under /$prefix/lib/modules/ .
+
+          If unsure, say Y.
+
+config OPENAAA_MODULE_PKCS11
+        bool "Enable PKCS11  module (EXPERIMENTAL)"
+	depends on OPENAAA_MODULES
+	default y
+        help
+          Usually, you have to use modules compiled with your package.
+          Saying Y here makes it sometimes possible to use modules
+          compiled for different packages, by adding enough information
+          to the modules to (hopefully) spot any changes which would
+          make them incompatible with the software you are running.  If
+          unsure, say N.
+
+config OPENAAA_MODULE_OPENVPN
+        bool "Enable OpenVPN module"                                            
+        depends on OPENAAA_MODULES                                              
+        default y                                                               
+        help                                                                    
+          Usually, you have to use modules compiled with your package.          
+          Saying Y here makes it sometimes possible to use modules              
+          compiled for different packages, by adding enough information         
+          to the modules to (hopefully) spot any changes which would            
+          make them incompatible with the software you are running.  If         
+          unsure, say N.
+
+config OPENAAA_MODULE_APACHE2
+        bool "Enable Apache2 module"
+        depends on OPENAAA_MODULES                                              
+        default n
+        help                                                                    
+          Usually, you have to use modules compiled with your package.          
+          Saying Y here makes it sometimes possible to use modules              
+          compiled for different packages, by adding enough information         
+          to the modules to (hopefully) spot any changes which would            
+          make them incompatible with the software you are running.  If         
+          unsure, say N.
+
+config OPENAAA_PROTOCOLS
+        bool "OpenAAA Protocol Support"
+        default y
+
+config TLS
+        bool "Enable (TLS)   The Transport Layer Security Protocol Version 1.2 [RFC-5246]"
+        depends on OPENAAA_PROTOCOLS
+        default y                                                               
+        help
+
+config TLS_EXTENSIONS
+	bool "TLS extension support and requirements."
+	depends on TLS
+	default y
+
+config TLS_RFC5746                                                              
+        bool "[RFC-5746] Renegotiation Indication Extension"
+	depends on TLS_EXTENSIONS                                               
+        default y
+
+config TLS_RFC5705
+        bool "[RFC-5705] Keying Material Exporter"
+        depends on TLS_EXTENSIONS
+        default y
+
+config TLS_RFC4680
+	bool "[RFC-4680] Handshake Message for Supplemental Data"
+	depends on TLS_EXTENSIONS
+	default y
+
+config TLS_RFC_5878
+	bool "[RFC-7868] Authorization Extension"
+	depends on TLS_EXTENSIONS                                               
+	default n
+
+config DTLS                                                                      
+        bool "Enable (DTLS)  The Datagram Transport Layer Security Version 1.2 [RFC-6347]"    
+        depends on OPENAAA_PROTOCOLS                                            
+        default y                                                               
+        help
+
+config IPSEC
+        bool "Enable (IPSEC) IP Security Protocol (EXPERIMENTAL)"
+        depends on OPENAAA_PROTOCOLS
+        default y                                                               
+        help
+
+config SCTP
+        bool "Enable (SCTP)  Stream Control Transmission Protocol [RFC-4960] (EXPERIMENTAL)"
+        depends on OPENAAA_PROTOCOLS                                            
+        default y                                                               
+        help

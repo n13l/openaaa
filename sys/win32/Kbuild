@@ -1,0 +1,2 @@
+obj-y := errno.o mman.o fsync.o fcntl.o syslog.o dlfcn.o fork.o 
+obj-y += dirent.o dirname.o basename.o syslog.o

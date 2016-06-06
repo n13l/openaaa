@@ -1,0 +1,32 @@
+From 65c273f4d2eb63a26d270b870e303d5eff99cd0a Mon Sep 17 00:00:00 2001
+From: Daniel Kubec <niel@rtfm.cz>
+Date: Wed, 27 Apr 2016 07:40:31 +0200
+Subject: [PATCH 1/1] Fix buffer size parameter for exported keying material.
+
+Commit 41e4b67 broke the exported keying material functionality while 
+addressing lack of variable-length arrays in MSVC compilers - turning an array 
+into a gc_malloc()'ed pointer, but still using "sizeof(ekm)" for buffer size - 
+which is now "4" (unsigned char *), not the actual buffer length...
+
+Fixed!
+
+---
+ src/openvpn/ssl_openssl.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/src/openvpn/ssl_openssl.c b/src/openvpn/ssl_openssl.c
+index ca9b67b..8909ca3 100644
+--- a/src/openvpn/ssl_openssl.c
++++ b/src/openvpn/ssl_openssl.c
+@@ -144,7 +144,7 @@ key_state_export_keying_material(struct key_state_ssl *ssl,
+       struct gc_arena gc = gc_new();
+       unsigned char* ekm = (unsigned char*) gc_malloc(size, true, &gc);
+ 
+-      if (SSL_export_keying_material(ssl->ssl, ekm, sizeof(ekm),
++      if (SSL_export_keying_material(ssl->ssl, ekm, size,
+           session->opt->ekm_label, session->opt->ekm_label_size, NULL, 0, 0))
+        {
+          unsigned int len = (size * 2) + 2;
+-- 
+1.7.1
+

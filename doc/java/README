@@ -1,0 +1,4 @@
+Java Bindings
+
+env JDK_HOME
+evn PATH=$JDK_HOME/bin:$PATH

@@ -1,0 +1,8 @@
+apache2 on windows
+
+add to .defconfig
+
+CONFIG_HAVE_APACHE2=y
+APACHE2_MODULES_DIR=/cygdrive/c/gnu/apache2/modules
+APACHE2_INCLUDE_DIR=/cygdrive/c/gnu/apache2/include
+APACHE2_LIBRARY_DIR=/cygdrive/c/gnu/apache2/lib

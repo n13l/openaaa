@@ -1,0 +1,68 @@
+config DEBUG
+        bool "Enable debug options"
+        default y
+        help
+          Say Y if you want to enable debug functions, such as
+          sys_dbg.
+          If you say N here, those functions are not compiled.
+
+config DEBUG_INFO
+	bool "Enable debug info"
+	default y
+	depends on DEBUG
+	help
+	This option causes the package to be built with full debugging 
+	information included. You'll need that information if you want to 
+	debug the package with gdb. You may also want to enable 
+	CONFIG_FRAME_POINTER if you plan to use gdb.
+
+config DEBUG_SECTION_MISMATCH
+	bool "Trigger additional mismatches with less inlining"	
+	default n
+	depends on DEBUG
+	help
+	We trigger additional mismatches with less inlining
+
+config DEBUG_LIST                                                               
+        bool "Debug linked list manipulation"
+	default y
+	depends on DEBUG
+        help
+          Enable this to turn on extended checks in the linked-list
+          walking routines.
+
+          If unsure, say N.
+
+config DEBUG_MEMPAGE
+        bool "Debug memory pages"                                               
+        default y                                                               
+        depends on DEBUG                                                        
+        help                                                                    
+          Enable this to turn on extended checks in the memory pages routines.   
+                                                                                
+          If unsure, say N.
+
+config DEBUG_MEMPOOL
+        bool "Debug memory pools"
+	default y
+        depends on DEBUG
+        help
+          Enable this to turn on extended checks in the memory pool routines.
+
+          If unsure, say N.
+
+config LOGGING                                                           
+        bool "Enable log functions"                                             
+        default y                                                               
+        help                                                                    
+          Say Y if you want to enable log functions, such as                    
+          print_dbg, print_info, print_warn, print_err.                         
+          If you say N here, those functions are not compiled.                  
+                                                                                
+config LOGGING_TIME                                                             
+        bool "Show timing information on log functions"                         
+        default y                                                               
+        depends on LOGGING                                               
+        help                                                                    
+          Selecting this option causes timing information to be                 
+          included in log output.

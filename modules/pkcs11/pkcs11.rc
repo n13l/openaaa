@@ -1,0 +1,36 @@
+#include <windows.h>
+
+// DLL version information.
+VS_VERSION_INFO    VERSIONINFO
+FILEVERSION        1,0,0,0
+PRODUCTVERSION     1,0,0,0
+FILEFLAGSMASK      VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+  FILEFLAGS        VS_FF_DEBUG | VS_FF_PRERELEASE
+#else
+  FILEFLAGS        0
+#endif
+FILEOS             VOS_NT_WINDOWS32
+FILETYPE           VFT_DLL
+FILESUBTYPE        VFT2_UNKNOWN
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904e4"
+    BEGIN
+      VALUE "FileDescription", "OpenAAA PKCS11 Module"
+      VALUE "FileVersion", "1,0,0,0"
+      VALUE "InternalName", "npaaamoz"
+      VALUE "LegalCopyright", "Copyright (C) 2015"
+      VALUE "OriginalFilename", "libaaa_pkcs11.dll"
+      VALUE "ProductName", "OpenAAA PKCS11 Module"
+      VALUE "Vendor", "OpenAAA"
+      VALUE "Description", "OpenAAA PKCS11 Module"
+      VALUE "ProductVersion", "1,0,0,0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x809, 1200
+  END
+END

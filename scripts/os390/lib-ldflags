@@ -1,0 +1,33 @@
+#!/bin/sh
+set -e
+libname=""
+for arg in $* ; do
+        case $arg in
+        -L*)
+                d=`echo $arg | sed 's/-L//g'`
+                if [[ -z "$libdir" ]]
+                then
+                libdir="$d"
+                else
+                libdir="$libdir:$d"
+                fi
+        ;;
+        -l*)
+                libname=`echo $arg | sed 's/-l//g'`
+        ;;
+    *) opts="$opts $arg" ;;
+  esac
+done
+
+arr=$(echo $libdir | tr ":" "\n")
+for x in $arr
+do
+        libpath=$x/lib$libname.x
+        if [ -f $libpath ];
+        then
+        printf "$libpath\n"
+        exit
+        fi
+done
+
+echo "$*"

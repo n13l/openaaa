@@ -1,0 +1,41 @@
+config MODULES
+        bool "Enable loadable module support"
+        option modules
+        help
+          Package modules are small pieces of compiled code which can
+          be inserted in the running software, rather than being
+          permanently built into the package.  If you say Y here,
+          many parts of the package can be built as modules (by
+          answering M instead of Y where indicated): this is most
+          useful for infrequently used options which are not required
+          for use.  For more information, see the man pages for
+          modprobe, lsmod, modinfo, insmod and rmmod.
+
+          If you say Y here, you will need to run "make
+          modules_install" to put the modules under /$prefix/lib/modules/ .
+
+          If unsure, say Y.
+
+config MODVERSIONS
+        bool "Module versioning support"
+	depends on MODULES
+	default n
+        help
+          Usually, you have to use modules compiled with your package.
+          Saying Y here makes it sometimes possible to use modules
+          compiled for different packages, by adding enough information
+          to the modules to (hopefully) spot any changes which would
+          make them incompatible with the software you are running.  If
+          unsure, say N.
+
+config MODULE_SRCVERSION_ALL
+        bool "Source checksum for all modules"
+	depends on MODULES
+        help
+          Modules which contain a MODULE_VERSION get an extra "srcversion"
+          field inserted into their modinfo section, which contains a
+          sum of the source files which made it.  This helps maintainers
+          see exactly which source was used to build a module (since
+          others sometimes change the module source without updating
+          the version).  With this option, such a "srcversion" field
+          will be created for all modules.  If unsure, say N.

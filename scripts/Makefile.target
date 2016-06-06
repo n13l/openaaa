@@ -1,0 +1,39 @@
+CROSS_COMPILER ?= gcc
+CC ?= $(CROSS_COMPILE)$(CROSS_COMPILER)
+
+UNAME_SYSTEM:=$(shell uname -s)
+UNAME_MACHINE:=$(shell uname -m)
+
+HOST ?= $(shell $(src)/scripts/host_from_sys.sh $(UNAME_SYSTEM))
+
+export HOST
+
+ifeq ($(HOST),os390)
+ARCH := s390
+HOSTCC := $(PWD)/scripts/os390/c99
+HOSTLD := $(PWD)/scripts/os390/c99
+CC := $(PWD)/scripts/os390/c99
+LD := $(PWD)/scripts/os390/c99
+export ARCH HOSTCC HOSTLD CC LD
+endif
+
+TARGET ?= $(shell $(CC) -dumpmachine 2>&1)
+ARCH ?= $(shell echo $(TARGET) | sed -e s/i.86.*/i386/ -e s/x86_64.*/x86_64/ \
+                                     -e s/arm.*/arm/)
+
+PLATFORM ?= $(shell $(src)/scripts/host_from_sys.sh $(TARGET))
+PLAT:=$(shell echo "$(PLATFORM)" | tr '[:lower:]' '[:upper:]')
+
+ifeq ($(PLATFOWM),win32)
+SHLIB_EX=dll
+endif
+
+ifeq ($(PLATFORM),darwin)
+#SO=dylib
+#SHLIB_LDFLAGS=-dynamiclib
+endif
+
+export PLATFORM PLATFORM_U
+export ARCH HOST TARGET SO
+export SHLIB_EX
+#
