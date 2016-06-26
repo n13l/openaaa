@@ -1,7 +1,4 @@
 /*                                                  Daniel Kubec <niel@rtfm.cz>
- *
- * This software may be freely distributed and used according to the terms of 
- * the GNU Lesser General Public License.
  */
 
 #ifndef __SYS_COMPILER_H__
@@ -22,7 +19,7 @@ typedef int32_t      s32;             /* Exactly 32 bits, signed             */
 typedef uint64_t     u64;             /* Exactly 64 bits, unsigned           */
 typedef int64_t      s64;             /* Exactly 64 bits, signed             */
 typedef unsigned int uint;            /* Shorter type for unsigned int       */
-typedef s64          timestamp_t;     /* Milliseconds since an unknown epoch */
+typedef u64          timestamp_t;     /* Milliseconds since an unknown epoch */
 
 #ifdef __CHECKER__
 #define __bitwise__ __attribute__((bitwise))
@@ -68,6 +65,9 @@ typedef u32 __bitwise __wsum;
 /** Define constructor with a given priority **/
 #define _constructor_with_priority(p) __attribute__((constructor(p)))
 
+#define compatible_ptr(ptr, type) \
+	__builtin_types_compatible_p(__typeof__(ptr), type)
+
 /* branch prediction */ 
 #define likely(x)      __builtin_expect (!!(x), 1)
 #define unlikely(x)    __builtin_expect (!!(x), 0)
@@ -101,25 +101,25 @@ typedef u32 __bitwise __wsum;
 # define unlikely(x)    (x)
 #endif
 
-#ifndef _min
-#define _min(a,b) (((a)<(b))?(a):(b))
+#ifndef min
+#define min(a,b) (((a)<(b))?(a):(b))
 #endif
 
-#ifndef _max
-#define _max(a,b) (((a)>(b))?(a):(b))
+#ifndef max
+#define max(a,b) (((a)>(b))?(a):(b))
 #endif
 
-#define _rol(x, bits) \
+#define rol(x, bits) \
 	(((x) << (bits)) | ((uint)(x) >> (sizeof(uint) * 8 - (bits)))) 
-#define _ror(x, bits) \
+#define ror(x, bits) \
 	(((uint)(x) >> (bits)) | ((x) << (sizeof(uint) * 8 - (bits))))
 
 #ifndef array_size
 #define array_size(a) (sizeof(a)/sizeof(*(a)))
 #endif
 
-#define _stringify_1(x...)     #x
-#define _stringify(x...)       _stringify_1(x)
+#define do_stringify(x...)     #x
+#define stringify(x...)       do_stringify(x)
 
 /* Check that a pointer @x is of type @type. Fail compilation if not. **/
 #define _check_ptr_type(x, type) ((x)-(type)(x) + (type)(x))             
@@ -131,21 +131,25 @@ typedef u32 __bitwise __wsum;
  * Given a pointer @p to item @i of structure @s, return a pointer to the start
  * of the struct. 
  */
-#define _skip_back(s, i, p) ((s *)((char *)p - _offsetof(s, i)))       
+#define skip_back(s, i, p) ((s *)((char *)p - _offsetof(s, i)))       
 /*
  * Align an integer @s to the nearest higher multiple of @a (which should be
  * a power of two) 
  */
-#define _align_to(s, a) (((s)+a-1)&~(a-1))
+#define align_to(s, a) (((s)+a-1)&~(a-1))
 
-#define _align_struct(s) _align_to(s, CPU_STRUCT_ALIGN)
-#define _align_obj(s) _align_to(s, CPU_STRUCT_ALIGN)
-#define _align_page(s) _align_to(s, CPU_PAGE_SIZE)
+#define align_struct(s) align_to(s, CPU_STRUCT_ALIGN)
+#define align_page(s) align_to(s, CPU_PAGE_SIZE)
+#define align_lock(s) align_to(s, L1_CACHE_BYTES)
+#define align_simd(s) align_to(s, CPU_SIMD_ALIGN)
+#define align_addr(s) align_to(s, sizeof(void *))
 
 /** Align a pointer @p to the nearest higher multiple of @s. **/
-#define _align_ptr(p, s) ((uintptr_t)(p) % (s) ? \
+#define align_ptr(p, s) ((uintptr_t)(p) % (s) ? \
 	(typeof(p))((uintptr_t)(p) + (s) - (uintptr_t)(p) % (s)) : (p))
-#define _unaligned_part(ptr, type) (((uintptr_t) (ptr)) % sizeof(type))
+
+#define unaligned_part(ptr, type) (((uintptr_t) (ptr)) % sizeof(type))
+#define aligned_part(size, align) (size & ~(size_t)(align - 1))
 
 #define __barrier()   __asm__ __volatile__ ("" : : : "memory")
 
@@ -173,6 +177,9 @@ typedef u32 __bitwise __wsum;
 	(unsigned long) (long) (v) : \
 	(unsigned long) (v))
 
+#define check_types_match(expr1, expr2)	\
+	((typeof(expr1) *)0 != (typeof(expr2) *)0)
+
 /*
  * __container_of - Get the address of an object containing a field.
  *
@@ -186,6 +193,12 @@ typedef u32 __bitwise __wsum;
 	(type *)((byte *)ptr - offsetof(type, member)); \
 })
 
+#define container_of(ptr, type, member) \
+({ \
+	(type *)((byte *)ptr - offsetof(type, member)); \
+})
+
+
 #define __container_of_safe(ptr, type, member) \
 ({ \
 	typeof(ptr) ____ptr = (ptr); \
@@ -194,7 +207,13 @@ typedef u32 __bitwise __wsum;
 
 
 #if __STDC_VERSION__ >= 201112L
-#define _generic _Generic
+#if defined(HAVE_STATIC_ASSERT)
+#define _static_assert(expr) \
+	_Static_assert((expr), #expr)
+#else
+#define _static_assert(expr) \
+	do { (void) sizeof(char [1 - 2*!(expr)]); } while(0)
+#endif
 #endif
 
 #define __build_bug_on(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
@@ -216,9 +235,10 @@ typedef u32 __bitwise __wsum;
 #define vmax2(a,b) ((a)>(b)?(a):(b))
 #define vmax3(a,b,c) max2(max2(a,b),c)
 
+#define EXPORT_SYMBOL(sym) extern typeof(sym) sym
 
-#ifndef assert
-#define assert(c) while(0) {}
+#ifndef O_NOATIME
+#define O_NOATIME 0
 #endif
 
 #endif

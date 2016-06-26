@@ -1,0 +1,37 @@
+
+config DUMMY_MODULES
+        bool "DUMMY Package Support"
+	depends on MODULES
+	default y
+        help
+          Package modules are small pieces of compiled code which can
+          be inserted in the running software, 
+
+config DUMMY_MODULE1
+        bool "Enable DUMMY_MODULE1 (EXPERIMENTAL)"
+	depends on DUMMY_MODULES
+	default n
+        help
+          Usually, you have to use modules compiled with your package.
+          Saying Y here makes it sometimes possible to use modules
+          compiled for different packages, by adding enough information
+          to the modules to (hopefully) spot any changes which would
+          make them incompatible with the software you are running.  If
+          unsure, say N.
+
+config DUMMY_FEATURES
+        bool "DUMMY Features Support"
+	depends on MODULES
+	default y
+        help
+          Package modules are small pieces of compiled code which can
+          be inserted in the running software, 
+
+config DUMMY_FEATURE1
+        bool "Enable DUMMY_FEATURE1"
+	depends on DUMMY_FEATURES
+	default n
+        help
+          Sample feature
+
+

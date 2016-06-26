@@ -5,6 +5,13 @@
  * to Building High Performance Software-based CRC Generators
  * (Proceedings of the 10th IEEE Symposium on Computers and Communications 2005)
  *
+ * Includes code from http://sourceforge.net/projects/slicing-by-8/,
+ * which carried the following copyright notice:
+ *
+ * Copyright (c) 2004-2006 Intel Corporation - All Rights Reserved
+ *
+ * This software program is licensed subject to the BSD License,
+ * available at http://www.opensource.org/licenses/bsd-license.html
  */
 
 #ifndef __CRYPTO_CRC_H__

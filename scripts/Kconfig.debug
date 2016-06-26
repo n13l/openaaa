@@ -1,15 +1,6 @@
-config DEBUG
-        bool "Enable debug options"
-        default y
-        help
-          Say Y if you want to enable debug functions, such as
-          sys_dbg.
-          If you say N here, those functions are not compiled.
-
 config DEBUG_INFO
 	bool "Enable debug info"
-	default y
-	depends on DEBUG
+	default y if DEBUG = "1"
 	help
 	This option causes the package to be built with full debugging 
 	information included. You'll need that information if you want to 
@@ -19,37 +10,61 @@ config DEBUG_INFO
 config DEBUG_SECTION_MISMATCH
 	bool "Trigger additional mismatches with less inlining"	
 	default n
-	depends on DEBUG
+	depends on DEBUG_INFO
 	help
 	We trigger additional mismatches with less inlining
 
 config DEBUG_LIST                                                               
         bool "Debug linked list manipulation"
 	default y
-	depends on DEBUG
+	depends on DEBUG_INFO
         help
           Enable this to turn on extended checks in the linked-list
           walking routines.
 
+config DEBUG_HASH
+	bool "Debug hash table manupulation"
+	default y
+	depends on DEBUG_INFO
+	help
+	  Enable this to turn on extended checks in the hash table warlking
+          routines
+
+config DEBUG_MEMGENERIC
+        bool "Debug memory generics"                                               
+        default y                                                               
+        depends on DEBUG_INFO
+        help                                                                    
+          Enable this to turn on extended checks in the memory gen. routines.   
+                                                                                
           If unsure, say N.
 
 config DEBUG_MEMPAGE
-        bool "Debug memory pages"                                               
-        default y                                                               
-        depends on DEBUG                                                        
-        help                                                                    
-          Enable this to turn on extended checks in the memory pages routines.   
-                                                                                
+        bool "Debug memory pages"
+        default y
+        depends on DEBUG_INFO
+        help
+          Enable this to turn on extended checks in the memory pages routines.
+
           If unsure, say N.
 
 config DEBUG_MEMPOOL
         bool "Debug memory pools"
 	default y
-        depends on DEBUG
+        depends on DEBUG_INFO
         help
           Enable this to turn on extended checks in the memory pool routines.
 
           If unsure, say N.
+
+config DEBUG_MEMSTACK
+        bool "Debug memory stack"
+        default y
+        depends on DEBUG_INFO
+        help
+          Enable this to turn on extended checks in the memory stack routines.
+          If unsure, say N.
+
 
 config LOGGING                                                           
         bool "Enable log functions"                                             
@@ -66,3 +81,10 @@ config LOGGING_TIME
         help                                                                    
           Selecting this option causes timing information to be                 
           included in log output.
+
+config LOGGING_FUNC
+	bool "Show function name on log"
+	default n
+	depends on LOGGING
+	help
+	  Selecting this option causes function name to be included in log

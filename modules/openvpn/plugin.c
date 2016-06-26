@@ -18,16 +18,16 @@
 enum ovpn_endpoint { VPN_CLIENT, VPN_SERVER };
 
 struct ovpn_ctxt {
-	struct mempool *mp;
-	struct mempool *mp_api;
+	struct mm_pool *mp;
+	struct mm_pool *mp_api;
 	enum ovpn_endpoint type;
 	plugin_log_t log;
 	int mask;
 };
 
 struct ovpn_sess {
-	struct mempool *mp;
-	struct mempool *mp_api;
+	struct mm_pool *mp;
+	struct mm_pool *mp_api;
 };
 
 /*
@@ -87,10 +87,10 @@ openvpn_plugin_open_v3(const int version,
                        struct openvpn_plugin_args_open_in const *args,
                        struct openvpn_plugin_args_open_return *ret)
 {
-	struct mempool *mp = mp_new(CPU_PAGE_SIZE);
-	struct ovpn_ctxt *ovpn = mp_alloc_zero(mp, sizeof(*ovpn));
+	struct mm_pool *mp = mm_pool_create(NULL, CPU_PAGE_SIZE, 0);
+	struct ovpn_ctxt *ovpn = mm_alloc(mp, sizeof(*ovpn));
 
-	ovpn->mp_api = mp_new(CPU_PAGE_SIZE);
+	ovpn->mp_api = mm_pool_create(NULL, CPU_PAGE_SIZE, 0);
 
 	ovpn->mp = mp;
 	ovpn->log = args->callbacks->plugin_log;
@@ -122,13 +122,13 @@ openvpn_plugin_open_v3(const int version,
 EXPORT(void *)
 openvpn_plugin_client_constructor_v1(openvpn_plugin_handle_t handle)
 {
-	struct mempool *mp = mp_new(CPU_PAGE_SIZE);
+	struct mm_pool *mp = mm_pool_create(NULL, CPU_PAGE_SIZE, 0);
 
 	//struct ovpn_ctxt *ovpn = (struct ovpn_ctxt *)handle;
-        struct ovpn_sess *sess = mp_alloc_zero(mp, sizeof(*sess));
+        struct ovpn_sess *sess = mm_alloc(mp, sizeof(*sess));
 
 	sess->mp = mp;
-        sess->mp_api = mp_new(CPU_PAGE_SIZE);
+        sess->mp_api = mm_pool_create(NULL, CPU_PAGE_SIZE, 0);
 	sys_dbg("client constructor");
 	return (void *)sess;
 }
@@ -139,8 +139,8 @@ openvpn_plugin_client_destructor_v1(openvpn_plugin_handle_t handle, void *ctx)
 	//struct ovpn_ctxt *ovpn = (struct ovpn_ctxt *)handle;
 	struct ovpn_sess *sess = (struct ovpn_sess *)ctx;
 
-	mp_delete(sess->mp_api);
-	mp_delete(sess->mp);
+	mm_destroy(sess->mp_api);
+	mm_destroy(sess->mp);
 	sys_dbg("client destructor");
 }
 

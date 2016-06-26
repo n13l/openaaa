@@ -1,0 +1,56 @@
+# 
+# testprogs-y := example
+# Will compile example.c and create an executable named example
+#
+# testprogs-y := test1
+# test1-y := main.o helper.o
+__testprogs := $(sort $(testprogs-y))
+
+# Executables compiled from a single .c file
+test-csingle := $(foreach m,$(__testprogs),$(if $($(m)-y),,$(m)))
+
+# Executables linked based on several .o files
+test-cmulti := $(foreach m,$(__testprogs), $(if $($(m)-y),$(m)))
+
+# Object (.o) files compiled from .c files
+test-cobjs := $(sort $(foreach m,$(__testprogs),$($(m)-y)))
+
+# Add $(obj) prefix to all paths
+test-csingle := $(addprefix $(obj)/,$(test-csingle))
+test-cmulti  := $(addprefix $(obj)/,$(test-cmulti))
+test-cobjs   := $(addprefix $(obj)/,$(test-cobjs))
+
+# Options to testcc.
+testc_flags = -Wp,-MD,$(depfile) $(KBUILD_CFLAGS) $(KBUILD_CPPFLAGS) \
+	      $(USERINCLUDE) $(TEST_CFLAGS) -I. -I../ \
+	      -include $(srctree)/posix/$(PLATFORM)/platform.h
+
+testld_flags = 
+testld_builtin = arch/$(SRCARCH)/built-in.o posix/$(PLATFORM)/built-in.o \
+		 posix/built-in.o mem/built-in.o
+testld_libs = $(KBUILD_LIBS)
+
+# test-csingle -> executable
+quiet_cmd_test-csingle = CC      $@
+      cmd_test-csingle = $(CC) $(testc_flags) -o $@ $< $(testld_builtin) \
+                               $(testld_libs)
+$(test-csingle): $(obj)/%: $(src)/%.c FORCE
+	$(call if_changed_dep,test-csingle)
+
+# test-cobjs -> .o
+quiet_cmd_test-cobjs	= CC      $@
+      cmd_test-cobjs	= $(CC) $(testc_flags) -c -o $@ $< 
+$(test-cobjs): $(obj)/%.o: $(src)/%.c FORCE
+	$(call if_changed_dep,test-cobjs)
+
+# Link an executable based on list of .o files
+quiet_cmd_test-cmulti	= LD      $@
+      cmd_test-cmulti	= $(CC) $(testld_flags) -o $@ \
+			  $(addprefix $(obj)/,$($(@F)-y)) $(testld_builtin) \
+      			  $(testld_libs)
+$(test-cmulti): $(obj)/%: $(test-cobjs) FORCE
+	$(call if_changed,test-cmulti)
+
+# clean support
+targets += $(test-csingle) $(test-cmulti) $(test-cobjs)
+always += $(test-csingle) $(test-cmulti)

@@ -1,5 +1,5 @@
-#ifndef __SYS_VM_block_h__
-#define __SYS_VM_block_h__ 
+#ifndef __MEM_VM_PAGE_H__
+#define __MEM_VM_PAGE_H__ 
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
@@ -15,6 +15,9 @@ void
 vm_page_free(void *page, u64 size);
 
 void *
-vm_page_realloc(void *page, u64 olen, u64 size);
+vm_page_inquire(void *addr);
+
+void *
+vm_page_extend(void *page, u64 olen, u64 size);
 
 #endif

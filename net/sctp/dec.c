@@ -1,7 +1,7 @@
 /*
- *                                  (SCTP) Stream Control Transmission Protocol
- *                                                  Daniel Kubec <niel@rtfm.cz>
- * The MIT License (MIT)
+ * The MIT License (MIT)            (SCTP) Stream Control Transmission Protocol
+ *
+ * Copyright (c) 2013 Daniel Kubec <niel@rtfm.cz>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"),to deal
@@ -62,7 +62,7 @@ sctp_validate(struct sctp_packet *msg, unsigned int len)
 const char *
 sctp_chunk_print_type(u8 id)
 {
-	if ((unsigned int)id > array_size(sctp_chunk_type_names))
+	if (id > (u8)array_size(sctp_chunk_type_names))
 		return "undefined";
 			
 	return sctp_chunk_type_names[id];

@@ -1,21 +1,21 @@
-#objs-y += tools/sysconfig
-objs-y += tools/aaa
+objs-y += tools/sysconfig
 
-progs += aaa                                                                    
-                                                                                
-aaa-dirs := $(package-dirs) lib/aaa/
-aaa-objs := $(patsubst %,%/built-in.o, $(objs-y))
-aaa-libs := $(patsubst %,%/lib.a, $(libs-y)) 
-aaa-all  := $(aaa-objs) $(aaa-libs)
+progs += sysconfig
 
-quiet_cmd_aaa = LD      tools/$@
-	cmd_aaa = $(CC) $(EXE_LDFLAGS) $(LDFLAGS) -o $@ $(aaa-libs) $(aaa-objs) $(KBUILD_LIBS)
+sysconfig-dirs := $(package-dirs) 
+sysconfig-objs := $(patsubst %,%/built-in.o, $(objs-y))
+sysconfig-libs := $(patsubst %,%/lib.a, $(libs-y)) 
+sysconfig-all  := $(sysconfig-objs) $(sysconfig-libs)
 
-$(obj)/aaa: $(aaa-all) FORCE
-	$(call if_changed,aaa)
+quiet_cmd_sysconfig = LD      tools/$@
+	cmd_sysconfig = $(CC) $(EXE_LDFLAGS) $(LDFLAGS) -o $@ $(sysconfig-libs)\
+	                      $(sysconfig-objs) $(KBUILD_LIBS)
 
-PHONY += $(aaa-dirs)
-$(aaa-dirs): scripts_basic
+$(obj)/sysconfig: $(sysconfig-all) FORCE
+	$(call if_changed,sysconfig)
+
+PHONY += $(sysconfig-dirs)
+$(sysconfig-dirs): scripts_basic
 	$(Q)$(MAKE) $(build)=$@
 
-clean-files  += tools/aaa
+clean-files  += tools/sysconfig

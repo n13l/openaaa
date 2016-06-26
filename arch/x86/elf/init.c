@@ -2,13 +2,20 @@
 #include <sys/cpu.h>
 #include <sys/log.h>
 #include <elf/lib.h>
-
-#include <mem/list.h>
+#include <posix/list.h>
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <link.h>
+
+/* 
+ * ELF-based platforms normally define quite a number of different symbols 
+ * which can be used to find the start and end of various sections
+ */
+
+extern char __executable_start;
+extern char __etext;
 
 struct linkmap_module {
 	struct node n;
@@ -50,4 +57,9 @@ void
 linkmap_init(void)
 {
 	dl_iterate_phdr(linkmap_info, NULL);
+}
+
+void
+linkmap_fini(void)
+{
 }

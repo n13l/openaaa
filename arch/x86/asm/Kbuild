@@ -1,2 +1,2 @@
-obj-y += alsr.o decode.o syn.o intel.o itab.o att.o udis86.o \
+obj-y += cpu.o alsr.o decode.o syn.o intel.o itab.o att.o udis86.o \
          intr.o call.o branch.o prologue.o

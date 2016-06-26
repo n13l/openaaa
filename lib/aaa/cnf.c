@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include <mem/list.h>
 #include <net/tls/conf.h>
 
 #include <aaa/lib.h>

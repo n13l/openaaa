@@ -1,1 +1,3 @@
-obj-y				+= mm/
+obj-y += asm/
+obj-y += elf/
+obj-y += init.o

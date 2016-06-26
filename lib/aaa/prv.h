@@ -32,7 +32,7 @@
 #include <mem/pool.h>
 
 struct aaa {
-	struct mempool *mp;
+	struct mm_pool *mp;
 	const char *config;
 };
 

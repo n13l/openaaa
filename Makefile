@@ -5,10 +5,12 @@ SUBLEVEL ?= 1
 ifeq ($(BUILD_BRANCH),master)
 EXTRAVERSION=-$(BUILD_ID)
 else
-EXTRAVERSION =
+EXTRAVERSION = 
 endif
 
-NAME = OpenAAA
+export PACKAGE_VERSION="$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)"
+export PACKAGE_NAME=Kbuild
+NAME = Kbuild
 SO=so
 export SO
 
@@ -234,7 +236,7 @@ include scripts/Makefile.target
 SUBARCH := $(shell uname -m | sed -e s/i.86/x86/ -e s/x86_64/x86/ \
 				  -e s/sun4u/sparc64/ \
 				  -e s/arm.*/arm/ -e s/sa110/arm/ \
-				  -e s/s390x/s390/ -e s/parisc64/parisc/ \
+				  -e s/s390x*/s390/ -e s/parisc64/parisc/ \
 				  -e s/ppc.*/powerpc/ -e s/mips.*/mips/ \
 				  -e s/sh[234].*/sh/ -e s/aarch64.*/arm64/ )
 
@@ -280,8 +282,9 @@ endif
 ifeq ($(ARCH),sparc64)
        SRCARCH := sparc
 endif
-
-# Additional ARCH settings for sh
+ifeq ($(ARCH),s390x)
+       SRCARCH := s390
+endif
 ifeq ($(ARCH),sh64)
        SRCARCH := sh
 endif
@@ -398,10 +401,10 @@ USERINCLUDE    := \
 		-Iinclude/generated/uapi \
 		-include include/generated/autoconf.h \
 		-I$(srctree)/lib \
-		-Ilib \
+		-Ilib -I$(srctree)/arch \
 		-I$(srctree)/arch/$(hdr-arch) \
-                -include $(srctree)/sys/$(PLATFORM)/platform.h \
-		-I$(srctree)/sys/$(PLATFORM) \
+                -include $(srctree)/posix/$(PLATFORM)/platform.h \
+		-I$(srctree)/posix/$(PLATFORM) \
 		-I..
 
 # Use LINUXINCLUDE when you must reference the include/ directory.
@@ -415,14 +418,20 @@ LINUXINCLUDE    := \
 		$(USERINCLUDE)
 
 KBUILD_CPPFLAGS := -D"CONFIG_PLATFORM=KBUILD_STR($(PLATFORM))" \
-                   -DCONFIG_$(PLAT)=1
+                   -D"CONFIG_SRCARCH=KBUILD_STR($(SRCARCH))" \
+		   -D"CONFIG_ARCH=KBUILD_STR($(ARCH))" \
+		   -D"PACKAGE_VERSION=KBUILD_STR($(PACKAGE_VERSION))"\
+                   -DCONFIG_$(PLAT)=1 \
+
+# -Werror-implicit-function-declaration \
 
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes \
 		   -fno-strict-aliasing \
-		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
-		   -std=gnu99 \
-		   -D_GNU_SOURCE=1
+		   -D_GNU_SOURCE=1 \
+		   -std=gnu1x
+#		   -D_POSIX_SOURCE=1 \
+#		   -std=c1x
 
 -include scripts/Makefile.shared
 
@@ -451,6 +460,8 @@ export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL
 export KBUILD_ARFLAGS
 export TARGET_PLATFORM
 export HOST_PLATFORM
+export USERINCLUDE
+export DEBUG=0
 
 # When compiling out-of-tree modules, put MODVERDIR in the module
 # tree rather than in the kernel tree. The kernel tree might
@@ -627,16 +638,18 @@ else
 include/config/auto.conf: ;
 endif # $(dot-config)
 
-objs-y        += arch/$(SRCARCH) sys/$(PLATFORM) mem net crypto lib
+objs-y += arch/$(SRCARCH) posix/$(PLATFORM) posix mem net crypto lib 
+# TODO: tests in objs-m does not look right
+objs-m += test
 
-include arch/$(SRCARCH)/Makefile                                                
-include modules/Makefile                                                        
-include tools/Makefile
+#include arch/$(SRCARCH)/Makefile                                                
+-include modules/Makefile                                                        
+-include tools/Makefile
 
-package-dirs  := $(objs-y) $(libs-y) $(objs-m)
+package-dirs  := $(objs-y) $(libs-y) $(objs-m) 
 package-objs  := $(patsubst %,%/built-in.o, $(objs-y))
 package-libs  := $(patsubst %,%/lib.a, $(libs-y))
-package-all   := $(package-objs) $(package-libs)
+package-all   := $(package-objs) $(package-libs) 
 
 package: $(package-all)
 $(sort $(package-all)): $(package-dirs) ;
@@ -648,6 +661,10 @@ $(package-dirs): scripts_basic
 
 
 #KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
+
+ifdef CONFIG_CC_PP_OUTPUT
+KBUILD_CFLAGS   += -save-temps
+endif
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
@@ -750,6 +767,10 @@ endif
 
 #KBUILD_CFLAGS   += $(call cc-option, -fno-var-tracking-assignments)
 
+ifndef CONFIG_DEBUG
+KBUILD_CFLAGS += -O3
+endif
+
 ifdef CONFIG_DEBUG_INFO
 ifdef CONFIG_DEBUG_INFO_SPLIT
 KBUILD_CFLAGS   += $(call cc-option, -gsplit-dwarf, -g)
@@ -846,7 +867,7 @@ endif
 # set in the environment
 # Also any assignments in arch/$(ARCH)/Makefile take precedence over
 # this default value
-export KBUILD_IMAGE ?= libarch
+#export KBUILD_IMAGE ?= libarch
 
 #
 # INSTALL_PATH specifies where to place the updated kernel and system map
@@ -934,14 +955,14 @@ export KBUILD_LDS          := arch/$(SRCARCH)/kernel/libarch.lds
 export LDFLAGS_libarch
 # used by scripts/pacmage/Makefile
 export KBUILD_ALLDIRS := $(sort $(filter-out arch/%,$(package-dirs)) \
-                         arch include lib samples scripts tools modules net mem tools)
+                         arch posix include lib scripts tools modules net mem tools test)
 
 ifdef CONFIG_HEADERS_CHECK
 	$(Q)$(MAKE) -f $(srctree)/Makefile headers_check
 endif
-ifdef CONFIG_SAMPLES
-	$(Q)$(MAKE) $(build)=samples
-endif
+#ifdef CONFIG_SAMPLES
+#	$(Q)$(MAKE) $(build)=samples
+#endif
 ifdef CONFIG_BUILD_DOCSRC
 	$(Q)$(MAKE) $(build)=doc
 endif
@@ -1088,6 +1109,10 @@ kselftest:
 
 ifdef CONFIG_MODULES
 
+ifeq ($(PLATFORM),linux)
+KBUILD_CFLAGS         += -fPIC
+endif
+
 # By default, build modules as well
 
 all: $(progs) modules
@@ -1098,7 +1123,7 @@ all: $(progs) modules
 # duplicate lines in modules.order files.  Those are removed
 # using awk while concatenating to the final file.
 
-PHONY += modules progs
+PHONY += modules 
 modules: $(package-dirs) $(if $(KBUILD_BUILTIN),package) modules.builtin
 	$(Q)$(AWK) '!x[$$0]++' $(package-dirs:%=$(objtree)/%/modules.order) > $(objtree)/modules.order
 	@$(kecho) '  Building modules, stage 2.';
@@ -1149,16 +1174,20 @@ endif
 
 else # CONFIG_MODULES
 
+all: $(progs) 
+
+#modules
+
 # Modules not configured
 # ---------------------------------------------------------------------------
 
-modules modules_install: FORCE
-	@echo >&2
-	@echo >&2 "The present kernel configuration has modules disabled."
-	@echo >&2 "Type 'make config' and enable loadable module support."
-	@echo >&2 "Then build a kernel with module support enabled."
-	@echo >&2
-	@exit 1
+#modules modules_install: FORCE
+#	@echo >&2
+#	@echo >&2 "The present kernel configuration has modules disabled."
+#	@echo >&2 "Type 'make config' and enable loadable module support."
+#	@echo >&2 "Then build a kernel with module support enabled."
+#	@echo >&2
+#	@exit 1
 
 endif # CONFIG_MODULES
 
@@ -1185,7 +1214,7 @@ MRPROPER_FILES += .config .config.old .version .old_version \
 #
 clean: rm-dirs  := $(CLEAN_DIRS)
 clean: rm-files := $(CLEAN_FILES)
-clean-dirs      := $(addprefix _clean_, . $(package-dirs) samples)
+#clean-dirs      := $(addprefix _clean_, . $(package-dirs) samples)
 
 PHONY += $(clean-dirs) clean archclean
 $(clean-dirs):
@@ -1216,7 +1245,8 @@ PHONY += distclean
 
 distclean: mrproper
 ifneq ($(KBUILD_OUTPUT),)
-	@rm -rf $(KBUILD_OUTPUT)/
+	@rm -rf $(srctree)/$(KBUILD_OUTPUT)/*
+
 endif
 	@find $(srctree) $(RCS_FIND_IGNORE) \
 		\( -name '*.orig' -o -name '*.rej' -o -name '*~' \
@@ -1225,7 +1255,7 @@ endif
 		-type f -print | xargs rm -f
 
 
-# Packaging of the kernel to various formats
+# Packaging of the to various formats
 # ---------------------------------------------------------------------------
 # rpm target kept for backward compatibility
 package-dir	:= scripts/package
@@ -1284,18 +1314,16 @@ help:
 	@echo  '  export_report   - List the usages of all exported symbols'
 	@echo  '  headers_check   - Sanity check on exported headers'
 	@echo  '  headerdep       - Detect inclusion cycles in headers'
-	@$(MAKE) -f $(srctree)/scripts/Makefile.help checker-help
+#@$(MAKE) -f $(srctree)/scripts/Makefile.help checker-help
 	@echo  ''
-	@echo  'Kernel selftest'
-	@echo  '  kselftest       - Build and run kernel selftest (run as root)'
-	@echo  '                    Build, install, and boot kernel before'
-	@echo  '                    running kselftest on it'
+	@echo  'selftest'
+	@echo  '  selftest        - Build and run package selftest'
 	@echo  ''
 	@echo  'Packaging:'
 	@$(MAKE) $(build)=$(package-dir) help
 	@echo  ''
 	@echo  'Documentation targets:'
-	@$(MAKE) -f $(srctree)/doc/DocBook/Makefile dochelp
+#@$(MAKE) -f $(srctree)/doc/DocBook/Makefile dochelp
 	@echo  ''
 	@echo  'Architecture specific targets ($(SRCARCH)):'
 	@$(if $(archhelp),$(archhelp),\

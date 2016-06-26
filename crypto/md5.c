@@ -59,7 +59,7 @@ md5_init(struct md5 *md5)
 }
 
 void 
-md5_update(struct md5 *md5, const byte *buf, uint len)
+md5_update(struct md5 *md5, const byte *buf, int len)
 {
 	u32 t = md5->bits[0];
 	if ((md5->bits[0] = t + ((u32) len << 3)) < t)
@@ -217,19 +217,16 @@ md5_transform(u32 buf[4], u32 const in[16])
 }
 
 void
-md5_hash(byte *out, const byte *buf, unsigned int len)
+md5_hash(struct md5 *md5, byte *out, const byte *buf, int len)
 {
-	struct md5 md5;
-	md5_init(&md5);
-	md5_update(&md5, buf, len);
-	memcpy(out, md5_final(&md5), MD5_SIZE);
+	md5_init(md5);
+	md5_update(md5, buf, len);
+	memcpy(out, md5_final(md5), MD5_SIZE);
 }
 
-byte *
-md5_hmac(byte *buf, unsigned int len, byte *key, unsigned int klen)
+void
+md5_hmac(struct md5 *md5, byte *buf, int len, byte *key, int klen)
 {
-	struct md5 md5;
-
 	byte ipad[MD5_BLOCK_SIZE], opad[MD5_BLOCK_SIZE], tk[MD5_SIZE], *digest;
 
 	if (klen > MD5_BLOCK_SIZE) {
@@ -251,14 +248,12 @@ md5_hmac(byte *buf, unsigned int len, byte *key, unsigned int klen)
 		opad[i] ^= 0x5c;
 	}
 
-	md5_init(&md5);
-	md5_update(&md5, ipad, MD5_BLOCK_SIZE);
-	md5_update(&md5, buf, len);
-	digest = md5_final(&md5);
+	md5_init(md5);
+	md5_update(md5, ipad, MD5_BLOCK_SIZE);
+	md5_update(md5, buf, len);
+	digest = md5_final(md5);
 
-	md5_init(&md5);
-	md5_update(&md5, opad, MD5_BLOCK_SIZE);
-	md5_update(&md5, digest, MD5_SIZE);
-
-	return md5_final(&md5);
+	md5_init(md5);
+	md5_update(md5, opad, MD5_BLOCK_SIZE);
+	md5_update(md5, digest, MD5_SIZE);
 }

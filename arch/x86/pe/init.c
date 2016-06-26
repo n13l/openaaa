@@ -2,8 +2,7 @@
 #include <sys/cpu.h>
 #include <sys/log.h>
 #include <elf/lib.h>
-
-#include <mem/list.h>
+#include <posix/list.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,5 +16,10 @@ struct linkmap_module {
 
 void
 linkmap_init(void)
+{
+}
+
+void
+linkmap_fini(void)
 {
 }

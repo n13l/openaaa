@@ -65,6 +65,11 @@ ifneq ($(hostprogs-y)$(hostprogs-m),)
 include scripts/Makefile.host
 endif
 
+# Do not include test rules unless needed
+ifneq ($(testprogs-y)$(testprogs-m),)
+include scripts/Makefile.test
+endif
+
 ifneq ($(KBUILD_SRC),)
 # Create output directory if not already present
 _dummy := $(shell [ -d $(obj) ] || mkdir -p $(obj))

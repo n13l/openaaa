@@ -1,7 +1,7 @@
 #ifndef __MEM_SLAB_H__
 #define __MEM_SLAB_H__
 
-struct memslab {
+struct mem_slab {
 	int unused;
 };
 

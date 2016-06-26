@@ -1,5 +1,5 @@
 /*                                                                              
- * The MIT License (MIT)                          General stack based functions 
+ * The MIT License (MIT)                          Generic stack based functions 
  *                               Copyright (c) 2015 Daniel Kubec <niel@rtfm.cz> 
  *                                                                              
  * Permission is hereby granted, free of charge, to any person obtaining a copy 
@@ -18,165 +18,204 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER       
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,ARISING FROM, 
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN    
- * THE SOFTWARE.                                                                
+ * THE SOFTWARE.
  */
 
-#ifndef __SYS_MEM_STACK_H__
-#define __SYS_MEM_STACK_H__
+#ifndef MM_STACK_GENERIC_H__
+#define MM_STACK_GENERIC_H__
 
+#include <sys/compiler.h>
+#include <sys/cpu.h>
+#include <mem/alloc.h>
+#include <mem/safe.h>
+#include <mem/debug.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
-#include <sys/compiler.h>
-#include <sys/cpu.h>
-#include <sys/decls.h>
-#include <mem/alloc.h>
+#ifndef MM_STACK_BLOCK_SIZE
+#define MM_STACK_BLOCK_SIZE CPU_CACHE_LINE
+#endif
 
-#define STK_MEM_CHUNK_SIZE 256
+#if defined __GNUC__
+#ifndef alloca
+# define alloca __builtin_alloca
+#endif
+#else
+# include <alloca.h>
+#endif
 
-#define stk_alloc(S) \
+struct mm_stack {
+	struct mm_savep save;
+	void *avail, *final;
+	unsigned int blocksize;
+	unsigned int threshold;
+	unsigned int index;
+	unsigned int flags;
+	unsigned int size;
+};
+
+/* Stack-based libc like functions */
+#define sp_alloc(size) \
 ({\
-	void *_x = alloca(S); _x; \
+	void *_X = alloca(size); \
+	_X; \
 })
 
-#define stk_alloc_zero(S) \
+/* Stack-based libc like functions */
+#define sp_alloc_safe(sp, size) \
 ({\
-	void *_x = alloca(S); memset(_x, 0, S); _x; \
+	void *_X = alloca(size); \
+	_X; \
 })
 
-#define stk_strdup(s) \
+/* call function prototype and alloca stack memory */
+#define sp_cfn(fn, ...) \
 ({\
-	const char *_s = (s); unsigned int _l = strlen(_s) + 1; \
-	char *_x = alloca(_l); memcpy(_x, _s, _l); _x; \
+ 	void *_X; \
+	mem_stack_dbg("sp_cfn"); \
+ 	_X; \
 })
 
-#define stk_strndup(s, n) \
+
+#define sp_zalloc(size) \
 ({\
-	const char *_s = (s); unsigned int _l = strnlen(_s,(n)); \
-	char *_x = alloca(_l+1); \
-	memcpy(_x, _s, _l); _x[_l] = 0; _x; \
+	void *_X = alloca(size); memset(_X, 0, size); _X; \
 })
 
-#define stk_strcat(s1, s2) \
+#define sp_strdup(string) \
 ({\
-	const char *_s1 = (s1); const char *_s2 = (s2); \
-	unsigned int _l1 = strlen(_s1); \
-	unsigned int _l2 = strlen(_s2); \
-	char *_x = alloca(_l1+_l2+1); memcpy(_x,_s1,_l1); \
-	memcpy(_x + _l1,_s2,_l2+1); _x; \
+	unsigned int ____size = strlen(string) + 1; \
+	char *_X = alloca(____size); memcpy(_X, string, ____size); _X; \
 })
 
-#define stk_printf(...) \
+#define sp_strndup(string, size) \
 ({\
-	unsigned int _l = stk_printf_size(__VA_ARGS__); \
-	char *_x = (char *)alloca(_l); sprintf(_x, __VA_ARGS__); _x; \
+	const char *_S = (string); size_t _L = strnlen(_S,(size)); \
+	char *_X = alloca(_L + 1); \
+	memcpy(_X, _S, _L); _X[_L] = 0; _X; \
 })
 
-#define stk_vprintf(f, args) \
+#define sp_strndupa(s, n) \
+({							\
+	const char *_O = (s);				\
+	size_t _L = strnlen(_O, (n));			\
+	char *_N = alloca(_L + 1);			\
+	_N[_L] = '\0';					\
+	memcpy(_N, _O, _L);				\
+})
+#define sp_printf(...) \
 ({\
-	unsigned int _l = stk_vprintf_size(f, args); \
-	char *_x = alloca(_l); vsprintf(_x, f, args); _x; \
+	char *_S = (char *)alloca(sp_printfz((const char *)__VA_ARGS__)); \
+        sprintf(_S, (const char *)__VA_ARGS__); _S; \
 })
 
-#define stk_strunesc(s) \
+#define sp_vprintf(fmt, args) \
 ({\
-	const char *_s = (const char *)(s); \
-	char *_d = (char *)alloca(strlen(_s) + 1); str_unesc(_d, _s); _d; \
+	char *_X = alloca(sp_vprintfz(fmt,args)); vsprintf(_X, fmt, args);_X;\
 })
 
-#define stk_decimal(addr, bytes) \
-({ \
- 	size_t __bytes = (size_t)(bytes); \
-	char *__dst = alloca(((__bytes) * 5) + 1); \
-	byte *__src = (byte *)addr; \
-	char *_ds = __dst; \
-	for (unsigned int __i = 0; __i < __bytes; __i++) { \
-		char __num[6]; \
-		snprintf(__num, sizeof(__num) - 1, "%d", (int)*__src++); \
- 		if (__i) *_ds++ = ' '; \
-		for (int __x = 0; __x < strlen(__num); __x++) \
-			*_ds++ = __num[__x]; \
-	} \
-	*_ds++ = 0; \
-	__dst; \
+/* Stack-based network layer functions */
+#define sp_inet_ntop(af, addr) \
+({\
+	size_t _L = af == AF_INET ? INET_ADDRSTRLEN : INET6_ADDRSTRLEN;\
+	char *_S = alloca(_L + 1);\
+	const char *__D;\
+	__D = inet_ntop(af, addr, _S, _L);\
+	__D; \
 })
 
-_unused static unsigned int
-hex_make(unsigned int x)
+_unused _noinline static unsigned int
+sp_printfz(const char *fmt, ...)
 {
-	return (x < 10) ? (x + '0') : (x - 10 + 'a');
-}
+	char *string = alloca(MM_STACK_BLOCK_SIZE);
+	unsigned int avail =  MM_STACK_BLOCK_SIZE;
 
-#define stk_hex_enc(addr, bytes) \
-({\
- 	byte *__src = (byte *)addr; \
- 	size_t __bytes = (bytes); \
-	byte *__x, *__dest = alloca(((__bytes) * 2) + 1); __x = __dest;\
-	while (__bytes--) { \
-		__dest[0] = hex_make(*__src >> 4); \
-		__dest[1] = hex_make(*__src & 0x0f); \
-		__dest += 2; __src++; \
-	} \
-	*__dest = 0; \
-	__x; \
-})
-
-_unused static unsigned int 
-hex_parse(unsigned int c)
-{
-	c = toupper(c);
-	c -= '0';
-	return (c < 10) ? c : (c - 7);
-}
-
-#define stk_hex_dec(addr, bytes) \
-({\
- 	byte *__src = addr; \
- 	size_t __bytes = (bytes); \
- 	byte *__x, *dest = alloca((__bytes) / 2); __x = dest;\
-	while (__bytes--) { \
-		*dest++ = (hex_parse(__src[0]) << 4) | hex_parse(__src[1]); \
- 		__src += 2; \
-	} \
-	__x; \
-})
-
-
-_unused static unsigned int
-stk_printf_size(const char *fmt, ...)
-{
-	unsigned int len = STK_MEM_CHUNK_SIZE;
-	int __l;
-	char *__buf = alloca(len);
 	va_list args, args2;
 	va_start(args, fmt);
-	for (;;) {
-		va_copy(args2, args);
-		__l = vsnprintf(__buf, len, fmt, args2);
-		va_end(args2);
-		if (__l < 0) len *= 2; else { va_end(args); break; }
-		__buf = alloca(len);
+
+stack_avail:	
+	va_copy(args2, args);
+	int size = vsnprintf(string, avail, fmt, args2);
+	va_end(args2);
+
+	if (unlikely(size < 0)) {
+		avail *= 2;
+		string = alloca(avail);
+		goto stack_avail;
 	}
-	return __l + 1;
+
+	va_end(args);
+	return size + 1;
 }
 
-_unused static unsigned int
-stk_vprintf_size(const char *fmt, va_list args)
+_unused _noinline static unsigned int 
+sp_printfz_safe(struct mm_stack *sp, const char *fmt, ...)
 {
-	unsigned int len = STK_MEM_CHUNK_SIZE;
-	int __l;
-	char *buf = alloca(len);
-	va_list args2;
-	for (;;) {
-		va_copy(args2, args);
-		__l = vsnprintf(buf, len, fmt, args2);
-		va_end(args2);
-		if (__l < 0) len *= 2; else { va_end(args); break; }
-		buf = alloca(len);
+	char *string = alloca(MM_STACK_BLOCK_SIZE);
+	unsigned int avail =  MM_STACK_BLOCK_SIZE;
+
+	va_list args, args2;
+	va_start(args, fmt);
+
+stack_avail:	
+	va_copy(args2, args);
+	int size = vsnprintf(string, avail, fmt, args2);
+	va_end(args2);
+
+	if (unlikely(size < 0)) {
+		avail *= 2;
+		string = alloca(avail);
+		goto stack_avail;
 	}
 
-	return __l + 1;
+	va_end(args);
+	return size + 1;
 }
 
-#endif/*__SYS_MEM_STACK_H__*/
+
+_unused _noinline static unsigned int 
+sp_vprintfz(const char *fmt, va_list args)
+{
+	char *string = alloca(MM_STACK_BLOCK_SIZE);
+	unsigned int avail  = MM_STACK_BLOCK_SIZE;
+	va_list args2;
+
+stack_avail:
+	va_copy(args2, args);
+	int size = vsnprintf(string, avail, fmt, args2);
+	va_end(args2);
+
+	if (unlikely(size < 0)) {
+		avail *= 2; 
+		string = alloca(avail);
+		goto stack_avail;
+	}
+
+	va_end(args); 
+	return size + 1;
+}
+
+/* Save version which check for the maximum limit for the current frame */
+_unused _noinline static unsigned int 
+sp_vprintfz_safe(struct mm_stack *sp, const char *fmt, va_list args)
+{
+	char *string = alloca(MM_STACK_BLOCK_SIZE);
+	unsigned int avail  = MM_STACK_BLOCK_SIZE;
+	va_list args2;
+
+stack_avail:
+	va_copy(args2, args);
+	int size = vsnprintf(string, avail, fmt, args2);
+	va_end(args2);
+
+	if (unlikely(size < 0)) {
+		avail *= 2; 
+		string = alloca(avail);
+		goto stack_avail;
+	}
+
+	va_end(args); 
+	return size + 1;
+}
+#endif

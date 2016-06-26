@@ -36,7 +36,4 @@
 
 #define EXPORT(rv) __attribute__ ((visibility("default"))) rv
 
-void *
-dlopen_resolve(const char *file, int flags);
-
 #endif/*__PLATFORM_ABI_H__*/

@@ -1,2 +1,2 @@
-obj-y := pool/
-obj-y += list.o alloc.o vm.o block.o page.o pool.o map.o
+obj-y += alloc.o vm.o block.o page.o map.o
+obj-$(CONFIG_DEBUG_MEMPOOL) += pool.o

@@ -1,32 +1,92 @@
-#ifndef __sys_mem_block_h__
-#define __sys_mem_block_h__ 
+/*
+ * High performance, generic and type-safe memory management
+ *
+ * The MIT License (MIT)      
+ *
+ * Copyright (c) 2015 Daniel Kubec <niel@rtfm.cz> 
+ *                                                                              
+ * Permission is hereby granted, free of charge, to any person obtaining a copy 
+ * of this software and associated documentation files (the "Software"),to deal 
+ * in the Software without restriction, including without limitation the rights 
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell    
+ * copies of the Software, and to permit persons to whom the Software is        
+ * furnished to do so, subject to the following conditions:                     
+ *                                                                              
+ * The above copyright notice and this permission notice shall be included in   
+ * all copies or substantial portions of the Software.                          
+ *                                                                              
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR   
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,     
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE  
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER       
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,ARISING FROM, 
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN    
+ * THE SOFTWARE.
+ */
+
+#ifndef __GENERIC_MEM_BLOCK_H__
+#define __GENERIC_MEM_BLOCK_H__
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
-#include <mem/list.h>
+#include <mem/debug.h>
+#include <mem/vm.h>
+#include <posix/list.h>
 
 /* fixed-size memory block    */
-struct mem_block {
+struct mm_block {
 	byte page[CPU_PAGE_SIZE];
 };
 
 /* variable-size memory block */
-struct mem_vblock {
+struct mm_vblock {
+	/* keep node first because we dont use __container_of() arround */
 	struct snode node;
 	unsigned int size;
 };
 
-#define mem_vblock_for_each(item) slist_for_each(item, node)
-#define mem_vblock_for_each_safe(item, it) slist_for_each_safe(item, node, it)
-#define mem_vblock_unlink(item, prev) slist_remove(&item->node, &prev->node) 
-
-void *
-mem_vblock_alloc(unsigned int size);
+static inline void *
+vm_vblock_alloc(size_t size)
+{
+	struct mm_vblock *b = vm_page_alloc(size + align_struct(sizeof(*b)));
+	b = (struct mm_vblock *)((u8 *)b + size);
+	b->size = size;
+	snode_init(&b->node);
+	return b;
+}
 
 void
-mem_vblock_free(struct mem_vblock *block);
+static inline 
+vm_vblock_free(struct mm_vblock *b)
+{
+	vm_page_free((u8 *)b - b->size, b->size + align_struct(sizeof(*b)));
+}
+
+static inline void *
+libc_vblock_alloc(size_t size)
+{
+	struct mm_vblock *b = malloc(size + align_struct(sizeof(*b)));
+	b = (struct mm_vblock *)((u8 *)b + size);
+	b->size = size;
+	snode_init(&b->node);
+	return b;
+}
 
 void
-mem_vblock_purge(struct mem_vblock *block);
+static inline 
+libc_vblock_free(struct mm_vblock *b)
+{
+	free((u8 *)b - b->size);
+}
+
+static inline void
+mm_vblock_destroy(struct mm_vblock *block)
+{
+/*	
+	struct mm_vblock *it;
+	mm_vblock_for_each_safe(block, it)
+		vm_vblock_free(block);
+*/		
+}
 
 #endif

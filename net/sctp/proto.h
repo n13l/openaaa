@@ -132,7 +132,7 @@ sctp_chunk_type(struct sctp_chunk *sctp_chunk)
 static inline u16
 sctp_chunk_size_aligned(struct sctp_chunk *sctp_chunk)
 {
-	return _align_to(get_u16_be(&sctp_chunk->hdr.len), SCTP_CHUNK_ALIGN);
+	return align_to(get_u16_be(&sctp_chunk->hdr.len), SCTP_CHUNK_ALIGN);
 }
 
 static inline struct sctp_chunk *

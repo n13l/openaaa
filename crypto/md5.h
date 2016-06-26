@@ -38,15 +38,15 @@ void
 md5_init(struct md5 *md5);
 
 void
-md5_update(struct md5 *md5, const byte *buf, unsigned int len);
+md5_update(struct md5 *md5, const byte *buf, int len);
 
 byte *
 md5_final(struct md5 *md5);
 
 void
-md5_hash(byte *out, const byte *buf, unsigned int len);
+md5_hash(struct md5 *md5, byte *out, const byte *buf, int len);
 
-byte *                                                                          
-md5_hmac(byte *buf, unsigned int len, byte *key, unsigned int klen);
+void
+md5_hmac(struct md5 *md5, byte *buf, int len, byte *key, int klen);
 
 #endif/*__CRYPTO_MD5_H__*/

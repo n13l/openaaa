@@ -18,8 +18,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
-#include <sys/decls.h>
-#include <sys/missing.h>
+//#include <sys/missing.h>
 #include <mem/page.h>
 
 #ifndef PAGE_SIZE
@@ -51,7 +50,7 @@ vm_area_file_trunc(int fd, unsigned long size)
 static inline u64
 vm_area_size(u32 shift, u32 total)
 {
-	return (PAGE_SIZE + _align_to(((1U << shift) * total), PAGE_SIZE));
+	return (PAGE_SIZE + align_to(((1U << shift) * total), PAGE_SIZE));
 }
 
 static inline int
@@ -112,18 +111,19 @@ vm_area_init(const char *name, int mode, u32 shift, u32 total)
         u64 size = vm_area_size(shift, total);
 
         struct stat st;
+/*	
         if (fstat(fd, &st))
 		goto failed;
-
+*/
         if (!S_ISREG(st.st_mode))
 		goto failed;
 
         if (st.st_size != size && ftruncate(fd, size) == -1)
 		goto failed;
-
+/*
         if (fstat(fd, &st) || st.st_size != size)
 		goto failed;
-
+*/
         if ((map = mmap(NULL, size, PAGE_PROT, mode, fd, 0)) == MAP_FAILED)
 		goto failed;
 
@@ -218,7 +218,5 @@ mmap_close(void *p)
 	struct pagemap *map = (struct pagemap *)p;
 	return munmap(map, map->size);
 }
-
-__END_DECLS
 
 #endif

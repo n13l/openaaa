@@ -20,7 +20,7 @@ xconfig: $(obj)/qconf
 gconfig: $(obj)/gconf
 	@ $< $(Kconfig)
 
-menuconfig: $(obj)/mconf
+menuconfig: $(obj)/mconf $(obj)/conf
 	$< $(Kconfig)
 
 config: $(obj)/conf

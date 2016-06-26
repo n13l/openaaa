@@ -1,5 +1,6 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
+#include <sys/types.h>
 #include <sys/mman.h>
 #include <mem/alloc.h>
 
@@ -43,8 +44,9 @@ vm_page_inquire(void *addr)
 void *
 vm_page_extend(void *page, u64 olen, u64 size)
 {
+	/* TODO: mremap() on base addr when MM_CONT_ALLOC is used */
 	void *addr = vm_page_alloc(size);
-	memcpy(addr, page, _min(olen, size));
+	memcpy(addr, page, min(olen, size));
 	vm_page_free(page, olen);
 	return addr;
 }

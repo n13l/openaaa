@@ -1,6 +1,8 @@
 #ifndef __sys_mem_safe_h__
 #define __sys_mem_safe_h__ 
 
+#include <sys/compiler.h>
+
 /*
  * This memset_safe should never be optimized out by the compiler 
  * It is good practice and many security related RFCs require that sensitive
@@ -13,10 +15,11 @@
  */
 
 static inline void
-memset_safe(void *addr, size_t size)
+memset_safe(void *addr, unsigned char byte, size_t size)
 {
-	for (volatile u8 *p = (u8*)addr; size--) 
-		*p++ = 0;
+	volatile u8 *p;
+	for (p = (u8 *)addr; size; size--) 
+		*p++ = byte;
 }
 
 #endif

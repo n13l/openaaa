@@ -4,7 +4,8 @@
 #include <asm/cache.h>
 #include <asm/instr.h>
 
-#define X86_IFMT "%016llx %-16s %s"
+#include <inttypes.h>
+#include <stdint.h>
 
 static const char* 
 x86_sym_resolve(struct ud *u, u64 addr, s64 *offset)
@@ -16,7 +17,7 @@ x86_sym_resolve(struct ud *u, u64 addr, s64 *offset)
 static inline void
 x86_instr_dump2(struct ud *u)
 {
-	arch_dbg(X86_IFMT, (long long unsigned int)ud_insn_off(u), 
+	arch_dbg("%016" PRIxPTR "%-16s %s", (intptr_t)ud_insn_off(u), 
 	         ud_insn_hex(u), ud_insn_asm(u)); 
 }
 

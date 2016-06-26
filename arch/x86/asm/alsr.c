@@ -8,11 +8,11 @@
 
 #ifdef __i386__
 #define GET_CANARY(x) \
-	   asm volatile ("mov %%gs:0x14, %0" : "=r" (x));
+	   __asm volatile ("mov %%gs:0x14, %0" : "=r" (x));
 #define ASLR_ADDR_FMT   "08x"
 #elif defined __x86_64__
 #define GET_CANARY(x) \
-	   asm volatile ("mov %%fs:0x28, %0" : "=r" (x));
+	   __asm volatile ("mov %%fs:0x28, %0" : "=r" (x));
 #define ASLR_ADDR_FMT   "016lx"
 #endif
 

@@ -32,7 +32,7 @@
 #include <sys/mman.h>
 #include <mem/alloc.h>
 
-#define PAGEMAP_SHIFT  9
+//#define PAGEMAP_SHIFT  9
 
 #define PAGE_HDR_MAGIC 0x40000000
 #define PAGE_HDR_FREE  0xffffffff
@@ -52,7 +52,7 @@ struct pagemap {
 	u16 init;
 	u16 align;
 	struct page *page;
-} __attribute__ ((aligned (CPU_STRUCT_ALIGN)));
+} _align_max;
 
 struct page {
 	u32 hdr;              /* page header                               */
@@ -61,16 +61,13 @@ struct page {
 	u32 avail;            /* linked list of available pages            */
 	u32 hash;             /* linked list of hash collisions            */
 	u32 part;             /* linked list of object parts               */
-} __attribute__ ((aligned (CPU_STRUCT_ALIGN)));
+} _align_max;
 
-/*
-static void
+_unused static void
 __page_build_bug_on(void)
 {
 	__build_bug_on(sizeof(struct pagemap) > CPU_PAGE_SIZE);
-	__build_bug_on(sizeof(struct pagemap) > (1 << PAGEMAP_SHIFT));
 }
-*/
 
 static inline unsigned int
 get_page_size(struct pagemap *map)

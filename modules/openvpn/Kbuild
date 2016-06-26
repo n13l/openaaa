@@ -6,7 +6,7 @@ libname            := lib$(lib)-$(PACKAGEVERSION)
 
 always             += $(if $(CONFIG_MODULES),$(libname).$(so),)
 
-libaaa-pkcs11-dirs := mem net crypto lib/aaa sys/$(PLATFORM)
+libaaa-pkcs11-dirs := mem net posix crypto lib/aaa posix/$(PLATFORM)
 libaaa-pkcs11-objs := $(patsubst %,%/built-in.o, $(libaaa-pkcs11-dirs)) modules/openvpn/entry.o
 libaaa-pkcs11-libs := $(patsubst %,%/lib.a, $(libs-y))
 libaaa-pkcs11-all  := $(libaaa-pkcs11-objs) $(libaaa-pkcs11-libs) $(KBUILD_LIBS)

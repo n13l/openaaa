@@ -12,8 +12,8 @@
 struct aaa *
 aaa_new(enum aaa_endpoint type)
 {
-	struct mempool *mp = mp_new(CPU_PAGE_SIZE);
-	struct aaa *c = mp_alloc(mp, sizeof(*c));
+	struct mm_pool *mp = mm_pool_create(NULL, CPU_PAGE_SIZE, 0);
+	struct aaa *c = mm_alloc(mp, sizeof(*c));
 
 	c->mp = mp;
 
@@ -25,7 +25,7 @@ aaa_new(enum aaa_endpoint type)
 void
 aaa_free(struct aaa *aaa)
 {
-	mp_delete(aaa->mp);
+	mm_destroy(aaa->mp);
 }
 
 int

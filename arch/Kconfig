@@ -65,6 +65,9 @@ config HOST
 config TARGET
 	string
 
+config ARCH_ENABLE_MEMORY_POOL
+	def_bool n
+
 config MEMORY_HOTPLUG
 	def_bool n
 config MEMORY_HOTREMOVE

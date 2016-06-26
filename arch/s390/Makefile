@@ -15,15 +15,15 @@
 
 ifndef CONFIG_64BIT
 LD_BFD		:= elf32-s390
-LDFLAGS		:= -m elf_s390
+#LDFLAGS		:= -m elf_s390
 KBUILD_CFLAGS	+= -m31
 KBUILD_AFLAGS	+= -m31
 UTS_MACHINE	:= s390
 STACK_SIZE	:= 8192
 CHECKFLAGS	+= -D__s390__ -msize-long
 else
-LD_BFD		:= elf64-s390
-LDFLAGS		:= -m elf64_s390
+#LD_BFD		:= elf64-s390
+#LDFLAGS		:= -m elf64_s390
 KBUILD_AFLAGS_MODULE += -fPIC
 KBUILD_CFLAGS_MODULE += -fPIC
 KBUILD_CFLAGS	+= -m64
@@ -62,43 +62,59 @@ cflags-$(CONFIG_MARCH_Z13_TUNE)	+= -mtune=z13
 #
 # Prevent tail-call optimizations, to get clearer backtraces:
 #
-cflags-$(CONFIG_FRAME_POINTER) += -fno-optimize-sibling-calls
+#cflags-$(CONFIG_FRAME_POINTER) += -fno-optimize-sibling-calls
 
 # old style option for packed stacks
 ifeq ($(call cc-option-yn,-mkernel-backchain),y)
-cflags-$(CONFIG_PACK_STACK)  += -mkernel-backchain -D__PACK_STACK
-aflags-$(CONFIG_PACK_STACK)  += -D__PACK_STACK
+#cflags-$(CONFIG_PACK_STACK)  += -mkernel-backchain -D__PACK_STACK
+#aflags-$(CONFIG_PACK_STACK)  += -D__PACK_STACK
 endif
 
 # new style option for packed stacks
 ifeq ($(call cc-option-yn,-mpacked-stack),y)
-cflags-$(CONFIG_PACK_STACK)  += -mpacked-stack -D__PACK_STACK
-aflags-$(CONFIG_PACK_STACK)  += -D__PACK_STACK
+#cflags-$(CONFIG_PACK_STACK)  += -mpacked-stack -D__PACK_STACK
+#aflags-$(CONFIG_PACK_STACK)  += -D__PACK_STACK
 endif
 
 ifeq ($(call cc-option-yn,-mstack-size=8192 -mstack-guard=128),y)
-cflags-$(CONFIG_CHECK_STACK) += -mstack-size=$(STACK_SIZE)
+#cflags-$(CONFIG_CHECK_STACK) += -mstack-size=$(STACK_SIZE)
 ifneq ($(call cc-option-yn,-mstack-size=8192),y)
-cflags-$(CONFIG_CHECK_STACK) += -mstack-guard=$(CONFIG_STACK_GUARD)
+#cflags-$(CONFIG_CHECK_STACK) += -mstack-guard=$(CONFIG_STACK_GUARD)
 endif
 endif
 
 ifeq ($(call cc-option-yn,-mwarn-dynamicstack),y)
-cflags-$(CONFIG_WARN_DYNAMIC_STACK) += -mwarn-dynamicstack
+#cflags-$(CONFIG_WARN_DYNAMIC_STACK) += -mwarn-dynamicstack
 endif
 
 ifdef CONFIG_FUNCTION_TRACER
 # make use of hotpatch feature if the compiler supports it
-cc_hotpatch	:= -mhotpatch=0,3
+#cc_hotpatch	:= -mhotpatch=0,3
 ifeq ($(call cc-option-yn,$(cc_hotpatch)),y)
 CC_FLAGS_FTRACE := $(cc_hotpatch)
-KBUILD_AFLAGS	+= -DCC_USING_HOTPATCH
-KBUILD_CFLAGS	+= -DCC_USING_HOTPATCH
+#KBUILD_AFLAGS	+= -DCC_USING_HOTPATCH
+#KBUILD_CFLAGS	+= -DCC_USING_HOTPATCH
 endif
 endif
 
-KBUILD_CFLAGS	+= -mbackchain -msoft-float $(cflags-y)
-KBUILD_CFLAGS	+= -pipe -fno-strength-reduce -Wno-sign-compare
+# /usr/lib/gcc-lib/s390-ibm-linux/2.95.3/collect2 -m elf_s390 -dynamic-linker /lib/ld.so.1 /usr/lib/crt1.o /usr/lib/crti.o /usr/lib/gcc-lib/s390-ibm-linux/2.95.3/crtbegin.o -L/usr/lib/gcc-lib/s390-ibm-linux/2.95.3 bad3.o -lg
+# cc -lc -lgcc /usr/lib/gcc-lib/s390-ibm-linux/2.95.3/crtend.o /usr/lib/crtn.o
+
+LDFLAGS += -L /usr/s390x-linux-gnu/lib/ 
+
+#EXE_LDFLAGS += -e main
+#EXE_LDFLAGS += -e main -L /usr/s390x-linux-gnu/lib/ \
+               -dynamic-linker /usr/s390x-linux-gnu/lib/ld-2.23.so \
+               -L /usr/s390x-linux-gnu/lib/ \
+	       /usr/s390x-linux-gnu/lib/gcrt1.o \
+	       /usr/s390x-linux-gnu/lib/crti.o \
+	       /usr/s390x-linux-gnu/lib/crtn.o 
+#-nostartfiles
+#KBUILD_CFLAGS += -fPIC 
+#LDFLAGS += -lc
+KBUILD_CFLAGS   += -mno-packed-stack
+#KBUILD_CFLAGS	+= -mbackchain -msoft-float $(cflags-y)
+#KBUILD_CFLAGS	+= -pipe -fno-strength-reduce -Wno-sign-compare
 KBUILD_AFLAGS	+= $(aflags-y)
 
 OBJCOPYFLAGS	:= -O binary
@@ -117,19 +133,19 @@ OBJCOPYFLAGS	:= -O binary
 
 #boot		:= arch/s390/boot
 
-all:  image bzImage
+#all:  image bzImage
 
-install: vmlinux
+#install: vmlinux
 #	$(Q)$(MAKE) $(build)=$(boot) $@
 
-image bzImage: vmlinux
+#image bzImage: vmlinux
 #	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
 
-zfcpdump:
+#zfcpdump:
 #$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
 
-archclean:
-	#$(Q)$(MAKE) $(clean)=$(boot)
+#archclean:
+#	$(Q)$(MAKE) $(clean)=$(boot)
 
 # Don't use tabs in echo arguments
 define archhelp

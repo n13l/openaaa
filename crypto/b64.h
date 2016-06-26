@@ -24,8 +24,6 @@
 #ifndef __CRYPTO_BASE64_H__
 #define __CRYPTO_BASE64_H__
 
-#define B64_ENC_LEN(x)              (((x) + 2) / 3 * 4)
-
 unsigned int                                                                    
 b64_enc(byte *dst, const byte *src, unsigned int len);
 

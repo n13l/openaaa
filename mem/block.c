@@ -30,26 +30,16 @@
 #include <mem/block.h>
 	
 void *
-mem_vblock_alloc(unsigned int size)
+debug_mm_vblock_alloc(size_t size)
 {
-	struct mem_vblock *b = vm_page_alloc(size + _align_obj(sizeof(*b))) + size;
+	struct mm_vblock *b = vm_page_alloc(size + align_struct(sizeof(*b))) + size;
 	b->size = size;
 	b->node.next = NULL;
 	return b;
 }
 
 void
-mem_vblock_free(struct mem_vblock *b)
+debug_mm_vblock_free(struct mm_vblock *b)
 {
-	vm_page_free(b - b->size, b->size + _align_obj(sizeof(*b)));
-}
-
-void
-mem_vblock_purge(struct mem_vblock *mmv)
-{
-	struct mem_vblock *it;
-	mem_vblock_for_each_safe(mmv, it) {
-		mem_vblock_unlink(mmv, it);
-		mem_vblock_free(mmv);
-	}
+	vm_page_free(b - b->size, b->size + align_struct(sizeof(*b)));
 }

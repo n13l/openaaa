@@ -23,10 +23,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
 #include "types.h"
 #include "decode.h"
 #include "syn.h"
 #include "udint.h"
+
+/*
+int
+vsnprintf(char *restrict s, size_t n, const char *restrict format, va_list ap);
+*/
 
 /* 
  * Register Table - Order Matters (types.h)!

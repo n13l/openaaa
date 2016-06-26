@@ -62,13 +62,13 @@ transform(struct sha1 *sha1, const byte *data)
 
 #define M(i) ( tm =   x[i&0x0f] ^ x[(i-14)&0x0f] \
 	                        ^ x[(i-8)&0x0f] ^ x[(i-3)&0x0f] \
-	                       , (x[i&0x0f] = _rol(tm, 1)) )
+	                       , (x[i&0x0f] = rol(tm, 1)) )
 
-#define R(a,b,c,d,e,f,k,m)  do { e += _rol( a, 5 )     \
+#define R(a,b,c,d,e,f,k,m)  do { e += rol( a, 5 )     \
 				      + f( b, c, d )  \
 				      + k	      \
 				      + m;	      \
-				 b = _rol( b, 30 );    \
+				 b = rol( b, 30 );    \
 			       } while(0)
 	R( a, b, c, d, e, F1, K1, x[ 0] );
 	R( e, a, b, c, d, F1, K1, x[ 1] );

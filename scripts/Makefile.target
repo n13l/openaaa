@@ -1,5 +1,7 @@
 CROSS_COMPILER ?= gcc
+CROSS_LINKER ?= ld
 CC ?= $(CROSS_COMPILE)$(CROSS_COMPILER)
+LD ?= $(CROSS_COMPILE)$(CROSS_LINKER)
 
 UNAME_SYSTEM:=$(shell uname -s)
 UNAME_MACHINE:=$(shell uname -m)
@@ -19,13 +21,29 @@ endif
 
 TARGET ?= $(shell $(CC) -dumpmachine 2>&1)
 ARCH ?= $(shell echo $(TARGET) | sed -e s/i.86.*/i386/ -e s/x86_64.*/x86_64/ \
-                                     -e s/arm.*/arm/)
+                                     -e s/.390.*/s390/ \
+                                     -e s/aarch64.*/arm/ -e s/arm.*/arm/)
 
 PLATFORM ?= $(shell $(src)/scripts/host_from_sys.sh $(TARGET))
 PLAT:=$(shell echo "$(PLATFORM)" | tr '[:lower:]' '[:upper:]')
 
 ifeq ($(PLATFOWM),win32)
 SHLIB_EX=dll
+EXEC_EX=exe
+endif
+
+ifeq ($(PLATFORM),linux)
+KBUILD_LIBS += -lrt -lm
+endif
+
+ifeq ($(ARCH),s390)
+LD = $(CROSS_COMPILE)ld
+EXE_LDFLAGS          += -L/usr/s390x-linux-gnu/lib -lgcc_s -lSegFault
+#LDFLAGS             += -L/usr/s390x-linux-gnu/lib -lgcc
+endif
+
+ifeq ($(ARCH),arm)
+#KBUILD_CFLAGS += "--sysroot=/usr/arm-linux-gnueabi -B/usr/arm-linux-gnueabi/libhfa"
 endif
 
 ifeq ($(PLATFORM),darwin)
@@ -34,6 +52,6 @@ ifeq ($(PLATFORM),darwin)
 endif
 
 export PLATFORM PLATFORM_U
-export ARCH HOST TARGET SO
-export SHLIB_EX
+export ARCH HOST TARGET SO LD
+export SHLIB_EX KBUILD_CFLAGS EXE_LDFLAGS KBUILD_LIBS
 #
