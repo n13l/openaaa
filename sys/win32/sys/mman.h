@@ -2,7 +2,6 @@
 #define _SYS_MMAN_H_
 
 #include <sys/compiler.h>
-#include <sys/decls.h>
 #include <sys/types.h>
 
 #define PROT_NONE       0

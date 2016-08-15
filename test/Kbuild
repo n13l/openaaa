@@ -1,7 +1,6 @@
-#testprogs-y += alloc_stack
-#testprogs-y += alloc_heap
+testprogs-y += alloc
 testprogs-y += sandbox
 testprogs-y += perf_alloc
 testprogs-y += hash
-testprogs-y += list
+#testprogs-y += list
 #testprogs-y += timespec

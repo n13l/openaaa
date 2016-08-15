@@ -365,16 +365,16 @@ static void print_function_line(void)
 	int i;
 	int offset = 1;
 	const int skip = 1;
-	int lines = getmaxy(stdscr);
+	int __lines = getmaxy(stdscr);
 
 	for (i = 0; i < function_keys_num; i++) {
 		(void) wattrset(main_window, attributes[FUNCTION_HIGHLIGHT]);
-		mvwprintw(main_window, lines-3, offset,
+		mvwprintw(main_window, __lines-3, offset,
 				"%s",
 				function_keys[i].key_str);
 		(void) wattrset(main_window, attributes[FUNCTION_TEXT]);
 		offset += strlen(function_keys[i].key_str);
-		mvwprintw(main_window, lines-3,
+		mvwprintw(main_window, __lines-3,
 				offset, "%s",
 				function_keys[i].func);
 		offset += strlen(function_keys[i].func) + skip;
@@ -1456,18 +1456,18 @@ static void conf_save(void)
 
 void setup_windows(void)
 {
-	int lines, columns;
+	int __lines, __columns;
 
-	getmaxyx(stdscr, lines, columns);
+	getmaxyx(stdscr, __lines, __columns);
 
 	if (main_window != NULL)
 		delwin(main_window);
 
 	/* set up the menu and menu window */
-	main_window = newwin(lines-2, columns-2, 2, 1);
+	main_window = newwin(__lines-2, __columns-2, 2, 1);
 	keypad(main_window, TRUE);
-	mwin_max_lines = lines-7;
-	mwin_max_cols = columns-6;
+	mwin_max_lines = __lines-7;
+	mwin_max_cols = __columns-6;
 
 	/* panels order is from bottom to top */
 	new_panel(main_window);
@@ -1475,7 +1475,7 @@ void setup_windows(void)
 
 int main(int ac, char **av)
 {
-	int lines, columns;
+	int __lines, __columns;
 	char *mode;
 
 	setlocale(LC_ALL, "");
@@ -1501,8 +1501,8 @@ int main(int ac, char **av)
 	keypad(stdscr, TRUE);
 	curs_set(0);
 
-	getmaxyx(stdscr, lines, columns);
-	if (columns < 75 || lines < 20) {
+	getmaxyx(stdscr, __lines, __columns);
+	if (__columns < 75 || __lines < 20) {
 		endwin();
 		printf("Your terminal should have at "
 			"least 20 lines and 75 columns\n");

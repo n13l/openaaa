@@ -35,7 +35,6 @@
 #include <mem/savep.h>
 #include <mem/stack.h>
 #include <mem/pool.h>
-#include <mem/debug.h>
 #include <mem/generic.h>
 
 #include <posix/timespec.h>
@@ -51,9 +50,7 @@
 #define MM_NO_GROW     (1 << 3)
 /* The memory operations will not print warnings. */
 #define MM_NO_WARN     (1 << 4)
-/* The Intel SGX Memory Encryption (EXPERIMENTAL)*/
-/* https://www.phoronix.com/scan.php?page=news_item&px=\
- * Intel-SGX-Secure-Guard-Linux */
+/* The CPU Memory Encryption (EXPERIMENTAL) doc/cpu */
 #define MM_HW_ENCRYPT  (1 << 5)  /* Requires MM_PAGE_ALIGN */
 /* The buffers of memory allocated is contiguous. */
 #define MM_CONT_ALLOC  (1 << 6)  /* Requires MM_PAGE_ALIGN */
@@ -63,7 +60,6 @@
 #define MM_LOCK_ALIGN  (1 << 9)  /* Aligned to CPU_CACHE_LINE                */
 #define MM_PAGE_ALIGN  (1 << 9)  /* Aligned to CPU_PAGE_SIZE                 */
 
-//EXPORT_SYMBOL(MM_STACK);
 extern struct mm_stack *MM_STACK;
 extern struct mm_heap  *MM_HEAP;
 extern struct mm_pool  *MM_POOL;

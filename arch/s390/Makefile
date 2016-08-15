@@ -13,6 +13,8 @@
 # Copyright (C) 1994 by Linus Torvalds
 #
 
+KBUILD_DEFCONFIG := s390_defconfig
+
 ifndef CONFIG_64BIT
 LD_BFD		:= elf32-s390
 #LDFLAGS		:= -m elf_s390
@@ -22,17 +24,19 @@ UTS_MACHINE	:= s390
 STACK_SIZE	:= 8192
 CHECKFLAGS	+= -D__s390__ -msize-long
 else
+SUBARCH := s390x
+export SUBARCH
 #LD_BFD		:= elf64-s390
 #LDFLAGS		:= -m elf64_s390
 KBUILD_AFLAGS_MODULE += -fPIC
 KBUILD_CFLAGS_MODULE += -fPIC
 KBUILD_CFLAGS	+= -m64
+LDFLAGS := -m64
 KBUILD_AFLAGS	+= -m64
 UTS_MACHINE	:= s390x
 STACK_SIZE	:= 16384
 CHECKFLAGS	+= -D__s390__ -D__s390x__
 endif
-
 export LD_BFD
 
 mflags-$(CONFIG_MARCH_G5)     := -march=g5
@@ -100,7 +104,7 @@ endif
 # /usr/lib/gcc-lib/s390-ibm-linux/2.95.3/collect2 -m elf_s390 -dynamic-linker /lib/ld.so.1 /usr/lib/crt1.o /usr/lib/crti.o /usr/lib/gcc-lib/s390-ibm-linux/2.95.3/crtbegin.o -L/usr/lib/gcc-lib/s390-ibm-linux/2.95.3 bad3.o -lg
 # cc -lc -lgcc /usr/lib/gcc-lib/s390-ibm-linux/2.95.3/crtend.o /usr/lib/crtn.o
 
-LDFLAGS += -L /usr/s390x-linux-gnu/lib/ 
+#LDFLAGS += -L /usr/s390x-linux-gnu/lib/ 
 
 #EXE_LDFLAGS += -e main
 #EXE_LDFLAGS += -e main -L /usr/s390x-linux-gnu/lib/ \
@@ -118,34 +122,6 @@ KBUILD_CFLAGS   += -mno-packed-stack
 KBUILD_AFLAGS	+= $(aflags-y)
 
 OBJCOPYFLAGS	:= -O binary
-
-#head-y		:= arch/s390/kernel/head.o
-#head-y		+= arch/s390/kernel/$(if $(CONFIG_64BIT),head64.o,head31.o)
-
-# See arch/s390/Kbuild for content of core part of the kernel
-#core-y		+= arch/s390/
-
-#libs-y		+= arch/s390/lib/
-#drivers-y	+= drivers/s390/
-
-# must be linked after kernel
-#drivers-$(CONFIG_OPROFILE)	+= arch/s390/oprofile/
-
-#boot		:= arch/s390/boot
-
-#all:  image bzImage
-
-#install: vmlinux
-#	$(Q)$(MAKE) $(build)=$(boot) $@
-
-#image bzImage: vmlinux
-#	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
-
-#zfcpdump:
-#$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
-
-#archclean:
-#	$(Q)$(MAKE) $(clean)=$(boot)
 
 # Don't use tabs in echo arguments
 define archhelp

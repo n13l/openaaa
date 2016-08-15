@@ -50,6 +50,7 @@ check() {
 main() {}
 EOF
 	if [ $? != 0 ]; then
+	    exit 0
 	    echo " *** Unable to find the ncurses libraries or the"       1>&2
 	    echo " *** required header files."                            1>&2
 	    echo " *** 'make menuconfig' requires the ncurses libraries." 1>&2

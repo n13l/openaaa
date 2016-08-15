@@ -28,4 +28,10 @@ cpu_has_crc32c(void)
 void
 cpu_dump_extension(void)
 {
+	debug("cpu.arch=%s", CONFIG_ARCH);
+	debug("cpu.bits=%d", sizeof(void *) == 8 ? 64 : 32);
+	debug("cpu.pagesize=%d", CPU_PAGE_SIZE);
+	debug("cpu.cacheline=%d",  L1_CACHE_BYTES);
+	debug("cpu.has.mm.encrypt=1");
+	debug("cpu.has.crc32c=%d", cpu_has_crc32c());
 }

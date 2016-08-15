@@ -12,16 +12,30 @@ export HOST
 
 ifeq ($(HOST),os390)
 ARCH := s390
-HOSTCC := $(PWD)/scripts/os390/c99
-HOSTLD := $(PWD)/scripts/os390/c99
-CC := $(PWD)/scripts/os390/c99
-LD := $(PWD)/scripts/os390/c99
-export ARCH HOSTCC HOSTLD CC LD
+OS390_LIBS = "//'CEE.SCEEBND2'" "//'CEE.SCEELKEX'" "//'CEE.SCEELKED'" \
+             "//'CEE.SCEELIB'"  "//'CBC.SCCNOBJ'"  "//'SYS1.CSSLIB'" \
+             "//'CEE.SCEERUN'"  "//'CEE.SCEERUN2'"
+
+OS390_LDFLAGS = -bdynam=dll -bcase=mixed -breus=rent -bstorenx=yes \
+                -bcompat=current -baliases=no -bcall=yes -blet=8 \
+                -bxref=y -bterm=y
+
+OS390_LDFLAGS += $(addprefix -S, $(OS390_LIBS))
+
+HOSTCC := $(srctree)/scripts/os390/xlc-cc
+HOSTLD := $(srctree)/scripts/os390/xlc-cc
+CC := $(srctree)/scripts/os390/xlc-cc $(OS390_CFLAGS)
+LD := $(srctree)/scripts/os390/xlc-ld $(OS390_LDFLAGS)
+OBJDUMP := $(srctree)/scripts/os390/objdump
+COMPILER := xlc
+so := so
+export COMPILER ARCH HOSTCC HOSTLD CC LD OBJDUMP so
 endif
 
 TARGET ?= $(shell $(CC) -dumpmachine 2>&1)
 ARCH ?= $(shell echo $(TARGET) | sed -e s/i.86.*/i386/ -e s/x86_64.*/x86_64/ \
                                      -e s/.390.*/s390/ \
+				     -e s/powerpc64.*/powerpc/ \
                                      -e s/aarch64.*/arm/ -e s/arm.*/arm/)
 
 PLATFORM ?= $(shell $(src)/scripts/host_from_sys.sh $(TARGET))
@@ -32,13 +46,18 @@ SHLIB_EX=dll
 EXEC_EX=exe
 endif
 
+ifeq ($(PLATFOWM),os390)
+SHLIB_EX=so
+EXEC_EX=
+endif
+
 ifeq ($(PLATFORM),linux)
 KBUILD_LIBS += -lrt -lm
 endif
 
 ifeq ($(ARCH),s390)
-LD = $(CROSS_COMPILE)ld
-EXE_LDFLAGS          += -L/usr/s390x-linux-gnu/lib -lgcc_s -lSegFault
+#LD = $(CROSS_COMPILE)ld
+#EXE_LDFLAGS          += -L/usr/s390x-linux-gnu/lib -lgcc_s -lSegFault
 #LDFLAGS             += -L/usr/s390x-linux-gnu/lib -lgcc
 endif
 

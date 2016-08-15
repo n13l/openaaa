@@ -1,3 +1,4 @@
 obj-y += asm/
 obj-y += elf/
-obj-y += init.o
+obj-y += mem/
+

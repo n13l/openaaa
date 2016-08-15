@@ -196,7 +196,7 @@ $(src)/%.hash.c_shipped: $(src)/%.gperf
 LEX_PREFIX = $(if $(LEX_PREFIX_${baseprereq}),$(LEX_PREFIX_${baseprereq}),yy)
 
 quiet_cmd_flex = LEX     $@
-      cmd_flex = flex -o$@ -L -P $(LEX_PREFIX) $<
+      cmd_flex = flex -o$@ -L $<
 
 .PRECIOUS: $(src)/%.lex.c_shipped
 $(src)/%.lex.c_shipped: $(src)/%.l

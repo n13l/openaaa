@@ -70,6 +70,14 @@ if [ "$BUILD_ARCH" == "s390x" ]; then
   export OS_EXEC=$(/bin/sh scripts/travis/s390x-ld.sh)
   echo "OS_EXEC=$OS_EXEC"
 fi
+if [ "$BUILD_ARCH" == "pc64" ]; then
+  unset CC
+  export CROSS_COMPILE=powerpc64-linux-gnu-
+  export OS_EXEC="echo"
+  export BUILD_OS_ARCH="ppc64"
+  export OS_EXEC=$(/bin/sh scripts/travis/ppc64-ld.sh)
+  echo "OS_EXEC=$OS_EXEC"
+fi
 if [ "$BUILD_ARCH" == "arm32" ]; then
   unset CC
   export CROSS_COMPILE=arm-linux-gnueabihf-

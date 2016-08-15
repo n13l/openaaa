@@ -1,1 +1,1 @@
-obj-y := mremap.o
+obj-y := mremap.o clock.o dlfcn.o

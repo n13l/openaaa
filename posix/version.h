@@ -34,12 +34,22 @@
 
 #define VERSION_NULL {.major = 0, .minor = 0, .patch = 0, .devel = 0}
 #define VERSION_CODE(a, b, c) (s32)( ((a) << 16) + ((b) << 8) + (c) )
+
 #define VERSION_DECL(code) { \
-	.major = (code >> 28) & 0xFF;\
-	.minor = (code >> 20) & 0xFF;\
-	.patch = (code >> 12) & 0XFF;\
-	.devel = (code >> 4 ) & 0XFF;\
+	.major = (code >> 28) & 0xFF; .minor = (code >> 20) & 0xFF;\
+	.patch = (code >> 12) & 0XFF; .devel = (code >> 4 ) & 0XFF;\
 }
+
+#define DECLARE_VERSION(NAME, MAJOR, MINOR, PATCH, DEVEL) \
+	struct version NAME = { \
+		.major = MAJOR, .minor = MINOR, .patch = PATCH, .devel = DEVEL\
+	}
+
+#define MAKE_VERSION(MAJOR, MINOR, PATCH) \
+	{ .major = MAJOR, .minor = MINOR, .patch = PATCH, .devel = 0 }
+
+#define MAKE_VERSION_PATCH(MAJOR, MINOR, PATCH, DEVEL) \
+	{ .major = MAJOR, .minor = MINOR, .patch = PATCH, .devel = DEVEL }
 
 struct version {
 	byte major;

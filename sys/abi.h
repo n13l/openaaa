@@ -39,6 +39,10 @@
 
 #include <sys/compiler.h>
 
+#define I_OPTIONAL 0x1
+#define I_REQUIRE  0x2
+
+
 enum abi_call_flags {
 	ABI_CALL_OPTIONAL = 1,
 	ABI_CALL_REQUIRE  = 2
@@ -73,9 +77,6 @@ arch_has_mechanism(void);
 
 int
 arch_has_cap(void);
-
-#define DEFINE_INTERFACE(name) 
-#define DEFINE_INTERFACE_SYMBOL(name)
 
 #define DEFINE_ABI_CALL(rv, fn, args...) \
 	rv ((*abi_##fn)(args)); \

@@ -14,11 +14,11 @@ test1_list(void)
 {
 	DECLARE_LIST(list);
 
-	struct person daniel  = { .name = "Daniel",  .node = init_node };
-	struct person daniela = { .name = "Daniela", .node = init_node };
-	struct person adam    = { .name = "Adam",    .node = init_node };
-	struct person eve     = { .name = "Eve",     .node = init_node };
-	struct person robot   = { .name = "Robot",   .node = init_node };
+	struct person daniel  = {.name = "Daniel",  .node = DECLARE_INIT_NODE};
+	struct person daniela = {.name = "Daniela", .node = DECLARE_INIT_NODE};
+	struct person adam    = {.name = "Adam",    .node = DECLARE_INIT_NODE};
+	struct person eve     = {.name = "Eve",     .node = DECLARE_INIT_NODE};
+	struct person robot   = {.name = "Robot",   .node = DECLARE_INIT_NODE};
 
 	list_add_tail(&list, &daniel.node);
 	list_add_tail(&list, &daniela.node);
@@ -63,11 +63,11 @@ test2_list(void)
 	DEFINE_LIST(list);
 	list_init(&list);
 
-	struct person daniel  = { .name = "Daniel",  .node = init_node };
-	struct person daniela = { .name = "Daniela", .node = init_node };
-	struct person adam    = { .name = "Adam",    .node = init_node };
-	struct person eve     = { .name = "Eve",     .node = init_node };
-	struct person robot   = { .name = "Robot",   .node = init_node };
+	struct person daniel  = {.name = "Daniel",  .node = DECLARE_INIT_NODE};
+	struct person daniela = {.name = "Daniela", .node = DECLARE_INIT_NODE};
+	struct person adam    = {.name = "Adam",    .node = DECLARE_INIT_NODE};
+	struct person eve     = {.name = "Eve",     .node = DECLARE_INIT_NODE};
+	struct person robot   = {.name = "Robot",   .node = DECLARE_INIT_NODE};
 
 	list_add_tail(&list, &daniel.node);
 	list_add_tail(&list, &daniela.node);

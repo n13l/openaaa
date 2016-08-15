@@ -15,7 +15,7 @@ vm_page_reserve(void)
 {
 	void *page = mmap(NULL, 0, VM_PAGE_PROT, VM_PAGE_MODE, -1, 0);
 	if (page == (void*)MAP_FAILED)
-		die("Cannot mmap reserve virtual memory: %s", strerror(errno));
+		die("Cannot mmap reserve virtual memory: %s\n", strerror(errno));
 	return page;
 }
 
@@ -24,7 +24,7 @@ vm_page_alloc(u64 size)
 {
 	void *page = mmap(NULL, size, VM_PAGE_PROT, VM_PAGE_MODE, -1, 0);
 	if (page == (void*) MAP_FAILED)
-		die("Cannot mmap %llu bytes of memory: %s", 
+		die("Cannot mmap %llu bytes of memory: %s\n", 
 		    (unsigned long long)size, strerror(errno));
 	return page;
 }

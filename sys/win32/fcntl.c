@@ -21,7 +21,6 @@
  */
 
 #include <sys/compiler.h>
-#include <sys/missing.h>
 #include <windows.h>
 #include <io.h>
 

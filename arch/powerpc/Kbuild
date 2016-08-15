@@ -1,0 +1,2 @@
+obj-y += asm/
+obj-y += elf/

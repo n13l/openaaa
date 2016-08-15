@@ -61,7 +61,7 @@ __pool_alloc_threashold(struct mm_pool *pool, size_t size)
 	pool->save.final[0] = block;
 	pool->save.avail[0] = pool->blocksize - size;
 
-	return (void *)block - pool->blocksize;
+	return (void *)((u8*)block - pool->blocksize);
 }
 
 static inline void *
@@ -76,7 +76,7 @@ __pool_alloc_aligned_block(struct mm_pool *pool, size_t size, size_t align)
 	pool->index = 1;
 	pool->save.final[1] = block;
 	pool->save.avail[1] = aligned - size;
-	return pool->final = (void *)block - aligned;
+	return pool->final = (void *)((u8*)block - aligned);
 }
 
 static inline void *
@@ -156,7 +156,7 @@ mm_pool_flush(struct mm_pool *pool)
 
 	block = pool->save.final[0];
 	slist_for_each_delsafe(block, node, it) {
-		if ((void *)block - block->size == pool)
+		if ((void *)((u8*)block - block->size) == pool)
 			break;
 		slist_add_after(pool->avail, &block->node);
 		pool->avail = block;
@@ -194,7 +194,7 @@ mm_pool_create(struct mm_pool *object, size_t blocksize, int flags)
 	size = align_to(size, CPU_PAGE_SIZE) - aligned;
 
 	block = vm_vblock_alloc(size);
-	struct mm_pool *pool = (void *)block - size;
+	struct mm_pool *pool = (void *)((u8 *)block - size);
 
 	mem_dbg("mm pool %p created with %" PRIuMAX " bytes", 
 	        pool, (uintmax_t)blocksize);

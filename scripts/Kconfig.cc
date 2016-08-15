@@ -107,4 +107,15 @@ config CC_OPTIMIZE_FOR_SIZE
 
 endchoice
 
+config CC_IPA
+        bool "Enable IBM XL C/C++ interprocedural analysis optimization"
+        default n
+        depends on CC_FEATURES && CC_OPTIMIZE
+        help
+        IPA (interprocedural analysis) optimization is independent from and can be
+        used in addition to the c89/cc/c++ optimization level options.
 
+        IPA optimization can also improve the execution time of your application.
+        IPA is a mechanism for performing optimizations across function boundaries,
+        even across compilation units. It also performs optimizations not otherwise
+        available with the z/OS XL C/C++ compiler.

@@ -29,14 +29,6 @@
 #define FILE_MAP_EXECUTE 0x0020
 #endif/*FILE_MAP_EXECUTE*/
 
-static int
-__map_mman_error(const u32 err, const int deferr)
-{
-	if (err == 0)
-		return 0;
-	return err;
-}
-
 static u32
 __map_mmap_prot_page(const int prot)
 {
@@ -57,21 +49,34 @@ __map_mmap_prot_page(const int prot)
 }
 
 static u32
-__map_mmap_prot_file(const int prt)
+__map_mmap_prot_file(const int prot)
 {
 	u32 acc = 0;
 
-	if (prt == PROT_NONE)
+	if (prot == PROT_NONE)
 		return acc;
-	if ((prt & PROT_READ) != 0)
+	if ((prot  & PROT_READ) != 0)
 		acc |= FILE_MAP_READ;
-	if ((prt & PROT_WRITE) != 0)
+	if ((prot & PROT_WRITE) != 0)
 		acc |= FILE_MAP_WRITE;
-	if ((prt & PROT_EXEC) != 0)
+	if ((prot & PROT_EXEC) != 0)
 		acc |= FILE_MAP_EXECUTE;
 
 	return acc;
 }
+
+
+/*
+ * http://pubs.opengroup.org/onlinepubs/7908799/xsh/mmap.html
+ * mmap - map pages of memory
+ *
+ * #include <sys/mman.h>
+ * void *mmap(void *addr, size_t len, int prot, int flags, int fds, off_t off);
+
+ * DESCRIPTION
+ * The mmap() function establishes a mapping between a process' address space 
+ * and a file or shared memory object. The format of the call is as follows:
+ */
 
 void *
 mmap(void *addr, size_t len, int prot, int flags, int fildes, off_t off)
@@ -110,7 +115,7 @@ mmap(void *addr, size_t len, int prot, int flags, int fildes, off_t off)
 	fm = CreateFileMapping(h, NULL, protect, msizehi, msizelow, NULL);
 
 	if (fm == NULL) {
-		errno = __map_mman_error(GetLastError(), EPERM);
+		errno = EPERM;
 		return MAP_FAILED;
 	}
 
@@ -118,7 +123,7 @@ mmap(void *addr, size_t len, int prot, int flags, int fildes, off_t off)
 	CloseHandle(fm);
 
 	if (map == NULL) {
-		errno = __map_mman_error(GetLastError(), EPERM);
+		errno = EPERM;
 		return MAP_FAILED;
 	}
 
@@ -131,7 +136,7 @@ munmap(void *addr, size_t len)
 	if (UnmapViewOfFile(addr))
 		return 0;
 
-	errno =  __map_mman_error(GetLastError(), EPERM);
+	errno = EBADF;
 	return -1;
 }
 
@@ -150,7 +155,7 @@ mprotect(void *addr, size_t len, int prot)
 	if (VirtualProtect(addr, len, n, &o))
 		return 0;
 
-	errno =  __map_mman_error(GetLastError(), EPERM);
+	errno = EPERM;
 	return -1;
 }
 
@@ -159,7 +164,7 @@ msync(void *addr, size_t len, int flags)
 {
 	if (FlushViewOfFile(addr, len))
 		return 0;
-	errno =  __map_mman_error(GetLastError(), EPERM);
+	errno = EPERM;
 	return -1;
 }
 
@@ -168,7 +173,7 @@ mlock(const void *addr, size_t len)
 {
 	if (VirtualLock((LPVOID)addr, len))
 		return 0;
-	errno =  __map_mman_error(GetLastError(), EPERM);
+	errno = EBADF;
     
 	return -1;
 }
@@ -179,6 +184,6 @@ munlock(const void *addr, size_t len)
 	if (VirtualUnlock((void *)addr, len))
 		return 0;
         
-	errno =  __map_mman_error(GetLastError(), EPERM);
+	errno = EBADF;
 	return -1;
 }

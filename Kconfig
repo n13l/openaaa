@@ -2,14 +2,17 @@
 # For a description of the syntax of this configuration file,
 # see Documentation/kbuild/kconfig-language.txt.
 #
-mainmenu "Kbuild/$SRCARCH $ARCH Configuration on $PLATFORM"
+mainmenu "$PACKAGE_NAME/$SRCARCH $ARCH $D Configuration on $PLATFORM"
 
-config ARCH
-        string
-        option env="ARCH"
+config ARCH 
+	string 
+	option env="ARCH"
 config SRCARCH
 	string
 	option env="SRCARCH"
+config SUBARCH
+        string
+        option env="SUBARCH"
 config HOST
 	string
 	option env="HOST"
@@ -19,6 +22,12 @@ config TARGET
 config PLATFORM
 	string
 	option env="PLATFORM"
+config DEBUG
+	string
+	option env="DEBUG"
+config PACKAGE_NAME
+	string
+	option env="PACKAGE_NAME"
 
 menu "Build Options"
 
@@ -33,4 +42,4 @@ source "scripts/Kconfig.debug"
 source "scripts/Kconfig.bindings"
 endmenu
 
-source "package/Kconfig"
+source "scripts/package/Kconfig"

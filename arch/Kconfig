@@ -65,7 +65,16 @@ config HOST
 config TARGET
 	string
 
+config SUBARCH
+	string
+
 config ARCH_ENABLE_MEMORY_POOL
+	def_bool n
+
+config HAVE_ARCH_ALLOC_PAGE
+	def_bool n
+
+config HAVE_ARCH_FREE_PAGE
 	def_bool n
 
 config MEMORY_HOTPLUG
@@ -90,3 +99,9 @@ config HAVE_CMPXCHG_LOCAL
                                                                                 
 config HAVE_CMPXCHG_DOUBLE                                                      
         bool
+
+config USE_EFFICIENT_MMAP
+	def_bool !ARCH_SUPPORTS_PAGEALLOC
+
+config ARCH_SUPPORTS_PAGEALLOC
+	def_bool n

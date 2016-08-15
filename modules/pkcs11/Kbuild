@@ -8,7 +8,7 @@ always             += $(if $(CONFIG_MODULES),$(libname).$(so),)
 
 #swflags           := -debug-module 1
 
-lib$(lib)-dirs := mem net crypto lib/aaa posix posix/$(PLATFORM)
+lib$(lib)-dirs := mem net crypto lib/aaa posix sys/$(PLATFORM) arch/$(SRCARCH)
 lib$(lib)-objs := $(patsubst %,%/built-in.o, $(lib$(lib)-dirs)) \
                       modules/pkcs11/entry.o
 

@@ -1,0 +1,11 @@
+GPL is not just not the right tool. It places an impenetrable barrier between GPL'd world on the one hand, and permissively licensed and proprietary world on the other. Yet, what we need to gain more "freedom" is to penetrate both of these worlds.
+
+Consider following use cases that would not be possible with GPL'd codebase:
+
+Putting the technology into BSD kernel(s).
+Incorporating the technology into Windows OS.
+Providing the infrastructure on iPhones and iPads.
+Even using ZeroMQ (LGPLv3) code in Linux (GPLv2) in-kernel implementation would be a problem.
+Supporting the infrastructure inside networking hardware.
+Plugging the proprietary products into the infrastructure (IBM's WebSphereMQ, anyone?)
+That, hopefully, should explain why nanomsg uses MIT/X11 license and why communication infrastructure, in general, should follow the same path.

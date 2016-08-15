@@ -46,6 +46,9 @@ struct page *
 mm_cache_alloc(struct mm_cache *cache, size_t size, int flags);
 
 void
+mm_cache_free(struct mm_cache *cache, struct page *page);
+
+void
 mm_cache_expires(struct page *page);
 
 #endif

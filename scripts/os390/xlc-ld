@@ -1,0 +1,45 @@
+#!/bin/sh -k
+opts=""
+lopts=""
+builtin=0
+args=$*
+
+case "$args" in 
+  *-r*)
+    buildint=1
+    ;;
+esac
+
+#printf "builtin enabled=$builtin\n"
+
+for arg in $* ; do
+	case $arg in
+	-r) 
+	;;
+        -m31)
+       ;;
+       -m64*)
+         lopts="$lopts -q64"
+       ;;
+        -S*)
+        if [[ $buildint -eq 0 ]]; then
+        opts="$opts $arg"
+        fi
+        ;;
+	-b*)
+	if [[ $buildint -eq 0 ]]; then
+	opts="$opts $arg"
+	fi
+	;;
+	*)
+	opts="$opts $arg"
+	;;
+	esac
+done
+#printf "linker: $opts\n"
+if [[ $buildint -eq 0 ]]; then
+	ld $lopts $opts
+else
+	xlc -r $lopts $opts > /dev/null 2>&1
+fi
+

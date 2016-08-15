@@ -10,6 +10,10 @@ exe                   := .exe
 KBUILD_CFLAGS         += -D_WIN32_WINNT=0x0501
 export KBUILD_LIBS SHLIB_LDFLAGS so exe
 endif
+ifeq ($(PLATFORM),os390)
+so                    := so
+export so
+endif
 ifeq ($(PLATFORM),darwin)
 so                    := dylib
 SHLIB_LDFLAGS         := -dynamiclib
@@ -17,6 +21,7 @@ SHLIB_LDFLAGS         := -dynamiclib
 export SHLIB_LDFLAGS so
 endif
 ifeq ($(PLATFORM),linux)
+KBUILD_CFLAGS          += -D_GNU_SOURCE
 #KBUILD_LIBS           += -lm
 ifdef CONFIG_MODULES
 #KBUILD_CFLAGS         += -fPIC

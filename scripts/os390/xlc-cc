@@ -1,0 +1,80 @@
+#!/bin/sh -k
+# -DNO_INTPTR_T
+args=$*
+case "$args" in
+  -m64)
+    printf "64BIT !"
+    ;;
+esac
+
+S390_CFLAGS="-D_XOPEN_SOURCE_EXTENDED=1 -DBENDIAN=1 -Daligned=__aligned__ -DNI_MAXHOST=1025 -DNI_MAXSERV=32 -DPATH_MAX=1024 -DNO_SYS_POLL_H -DNO_INTTYPES_H -D__bool_=1 -qkeyword=typeof -qsuppress=CCN4108 -qsuppress=CCN4105 -Dinline=__inline__ -Dalloca=__alloca -qkeyword=typeof -D__typeof__=typeof -D_LARGE_TIME_API" 
+S390_TARGET="c99"
+
+opts=""
+lopts=""
+temp2=""
+mkdeps=""
+nospacearg=" "
+os390x=""
+
+for arg in $* ; do
+  case $arg in
+    --version) 
+      cc_version=`c99 c99 -qversion 2>&1 | grep "z/OS V" | sed 's/ \{1,\}/ /g' | head -n1`
+      printf "$cc_version\n"
+      exit 
+      ;;
+    -x\ c)
+    exit 0
+    ;;
+    -print-file-name*)
+    ;;
+    -m31)
+    ;;
+    -m64*)
+    lopts="$lopts -q64"
+    ;;
+    -D"KBUILD_STR(s)=#s") ;;
+    -Wmissing-prototypes) ;;
+    -Wall) ;;
+    -fno-strict-aliasing) ;;
+    -Wundef) ;;
+    -mno-packed-stack) ;;
+    -std=gnu89) opts="$opts -qlanglvl=extc89" ;;
+    -std=gnu99) opts="$opts -qlanglvl=extc99" ;;
+    -std=gnu1x) opts="$opts -qlanglvl=extc1x" ;;
+    -std=gnu11) opts="$opts -qlanglvl=extended1y" ;;
+    -include) 
+     temp2=$(echo "$arg" | sed -e 's/-include/-qinclude=/')
+     opts="$opts $temp2"
+     nospacearg=""
+    ;;
+    -fomit-frame-pointer) ;;
+    -Wno-format-security) ;;
+    -Wno-char-subscripts) ;;
+    -Wstrict-prototypes) ;;
+    -print-file-name) ;;
+    -dumpmachine)
+      printf "s390\n"
+      exit
+      ;;
+    -L*) lopts="$lopts $arg" ;;
+    -print-file-name) ;;
+    -Wp,-MD*)
+     temp2=$(echo "$arg" | sed -e 's/-Wp,-MD,/-MF /')
+     opts="$opts $temp2"
+     mkdeps="y"
+     ;;
+    *) 
+#    temp2=$(echo "$arg" | sed -e 's/-Wp,-MD,[^[:space:]]*[:space:].d//')
+    opts="$opts$nospacearg$arg" 
+    nospacearg=" "
+    ;;
+  esac
+done
+
+if [ ! -z "$mkdeps" ]; then
+  S390_CFLAGS="-qmakedep=gcc -qlanglvl=extended -I../sys/os390 $S390_CFLAGS"
+fi
+
+c99 $S390_CFLAGS $os390x $lopts $opts 

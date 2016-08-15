@@ -12,7 +12,7 @@
 	debug("%s() " fmt, __func__, __VA_ARGS__)
 
 void
-__list_init(struct list *list)
+debug_list_init(struct list *list)
 {
 	struct node *head = &list->head;
 	head->next = head->prev = head;
@@ -54,4 +54,32 @@ __hlist_del(struct hnode *hnode)
 
 	hnode->next = (struct hnode * )MM_ADDR_POISON1;
 	hnode->prev = (struct hnode **)MM_ADDR_POISON2;
+}
+
+struct node *
+__list_walk_first(struct node *node)
+{
+	debug("node=%p", node);
+	return node;
+}
+
+struct node *
+__list_walk_next(struct node *node)
+{
+	debug("node=%p", node);
+	return node;
+}
+
+struct node *
+__list_walk_first_delsafe(struct node *node)
+{
+	debug("node=%p", node);
+	return node;
+}
+
+struct node *
+__list_walk_next_delsafe(struct node *node)
+{
+	debug("node=%p", node);
+	return node;
 }

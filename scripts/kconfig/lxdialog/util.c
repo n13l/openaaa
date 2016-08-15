@@ -254,12 +254,12 @@ void attr_clear(WINDOW * win, int height, int width, chtype attr)
 
 void dialog_clear(void)
 {
-	int lines, columns;
+	int __lines, __columns;
 
-	lines = getmaxy(stdscr);
-	columns = getmaxx(stdscr);
+	__lines = getmaxy(stdscr);
+	__columns = getmaxx(stdscr);
 
-	attr_clear(stdscr, lines, columns, dlg.screen.atr);
+	attr_clear(stdscr, __lines, __columns, dlg.screen.atr);
 	/* Display background title if it exists ... - SLH */
 	if (dlg.backtitle != NULL) {
 		int i, len = 0, skip = 0;
@@ -274,10 +274,10 @@ void dialog_clear(void)
 		}
 
 		wmove(stdscr, 1, 1);
-		if (len > columns - 2) {
+		if (len > __columns - 2) {
 			const char *ellipsis = "[...] ";
 			waddstr(stdscr, ellipsis);
-			skip = len - (columns - 2 - strlen(ellipsis));
+			skip = len - (__columns - 2 - strlen(ellipsis));
 		}
 
 		for (pos = dlg.subtitles; pos != NULL; pos = pos->next) {
@@ -303,7 +303,7 @@ void dialog_clear(void)
 				skip--;
 		}
 
-		for (i = len + 1; i < columns - 1; i++)
+		for (i = len + 1; i < __columns - 1; i++)
 			waddch(stdscr, ACS_HLINE);
 	}
 	wnoutrefresh(stdscr);

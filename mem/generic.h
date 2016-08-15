@@ -34,36 +34,24 @@
 #include <mem/debug.h>
 #include <assert.h>
 
-/* Runtime zero-overhead metaprogramming in C language :) */
+/* Runtime zero-overhead metaprogramming in C language */
 #define mm_create_dispatch(mm, size, flags) \
 ({ \
-	__build_bug_on(!(compatible_ptr(mm, const struct mm_pool *) || \
-	                 compatible_ptr(mm, struct mm_pool *))); \
-	struct mm_pool *_X; \
-	if (compatible_ptr(mm, const struct mm_pool *)) { \
-		_X = mm_pool_create_const(mm, size, flags); \
-	} else if (compatible_ptr(mm, struct mm_pool *)) { \
-		_X = mm_pool_create(mm, size, flags); \
-	} else abort();  \
+	__build_bug_on(!(pointer_of(mm, struct mm_pool))); \
+	struct mm_pool *_X = mm_pool_create_const(mm, size, flags); \
 	_X; \
 })
 
 #define mm_destroy_dispatch(mm) \
 do { \
-	if (compatible_ptr(mm, const struct mm_pool *)) { \
-		mm_pool_destroy(mm); \
-	} else if (compatible_ptr(mm, struct mm_pool *)) {\
-		mm_pool_destroy(mm); \
-	} else abort(); \
+	__build_bug_on(!(pointer_of(mm, struct mm_pool))); \
+	mm_pool_destroy(mm); \
 } while(0)
 
 #define mm_flush_dispatch(mm) \
 do { \
-	if (compatible_ptr(mm, const struct mm_pool *)) { \
-		mm_pool_flush(mm); \
-	} else if (compatible_ptr(mm, struct mm_pool *)) {\
-		mm_pool_flush(mm); \
-	} else abort(); \
+	__build_bug_on(!(pointer_of(mm, struct mm_pool))); \
+	mm_pool_flush(mm); \
 } while(0)
 
 #define mm_alloc_dispatch(...) \
@@ -71,31 +59,20 @@ do { \
 
 #define mm_alloc_dispatch1(size) \
 ({ \
- 	void *_X; _X = sp_alloc(size); _X; \
+	void *_X; _X = sp_alloc(size); _X; \
 })
 
 #define mm_alloc_dispatch2(mm, size) \
 ({ \
 	void *_X; \
-	_X = \
-	__builtin_choose_expr( \
-		(__builtin_types_compatible_p(__typeof__(*mm), \
-		const struct mm_stack )), sp_alloc(size), \
-	__builtin_choose_expr( \
-		(__builtin_types_compatible_p(__typeof__(*mm), \
-		struct mm_stack )), sp_alloc(size), \
-	__builtin_choose_expr( \
-		(__builtin_types_compatible_p(__typeof__(*mm), \
-		const struct mm_pool )), \
-		mm_pool_alloc((struct mm_pool *)mm, size), \
-	__builtin_choose_expr( \
-		(__builtin_types_compatible_p(__typeof__(*mm), \
-		struct mm_pool )), mm_pool_alloc((struct mm_pool *)mm, size), \
-	NULL))));\
+	if_pointer_of(mm, struct mm_pool) \
+		_X = mm_pool_alloc((struct mm_pool *)mm, size); \
+	if_pointer_of(mm, struct mm_stack) \
+		_X = sp_alloc(size); \
 	_X; \
 })
 
-#define mm_strdup_dispatch(mm, str) __extension__ \
+#define mm_strdup_dispatch(mm, str) \
 ({ \
 	char *_S = "abc";\
 	_S; \
@@ -103,34 +80,18 @@ do { \
 
 #define mm_printf_dispatch(mm, ...) \
 ({ \
-	__build_bug_on(!(compatible_ptr(mm, char *) || \
-	                 compatible_ptr(mm, const char *) || \
-	                 compatible_ptr(mm, char[]) || \
-	                 compatible_ptr(mm, const char[]) || \
-	                 compatible_ptr(mm, const struct mm_stack *) || \
-	                 compatible_ptr(mm, struct mm_stack *) || \
-	                 compatible_ptr(mm, const struct mm_pool *) || \
-	                 compatible_ptr(mm, struct mm_pool *) || \
-	                 compatible_ptr(mm, const struct mm_heap *) || \
-	                 compatible_ptr(mm, struct mm_heap *))); \
+	__build_bug_on(!(aryptr_of(mm, char )             ||  \
+	                 pointer_of(mm, struct mm_stack ) ||  \
+	                 pointer_of(mm, struct mm_pool )  ||  \
+	                 pointer_of(mm, struct mm_heap )  )); \
 	char *_X; \
-	if (compatible_ptr(mm, char *))\
+	if (aryptr_of(mm, char ))\
 		_X = sp_printf(mm, __VA_ARGS__); \
-	else if (compatible_ptr(mm, const char *))\
-		_X = sp_printf(mm, __VA_ARGS__); \
-	else if (compatible_ptr(mm, char[] ))\
-		_X = sp_printf(mm, __VA_ARGS__); \
-	else if (compatible_ptr(mm, const char[] ))\
-		_X = sp_printf(mm, __VA_ARGS__); \
-	else if (compatible_ptr(mm, const struct mm_stack *))\
+	else if (pointer_of(mm, struct mm_stack ))\
 		_X = sp_printf(__VA_ARGS__); \
-	else if (compatible_ptr(mm, struct mm_stack *))\
+	else if (pointer_of(mm, struct mm_pool ))\
 		_X = sp_printf(__VA_ARGS__); \
-	else if (compatible_ptr(mm, const struct mm_pool *))\
-		_X = sp_printf(__VA_ARGS__); \
-	else if (compatible_ptr(mm, struct mm_pool *))\
-		_X = sp_printf(__VA_ARGS__); \
-	else if (compatible_ptr(mm, struct mm_heap *))\
+	else if (pointer_of(mm, struct mm_heap ))\
 		_X = sp_printf(__VA_ARGS__); \
 	else abort(); \
 	_X; \
@@ -141,6 +102,5 @@ do { \
  	char *_X = NULL;\
 	_X; \
 })
-
 
 #endif

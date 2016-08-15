@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <time.h>
 
+#define TIME_UTC 0
 /* C11 timespec_get */
 int
 main(void)

@@ -1,5 +1,5 @@
 /*
- * The MIT License (MIT)                             Generic tracing facilities        
+ * The MIT License (MIT)                             Generic tracing facilities
  *
  * Copyright (c) 2013 Daniel Kubec <niel@rtfm.cz>
  *

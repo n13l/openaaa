@@ -23,11 +23,11 @@ test-cobjs   := $(addprefix $(obj)/,$(test-cobjs))
 # Options to testcc.
 testc_flags = -Wp,-MD,$(depfile) $(KBUILD_CFLAGS) $(KBUILD_CPPFLAGS) \
 	      $(USERINCLUDE) $(TEST_CFLAGS) -I. -I../ \
-	      -include $(srctree)/posix/$(PLATFORM)/platform.h
+	      -include $(srctree)/sys/$(PLATFORM)/platform.h
 
 testld_flags = 
-testld_builtin = arch/$(SRCARCH)/built-in.o posix/$(PLATFORM)/built-in.o \
-		 posix/built-in.o mem/built-in.o
+testld_builtin = sys/built-in.o \
+		 posix/built-in.o mem/built-in.o arch/$(SRCARCH)/built-in.o
 testld_libs = $(KBUILD_LIBS)
 
 # test-csingle -> executable
@@ -45,7 +45,7 @@ $(test-cobjs): $(obj)/%.o: $(src)/%.c FORCE
 
 # Link an executable based on list of .o files
 quiet_cmd_test-cmulti	= LD      $@
-      cmd_test-cmulti	= $(CC) $(testld_flags) -o $@ \
+      cmd_test-cmulti	= $(LD) $(testld_flags) -o $@ \
 			  $(addprefix $(obj)/,$($(@F)-y)) $(testld_builtin) \
       			  $(testld_libs)
 $(test-cmulti): $(obj)/%: $(test-cobjs) FORCE

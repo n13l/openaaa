@@ -1,6 +1,3 @@
-/*                                                  Daniel Kubec <niel@rtfm.cz>
- */
-
 #ifndef __SYS_COMPILER_H__
 #define __SYS_COMPILER_H__
 
@@ -64,9 +61,6 @@ typedef u32 __bitwise __wsum;
 #define _constructor __attribute__((constructor))
 /** Define constructor with a given priority **/
 #define _constructor_with_priority(p) __attribute__((constructor(p)))
-
-#define compatible_ptr(ptr, type) \
-	__builtin_types_compatible_p(__typeof__(ptr), type)
 
 /* branch prediction */ 
 #define likely(x)      __builtin_expect (!!(x), 1)
@@ -151,8 +145,6 @@ typedef u32 __bitwise __wsum;
 #define unaligned_part(ptr, type) (((uintptr_t) (ptr)) % sizeof(type))
 #define aligned_part(size, align) (size & ~(size_t)(align - 1))
 
-#define __barrier()   __asm__ __volatile__ ("" : : : "memory")
-
 /*
  * Instruct the compiler to perform only a single access to a variable
  * (prohibits merging and refetching). The compiler is also forbidden to reorder
@@ -207,24 +199,49 @@ typedef u32 __bitwise __wsum;
 
 
 #if __STDC_VERSION__ >= 201112L
-#if defined(HAVE_STATIC_ASSERT)
-#define _static_assert(expr) \
-	_Static_assert((expr), #expr)
+#define instance_of(X, T) \
+	_Generic((X), T: 1, const T: 1, default: 0)
+#define pointer_of(X, T) \
+	_Generic((X), T*: 1, const T*: 1, default: 0)
+#define array_of(X, T) \
+	_Generic((X), const T[sizeof(X)]: 1, T[sizeof(X)]: 1, default: 0)
+#define aryptr_of(X, T) \
+	_Generic((X), T *: 1, const T*: 1, const T[sizeof(X)]: 1, \
+	              T[sizeof(X)]: 1, default: 0)
+
 #else
-#define _static_assert(expr) \
-	do { (void) sizeof(char [1 - 2*!(expr)]); } while(0)
+
+#define instance_of(X, T) \
+	__builtin_types_compatible_p(typeof(X), T) || \
+	__builtin_types_compatible_p(typeof(X), const T) ? 1 : 0
+
+#define pointer_of(X, T) \
+	__builtin_types_compatible_p(typeof(X), T*) || \
+	__builtin_types_compatible_p(typeof(X), const T*) ? 1 : 0
+
+#define array_of(X, T) \
+	__builtin_types_compatible_p(typeof(X), T*) || \
+	__builtin_types_compatible_p(typeof(X), const T*) ? 1 : 0
+
+#define aryptr_of(X, T) \
+	__builtin_types_compatible_p(typeof(X), T*)       || \
+	__builtin_types_compatible_p(typeof(X), const T*) || \
+	__builtin_types_compatible_p(typeof(X), T[sizeof(X)] )       || \
+	__builtin_types_compatible_p(typeof(X), const T[sizeof(X)]) ? 1 : 0
+
 #endif
-#endif
+
+#define if_pointer_of(X, T) if(pointer_of(X,T))
 
 #define __build_bug_on(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
 #define __build_bug_on_zero(e) (sizeof(struct { int:-!!(e); }))
 #define __build_bug_on_null(e) ((void *)sizeof(struct { int:-!!(e); }))
 
-#define VA_N_ARGS(...) VA_N_ARGS_IMPL(__VA_ARGS__, 5,4,3,2,1)
-#define VA_N_ARGS_IMPL(_1,_2,_3,_4,_5,N,...) N
+#define macro_va_n_args(...) macro_va_n_args_impl(__VA_ARGS__, 5,4,3,2,1)
+#define macro_va_n_args_impl(_1,_2,_3,_4,_5,N,...) N
 
 #define macro_dispatcher(func, ...) \
-	macro_dispatcher_(func, VA_N_ARGS(__VA_ARGS__))
+	macro_dispatcher_(func, macro_va_n_args(__VA_ARGS__))
 #define macro_dispatcher_(func, nargs) \
 	macro_dispatcher__(func, nargs)
 #define macro_dispatcher__(func, nargs) \

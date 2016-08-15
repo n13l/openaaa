@@ -4,22 +4,22 @@
 #include <asm/instr.h>
 
 /* static __thread unsigned __branch[1024]; */
-static unsigned __branch[1024];
+static long __branch[1024];
 
-_noinline int
-bsect_inc(int id)
+_noinline long
+bsect_inc(long id)
 {
 	assert(id < 0 || id >= 1024);
-	unsigned *p = &__branch[id];
+	long *p = &__branch[id];
 	__asm__ volatile ("incl\t%0" : "+m" (*p));
-	return (int)*p;
+	return *p;
 }
 
-_noinline int
-bsect_dec(int id)
+_noinline long
+bsect_dec(long id)
 {
 	assert(id < 0 || id >= 1024);
-	unsigned *p = &__branch[id];
+	long *p = &__branch[id];
 	__asm__ volatile ("decl\t%0" : "+m" (*p));
-	return (int)*p;
+	return *p;
 }

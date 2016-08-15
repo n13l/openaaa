@@ -1,0 +1,22 @@
+x86 Instruction Set Reference
+http://x86.renejeschke.de/html/file_module_x86_id_45.html
+
+/* The Intel SGX Memory Encryption (EXPERIMENTAL) */
+/*
+ * https://www.phoronix.com/scan.php?page=news_item&px=Intel-SGX-Secure-Guard-Linux 
+ *
+ * IBM SecureBlue
+ *
+ * Secure Blue, data is encrypted and decrypted as it runs through a processor,
+ * according to IBM.
+ * SecureBlue is a secure CPU technology that is used to protect the 
+ * confidentiality and integrity of information on a system from physical 
+ * attack. In a SecureBlue system, information is in the clear when it is 
+ * inside the CPU chip but encrypted when it is outside the chip. The 
+ * encryption protects the confidentiality and integrity of code and data from 
+ * physical probing or physical tampering. SecureBlue has been used in 10's of 
+ * millions of systems where strong security is essential
+ *
+ * IBM has built a prototype of Secure Blue using its own PowerPC processor 
+ * technology. 
+ */

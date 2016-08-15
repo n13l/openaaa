@@ -1,7 +1,15 @@
 config PAGE_SIZE
         int
-        default 4096
 config MMU
+	def_bool y
+
+config HAVE_ARCH_ALLOC_PAGE
+	def_bool y
+
+config HAVE_ARCH_FREE_PAGE
+	def_bool y
+
+config ARCH_SUPPORTS_PAGEALLOC
 	def_bool y
 
 config LOCKDEP_SUPPORT
@@ -156,11 +164,6 @@ config S390
 config SCHED_OMIT_FRAME_POINTER
 	def_bool y
 
-config PGTABLE_LEVELS
-	int
-	default 4 if 64BIT
-	default 2
-
 menu "Processor type and features"
 
 config HAVE_MARCH_Z900_FEATURES
@@ -313,8 +316,22 @@ config TUNE_Z13
 
 endchoice
 
-config 64BIT
-	def_bool y
+config 64BIT                                                                    
+        bool "IBM s390x architecture" 
+        default SUBARCH != "s390x"                                                  
+         ---help---                                                              
+           Say yes to build a 64-bit - formerly known as s390x
+           Say no to build a 32-bit  - formerly known as s390
+
+config CICS
+	bool "IBM Customer Information Control System"
+	default n
+	---help---
+	IBM CICS is a family of mixed language application servers that provide 
+	industrial-strength, online transaction management and connectivity for 
+	mission-critical applications.
+
+        Say yes to build package with CICS support
 
 config COMPAT
 	def_bool y
@@ -353,19 +370,6 @@ config SMP
 	  <http://www.tldp.org/docs.html#howto>.
 
 	  Even if you don't know what to do here, say Y.
-
-config NR_CPUS
-	int "Maximum number of CPUs (2-512)"
-	range 2 512
-	depends on SMP
-	default "64"
-	help
-	  This allows you to specify the maximum number of CPUs which this
-	  kernel will support. The maximum supported value is 512 and the
-	  minimum value which makes sense is 2.
-
-	  This is purely to save memory - each supported CPU adds
-	  approximately sixteen kilobytes to the kernel image.
 
 config HOTPLUG_CPU
 	def_bool y

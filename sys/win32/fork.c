@@ -1,4 +1,6 @@
+/*
 #define _WIN32_WINNT 0x0600
+*/
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
@@ -63,7 +65,7 @@ fork_init(void)
 		return; 
 }
 
-pid_t
+int
 fork(void)
 {
 	RTL_USER_PROCESS_INFORMATION info;

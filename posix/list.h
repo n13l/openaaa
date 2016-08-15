@@ -30,42 +30,21 @@
 #include <sys/compiler.h>
 #include <mem/debug.h>
 
-#define DEFINE_LIST(name) struct list name;
-#define DEFINE_NODE(name) struct node name;
+struct node  { struct node *next, *prev; };
+struct snode { struct snode *next; };
+struct hnode { struct hnode *next, **prev; };
+struct list  { struct node head; };
+struct slist { struct snode *head; };
+struct hlist { struct hnode *head;};
 
-#define DECLARE_LIST(name) struct list name = init_list(name)
-#define DECLARE_NODE(name) struct node name = init_node
+#define DEFINE_LIST(name)          struct list name;
+#define DEFINE_NODE(name)          struct node name;
 
-struct node {
-	struct node *next, *prev;
-};
-
-struct snode {
-	struct snode *next;
-};
-
-struct hnode {
-	struct hnode *next, **prev;
-};
-
-struct list {
-	struct node head;
-};
-
-struct slist {
-	struct snode *head;
-};
-
-struct hlist {
-	struct hnode *head;
-};
-
-#define init_node       (struct node ){ .next = NULL, .prev = NULL }
-#ifdef CONFIG_DEBUG_LIST
-#define init_list(name) {{(struct node *)&(name), (struct node *)&(name)}}
-#else
-#define init_list(name) {{(struct node *)&(name), (struct node *)&(name)}}
-#endif
+#define DECLARE_LIST(name)         struct list name = DECLARE_INIT_LIST(name)
+#define DECLARE_NODE(name)         struct node name = DECLARE_INIT_NODE
+#define DECLARE_INIT_NODE         (struct node ){ .next = NULL, .prev = NULL }
+#define DECLARE_INIT_LIST(name) {{(struct node *)&(name), \
+                                  (struct node *)&(name)}}
 
 #ifdef CONFIG_DEBUG_LIST
 void 
@@ -174,6 +153,18 @@ list_del(struct node *node)
 	__list_del(node);
 }
 
+#ifdef CONFIG_DEBUG_LIST
+struct node *__list_walk_first(struct node *node);
+struct node *__list_walk_next(struct node *node);
+struct node *__list_walk_first_delsafe(struct node *node);
+struct node *__list_walk_next_delsafe(struct node *node);
+#else
+#define __list_walk_first(N) (N)
+#define __list_walk_next(N) (N)
+#define __list_walk_first_delsafe(N) (N)
+#define __list_walk_next_delsafe(N) (N)
+#endif
+
 #define list_walk(start, n, list) \
 	for (struct node *(n) = (start); (n) != &list.head; (n) = (n)->next)
 
@@ -200,7 +191,6 @@ slist_add_after(struct snode *node, struct snode *after)
 {
 	after->next = node;
 }
-
 
 static inline void
 slist_remove(struct snode *node, struct snode *prev)

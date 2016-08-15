@@ -90,7 +90,7 @@ void
 alloc_stack(size_t size)
 {
 	for (int i = 0; i < 20; i++) {
-		char *p = mm_alloc(CPU_CACHE_LINE);
+		char *p = mm_alloc(MM_STACK, CPU_CACHE_LINE);
 		volatile u8 *u = (u8*)p; *u = 0;
 	}
 }
