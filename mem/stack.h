@@ -104,6 +104,7 @@ struct mm_stack {
 	_N[_L] = '\0';					\
 	memcpy(_N, _O, _L);				\
 })
+
 #define sp_printf(...) \
 ({\
 	char *_S = (char *)alloca(sp_printfz((const char *)__VA_ARGS__)); \

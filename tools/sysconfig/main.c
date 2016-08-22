@@ -66,13 +66,6 @@ info_sys(void)
 	info("sys.sizeof ptr=%d", (int)sizeof(void *));
 }
 
-_unused static inline void
-package_version(void)
-{
-	printf("sysconfig v%s %s/%s %s " __TIME__ " " __DATE__  "\n", 
-	       PACKAGE_VERSION, CONFIG_PLATFORM, CONFIG_SRCARCH, CONFIG_ARCH);
-}
-
 int
 main(int argc, char *argv[])
 {

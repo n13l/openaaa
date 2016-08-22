@@ -4,7 +4,7 @@
 /* http://www-01.ibm.com/support/docview.wss?uid=swg27039015 */
 
 #ifdef KBUILD_STR
-#endef KBUILD_STR
+#undef KBUILD_STR
 #endif
 
 #define KBUILD_STR(s) #s

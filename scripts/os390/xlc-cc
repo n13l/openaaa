@@ -1,5 +1,4 @@
 #!/bin/sh -k
-# -DNO_INTPTR_T
 args=$*
 case "$args" in
   -m64)

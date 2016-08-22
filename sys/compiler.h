@@ -231,6 +231,34 @@ typedef u32 __bitwise __wsum;
 
 #endif
 
+/* workarround bug for old gcc gnu1x support */
+#if __GNUC__ < 5
+#undef instance_of
+#undef pointer_of
+#undef array_of
+#undef aryptr_of
+
+#define instance_of(X, T) \
+	__builtin_types_compatible_p(typeof(X), T) || \
+	__builtin_types_compatible_p(typeof(X), const T) ? 1 : 0
+
+#define pointer_of(X, T) \
+	__builtin_types_compatible_p(typeof(X), T*) || \
+	__builtin_types_compatible_p(typeof(X), const T*) ? 1 : 0
+
+#define array_of(X, T) \
+	__builtin_types_compatible_p(typeof(X), T*) || \
+	__builtin_types_compatible_p(typeof(X), const T*) ? 1 : 0
+
+#define aryptr_of(X, T) \
+	__builtin_types_compatible_p(typeof(X), T*)       || \
+	__builtin_types_compatible_p(typeof(X), const T*) || \
+	__builtin_types_compatible_p(typeof(X), T[sizeof(X)] )       || \
+	__builtin_types_compatible_p(typeof(X), const T[sizeof(X)]) ? 1 : 0
+
+
+#endif
+
 #define if_pointer_of(X, T) if(pointer_of(X,T))
 
 #define __build_bug_on(condition) ((void)sizeof(char[1 - 2*!!(condition)]))

@@ -90,7 +90,7 @@ do { \
 	else if (pointer_of(mm, struct mm_stack ))\
 		_X = sp_printf(__VA_ARGS__); \
 	else if (pointer_of(mm, struct mm_pool ))\
-		_X = sp_printf(__VA_ARGS__); \
+		_X = mm_pool_printf((struct mm_pool *)mm, __VA_ARGS__); \
 	else if (pointer_of(mm, struct mm_heap ))\
 		_X = sp_printf(__VA_ARGS__); \
 	else abort(); \

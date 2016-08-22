@@ -55,7 +55,7 @@ test_alloc_pool(struct mm_pool *pool, size_t size, long long unsigned iter)
 		alloc_pool(pool, size);
 
 	u64 delta = get_timestamp() - start;
-	float avg = (delta / (float) iter);
+	_unused float avg = (delta / (float) iter);
 
 	info("built-in alloc type=pool  size=%.5d  allocs=%d avg=%.1f ns", 
 		(int)size, operations * iterations, avg);
@@ -80,7 +80,7 @@ test_alloc_heap(size_t size, long long unsigned iter)
 		alloc_heap(size);
 
 	u64 delta = get_timestamp() - start;
-	float avg = (delta / (float) iter);
+	_unused float avg = (delta / (float) iter);
 
 	info("libc-std alloc type=heap  size=%.5d  allocs=%d avg=%.1f ns", 
 		(int)size, operations * iterations, avg);
@@ -104,7 +104,7 @@ test_alloc_stack(size_t size, long long unsigned iter)
 		alloc_stack(size);
 
 	u64 delta = get_timestamp() - start;
-	float avg = (delta / (float) iter);
+	_unused float avg = (delta / (float) iter);
 
 	info("built-in alloc type=stack size=%.5d  allocs=%d avg=%.1f ns",
 	       (int)size, operations * iterations, avg);

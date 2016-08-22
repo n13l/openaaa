@@ -101,7 +101,10 @@ do { \
 #define error(fmt, ...)
 #define warning(fmt, ...)
 #else
-# define debug(fmt, ...) do { } while(0)
+#define debug(fmt, ...) do { } while(0)
+#define info(fmt, ...) do { } while(0)
+#define error(fmt, ...) do { } while(0)
+#define warning(fmt, ...) do { } while(0)
 #endif
 
 void
