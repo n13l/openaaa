@@ -1,0 +1,4 @@
+
+- git integration: requires mechanism how to use kbuild as an "submodule".
+                   kbuild is in project root and that makes slick work quite 
+                   hard.

@@ -1,1 +1,1 @@
-obj-y += init.o trampoline.o page.o
+obj-y += init.o
