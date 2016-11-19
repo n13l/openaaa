@@ -2,7 +2,7 @@
 #include <imagehlp.h>
 
 void
-stacktrace(CONTEXT *ctx)
+win32_stacktrace(CONTEXT *ctx)
 {
 	SymInitialize(GetCurrentProcess(), 0, 1);
 

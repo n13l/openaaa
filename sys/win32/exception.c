@@ -1,90 +1,101 @@
 #include <windows.h>
 #include <stdio.h>
+#include <sys/log.h>
+
+const char *progname = "";
+
+int
+addr2line(char const * const name, void const * const addr)
+{
+	char cmd[512] = {0};
+	   
+#ifdef __APPLE__
+	snprintf(cmd, sizeof(cmd) - 1, "atos -o %.256s %p", name, addr); 
+#else
+	snprintf(cmd, sizeof(cmd) - 1, "addr2line -f -p -e %.256s %p", name, addr); 
+#endif
+	return system(cmd);
+}
 
 LONG WINAPI
-exception_handler(EXCEPTION_POINTERS *ExceptionInfo)
+exception_handler(EXCEPTION_POINTERS *info)
 {
-switch(ExceptionInfo->ExceptionRecord->ExceptionCode)
-{
-case EXCEPTION_ACCESS_VIOLATION:
-fputs("Error: EXCEPTION_ACCESS_VIOLATION\n", stderr);
-break;
-case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
-fputs("Error: EXCEPTION_ARRAY_BOUNDS_EXCEEDED\n", stderr);
-break;
-case EXCEPTION_BREAKPOINT:
-fputs("Error: EXCEPTION_BREAKPOINT\n", stderr);
-break;
-case EXCEPTION_DATATYPE_MISALIGNMENT:
-fputs("Error: EXCEPTION_DATATYPE_MISALIGNMENT\n", stderr);
-break;
-case EXCEPTION_FLT_DENORMAL_OPERAND:
-fputs("Error: EXCEPTION_FLT_DENORMAL_OPERAND\n", stderr);
-break;
-case EXCEPTION_FLT_DIVIDE_BY_ZERO:
-fputs("Error: EXCEPTION_FLT_DIVIDE_BY_ZERO\n", stderr);
-break;
-case EXCEPTION_FLT_INEXACT_RESULT:
-fputs("Error: EXCEPTION_FLT_INEXACT_RESULT\n", stderr);
-break;
-case EXCEPTION_FLT_INVALID_OPERATION:
-fputs("Error: EXCEPTION_FLT_INVALID_OPERATION\n", stderr);
-break;
-case EXCEPTION_FLT_OVERFLOW:
-fputs("Error: EXCEPTION_FLT_OVERFLOW\n", stderr);
-break;
-case EXCEPTION_FLT_STACK_CHECK:
-fputs("Error: EXCEPTION_FLT_STACK_CHECK\n", stderr);
-break;
-case EXCEPTION_FLT_UNDERFLOW:
-fputs("Error: EXCEPTION_FLT_UNDERFLOW\n", stderr);
-break;
-case EXCEPTION_ILLEGAL_INSTRUCTION:
-fputs("Error: EXCEPTION_ILLEGAL_INSTRUCTION\n", stderr);
-break;
-case EXCEPTION_IN_PAGE_ERROR:
-fputs("Error: EXCEPTION_IN_PAGE_ERROR\n", stderr);
-break;
-case EXCEPTION_INT_DIVIDE_BY_ZERO:
-fputs("Error: EXCEPTION_INT_DIVIDE_BY_ZERO\n", stderr);
-break;
-case EXCEPTION_INT_OVERFLOW:
-fputs("Error: EXCEPTION_INT_OVERFLOW\n", stderr);
-break;
-case EXCEPTION_INVALID_DISPOSITION:
-fputs("Error: EXCEPTION_INVALID_DISPOSITION\n", stderr);
-break;
-case EXCEPTION_NONCONTINUABLE_EXCEPTION:
-fputs("Error: EXCEPTION_NONCONTINUABLE_EXCEPTION\n", stderr);
-break;
-case EXCEPTION_PRIV_INSTRUCTION:
-fputs("Error: EXCEPTION_PRIV_INSTRUCTION\n", stderr);
-break;
-case EXCEPTION_SINGLE_STEP:
-fputs("Error: EXCEPTION_SINGLE_STEP\n", stderr);
-break;
-case EXCEPTION_STACK_OVERFLOW:
-fputs("Error: EXCEPTION_STACK_OVERFLOW\n", stderr);
-break;
-default:
-fputs("Error: Unrecognized Exception\n", stderr);
-break;
-}
-	    fflush(stderr);
-if (EXCEPTION_STACK_OVERFLOW != ExceptionInfo->ExceptionRecord->ExceptionCode)
-{
-windows_print_stacktrace(ExceptionInfo->ContextRecord);
-}
-else
-{
-addr2line(icky_global_program_name, (void*)ExceptionInfo->ContextRecord->Eip);
-}
+	switch(info->ExceptionRecord->ExceptionCode) {
+	case EXCEPTION_ACCESS_VIOLATION:
+		error("EXCEPTION_ACCESS_VIOLATION");
+		break;
+	case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+		error("EXCEPTION_ARRAY_BOUNDS_EXCEEDED");
+		break;
+	case EXCEPTION_BREAKPOINT:
+		error("EXCEPTION_BREAKPOINT");
+		break;
+	case EXCEPTION_DATATYPE_MISALIGNMENT:
+		error("EXCEPTION_DATATYPE_MISALIGNMENT");
+		break;
+	case EXCEPTION_FLT_DENORMAL_OPERAND:
+		error("EXCEPTION_FLT_DENORMAL_OPERAND");
+		break;
+	case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+		error("EXCEPTION_FLT_DIVIDE_BY_ZERO");
+		break;
+	case EXCEPTION_FLT_INEXACT_RESULT:
+		error("EXCEPTION_FLT_INEXACT_RESULT");
+		break;
+	case EXCEPTION_FLT_INVALID_OPERATION:
+		error("EXCEPTION_FLT_INVALID_OPERATION");
+		break;
+	case EXCEPTION_FLT_OVERFLOW:
+		error("EXCEPTION_FLT_OVERFLOW");
+		break;
+	case EXCEPTION_FLT_STACK_CHECK:
+		error("EXCEPTION_FLT_STACK_CHECK");
+		break;
+	case EXCEPTION_FLT_UNDERFLOW:
+		error("EXCEPTION_FLT_UNDERFLOW");
+		break;
+	case EXCEPTION_ILLEGAL_INSTRUCTION:
+		error("EXCEPTION_ILLEGAL_INSTRUCTION");
+		break;
+	case EXCEPTION_IN_PAGE_ERROR:
+		error("EXCEPTION_IN_PAGE_ERROR");
+		break;
+	case EXCEPTION_INT_DIVIDE_BY_ZERO:
+		error("EXCEPTION_INT_DIVIDE_BY_ZERO");
+		break;
+	case EXCEPTION_INT_OVERFLOW:
+		error("EXCEPTION_INT_OVERFLOW");
+		break;
+	case EXCEPTION_INVALID_DISPOSITION:
+		error("EXCEPTION_INVALID_DISPOSITION");
+		break;
+	case EXCEPTION_NONCONTINUABLE_EXCEPTION:
+		error("EXCEPTION_NONCONTINUABLE_EXCEPTION");
+		break;
+	case EXCEPTION_PRIV_INSTRUCTION:
+		error("EXCEPTION_PRIV_INSTRUCTION");
+		break;
+	case EXCEPTION_SINGLE_STEP:
+		error("EXCEPTION_SINGLE_STEP");
+		break;
+	case EXCEPTION_STACK_OVERFLOW:
+		error("EXCEPTION_STACK_OVERFLOW");
+		break;
+	default:
+		error("Unrecognized Exception");
+		break;
+	}
+
+	if (EXCEPTION_STACK_OVERFLOW != info->ExceptionRecord->ExceptionCode)
+		win32_stacktrace(info->ContextRecord);
+	else
+		addr2line(progname, (void*)info->ContextRecord->Eip);
 		 
-return EXCEPTION_EXECUTE_HANDLER;
+	return EXCEPTION_EXECUTE_HANDLER;
 }
  
 void
-set_signal_handler()
+set_signal_handler(void)
 {
-	SetUnhandledExceptionFilter(windows_exception_handler);
+	SetUnhandledExceptionFilter(exception_handler);
 }
