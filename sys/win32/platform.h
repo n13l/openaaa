@@ -55,4 +55,7 @@ struct timespec;
 int
 posix_clock_gettime(int id, struct timespec *tv);
 
+
+#include <sys/win32/sigbits.h>
+
 #endif
