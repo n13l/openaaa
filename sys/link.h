@@ -20,20 +20,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- * Pseudorandom functions are deterministic functions which return pseudorandom
- * output indistinguishable from random sequences.
- *
- * They are made based on pseudorandom generators but contrary to them, in 
- * addition to the internal state, they can accept any input data. The input 
- * may be arbitrary but the output must always look completely random.
- *
- * A pseudorandom function, which output is indistinguishable from random 
- * sequences, is called a secure one.
  */
 
 #ifndef __PLATFORM_LINKER_ABI_H__
 #define __PLATFORM_LINKER_ABI_H__
 
 #define EXPORT(rv) __attribute__ ((visibility("default"))) rv
+
+struct dl_sym;
+
+int
+dl_overwrite(void);
+
+int
+dl_interpose(void *module, void *symbol, void *gate, void *trampoline);
 
 #endif/*__PLATFORM_ABI_H__*/

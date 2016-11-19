@@ -1,7 +1,7 @@
 #include <sys/compiler.h>
 #include <elf/lib.h>
 
-static const char * const abi_names[] = {
+_unused static const char * const abi_names[] = {
 	[ELFOSABI_SYSV]       = "sysv",
 	[ELFOSABI_HPUX]       = "hpux",
 	[ELFOSABI_NETBSD]     = "netbsd",
@@ -19,7 +19,7 @@ static const char * const abi_names[] = {
 };
 
 /* Legal values for (segment type).  */
-static const char * const segment_types[] = {
+_unused static const char * const segment_types[] = {
 	[PT_NULL]             = "Program header table entry unused",
 	[PT_LOAD]             = "Loadable program segment",
 	[PT_DYNAMIC]          = "Dynamic linking information",
