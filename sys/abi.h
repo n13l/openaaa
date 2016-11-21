@@ -78,19 +78,19 @@ arch_has_mechanism(void);
 int
 arch_has_cap(void);
 
-#define DEFINE_ABI_CALL(rv, fn, args...) \
+#define defn_abi_call(rv, fn, args...) \
 	rv ((*abi_##fn)(args)); \
 
-#define DEFINE_ABI(ns, rv, fn, args...) \
+#define defn_abi(ns, rv, fn, args...) \
 	rv ((*sym_##fn)(args)); \
 
-#define DECLARE_ABI(ns, rv, fn, args...) \
+#define decl_abi(ns, rv, fn, args...) \
 	_noinline rv abi_##ns##_##fn(args)
 
-#define DEFINE_ABI_link(dll, fn) \
+#define defn_abi_link(dll, fn) \
 	sym_##fn = dlsym((void *)dll, #fn);
 
-#define DECLARE_ABI_SYM(fn, mode) \
+#define decl_abi_sym(fn, mode) \
 	{ stringify(fn), &sym_##fn, mode } 
 
 #define call_abi(ns, fn, args...) \

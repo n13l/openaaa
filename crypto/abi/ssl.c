@@ -27,6 +27,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <crypto/abi/lib.h>
+
 defn_abi(openssl1, long,         SSLeay, void);
 defn_abi(openssl1, const char *, SSLeay_version, int);
 
@@ -48,7 +50,13 @@ ssl_version(void)
 	byte major = (version >> 28) & 0xFF;
 	byte minor = (version >> 20) & 0xFF;
 	byte patch = (version >> 12) & 0XFF;
-	byte dev   = (version >> 4 ) & 0XFF;
+	byte dev   = (version >>  4) & 0XFF;
 
 	sys_dbg("openssl-%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
+}
+
+int
+crypto_openssl(void)
+{
+	return 0;
 }
