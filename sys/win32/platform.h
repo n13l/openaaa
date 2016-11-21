@@ -55,4 +55,8 @@ struct timespec;
 int
 posix_clock_gettime(int id, struct timespec *tv);
 
+void win32_stacktrace(void *ctx);
+
+#include <sys/win32/sigbits.h>
+
 #endif
