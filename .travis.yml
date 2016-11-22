@@ -9,6 +9,7 @@ compiler:
 os:
   - linux
   - osx
+osx_image: xcode7.1
 addons:
   apt:
     packages:
@@ -57,9 +58,6 @@ matrix:
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=wheezy PACK=deb
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=stretch PACK=deb
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=sid PACK=deb
-  include:
-    - os: osx
-      osx_image: xcode7.1
   exclude:
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
       compiler: clang
