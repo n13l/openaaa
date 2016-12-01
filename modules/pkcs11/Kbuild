@@ -1,16 +1,17 @@
-obj-m := entry.o
-entry-objs := pkcs11.o
-
-lib                := aaa-pkcs11
-libname            := lib$(lib)-$(PACKAGEVERSION)
-
+lib                := pkcs11
+libname            := $(lib)-$(PACKAGEVERSION)
 always             += $(if $(CONFIG_MODULES),$(libname).$(so),)
+
+obj-m := $(libname).o
+$(libname)-objs := pkcs11.o
+
+
 
 #swflags           := -debug-module 1
 
 lib$(lib)-dirs := mem net crypto lib/aaa posix sys/$(PLATFORM) arch/$(SRCARCH)
 lib$(lib)-objs := $(patsubst %,%/built-in.o, $(lib$(lib)-dirs)) \
-                      modules/pkcs11/entry.o
+                      modules/pkcs11/$(libname).o
 
 lib$(lib)-libs := $(patsubst %,%/lib.a, $(libs-y))
 lib$(lib)-all  := $(lib$(lib)-objs) $(lib$(lib)-libs) $(KBUILD_LIBS)

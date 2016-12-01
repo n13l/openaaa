@@ -13,6 +13,7 @@ export PACKAGE_NAME=openaaa
 NAME = openaaa
 SO=so
 export SO
+export KBUILD_OUTPUT
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
@@ -441,8 +442,9 @@ KBUILD_CFLAGS_MODULE  := -DMODULE
 KBUILD_LDFLAGS_MODULE := -T $(srctree)/scripts/module-common.lds
 
 # Read PACKAGERELEASE from include/config/package.release (if it exists)
-PACKAGERELEASE = $(shell cat include/config/package.release 2> /dev/null)
+#PACKAGERELEASE = $(shell cat include/config/package.release 2> /dev/null)
 PACKAGEVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
+PACKAGERELEASE = openaaa
 
 export VERSION PATCHLEVEL SUBLEVEL PACKAGERELEASE PACKAGEVERSION
 export ARCH SUBARCH SRCARCH CONFIG_SHELL HOSTCC HOSTCFLAGS CROSS_COMPILE AS LD CC
@@ -878,7 +880,8 @@ endif
 #
 # INSTALL_PATH specifies where to place the updated kernel and system map
 # images. Default is /boot, but you can set it to other values
-export	INSTALL_PATH ?= /usr/local
+export INSTALL_PATH ?= /opt/aaa
+export INSTALL_MOD_PATH ?= $(INSTALL_PATH)
 
 #
 # INSTALL_DTBS_PATH specifies a prefix for relocations required by build roots.
@@ -893,7 +896,8 @@ export INSTALL_DTBS_PATH ?= $(INSTALL_PATH)/dtbs/$(PACKAGERELEASE)
 # makefile but the argument can be passed to make if needed.
 #
 
-MODLIB	= $(INSTALL_MOD_PATH)/lib/modules/$(PACKAGERELEASE)
+MODLIB = $(INSTALL_MOD_PATH)/lib/$(PACKAGERELEASE)
+#MODLIB = $(INSTALL_MOD_PATH)/lib
 export MODLIB
 
 #
@@ -957,7 +961,7 @@ ifeq ($(KBUILD_EXTMOD),)
 # Externally visible symbols (used by link-libarch.sh)
 export KBUILD_libarch_INIT := $(head-y) $(init-y)
 export KBUILD_libarch_MAIN := $(core-y) $(libs-y) $(drivers-y) $(net-y)
-export KBUILD_LDS          := arch/$(SRCARCH)/kernel/libarch.lds
+#export KBUILD_LDS          := arch/$(SRCARCH)/kernel/libarch.lds
 export LDFLAGS_libarch
 # used by scripts/pacmage/Makefile
 export KBUILD_ALLDIRS := $(sort $(filter-out arch/%,$(package-dirs)) \
@@ -981,7 +985,7 @@ define filechk_package.release
 endef
 
 # Store (new) PACKAGERELEASE string in include/config/package.release
-include/config/package.release: include/config/auto.conf FORCE
+include/config/package.release: /include/config/auto.conf FORCE
 	$(call filechk,package.release)
 
 
@@ -1147,14 +1151,14 @@ PHONY += modules_prepare
 modules_prepare: prepare scripts
 
 # Target to install modules
-PHONY += modules_install
+PHONY += modules_install 
 modules_install: _modinst_ _modinst_post
 
 PHONY += _modinst_
 _modinst_:
 	@rm -rf $(MODLIB)/kernel
 	@rm -f $(MODLIB)/source
-	@mkdir -p $(MODLIB)/kernel
+	@mkdir -p $(MODLIB)
 	@ln -s `cd $(srctree) && /bin/pwd` $(MODLIB)/source
 	@if [ ! $(objtree) -ef  $(MODLIB)/build ]; then \
 		rm -f $(MODLIB)/build ; \
@@ -1169,7 +1173,7 @@ _modinst_:
 # boot script depmod is the master version.
 PHONY += _modinst_post
 _modinst_post: _modinst_
-	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.fwinst obj=firmware __fw_modinst
+#	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.fwinst obj=firmware __fw_modinst
 	$(call cmd,depmod)
 
 ifeq ($(CONFIG_MODULE_SIG), y)
@@ -1423,7 +1427,7 @@ modules: $(module-dirs)
 	@$(kecho) '  Building modules, stage 2.';
 #	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
 
-PHONY += modules_install
+PHONY += modules_install 
 modules_install: _emodinst_ _emodinst_post
 
 install-dir := $(if $(INSTALL_MOD_DIR),$(INSTALL_MOD_DIR),extra)

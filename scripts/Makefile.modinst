@@ -20,7 +20,7 @@ __modinst: $(modules)
 quiet_cmd_modules_install = INSTALL $@
       cmd_modules_install = \
     mkdir -p $(2) ; \
-    cp $@ $(2) ; \
+    cp $(srctree)/$(KBUILD_OUTPUT)/$@ $(2) ; \
     $(mod_strip_cmd) $(2)/$(notdir $@) ; \
     $(mod_sign_cmd) $(2)/$(notdir $@) $(patsubst %,|| true,$(KBUILD_EXTMOD)) ; \
     $(mod_compress_cmd) $(2)/$(notdir $@)
@@ -29,7 +29,7 @@ quiet_cmd_modules_install = INSTALL $@
 INSTALL_MOD_DIR ?= extra
 ext-mod-dir = $(INSTALL_MOD_DIR)$(subst $(patsubst %/,%,$(KBUILD_EXTMOD)),,$(@D))
 
-modinst_dir = $(if $(KBUILD_EXTMOD),$(ext-mod-dir),kernel/$(@D))
+modinst_dir = $(if $(KBUILD_EXTMOD),$(ext-mod-dir),/$(@D))
 
 $(modules):
 	$(call cmd,modules_install,$(MODLIB)/$(modinst_dir))
