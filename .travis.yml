@@ -153,6 +153,7 @@ before_deploy:
 - ./scripts/travis/archive.sh $BUILD_ARCHIVE
 before_install:
 - source ./scripts/travis/before_install.sh
+- gem install package_cloud
 script:
 - git submodule update --init --recursive
 - git describe --long --always
