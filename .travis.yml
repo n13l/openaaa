@@ -160,8 +160,7 @@ script:
 - make defconfig
 - make
 - make modules_install
-- packpack/packpack
-
+- if [[ $PACK == 'rpm' ]]; then packpack/packpack; fi
 deploy:
   # Deploy packages to PackageCloud
   provider: packagecloud
