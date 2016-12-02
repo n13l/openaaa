@@ -1,1 +1,0 @@
-rpmbuild --define "_builddir $PWD/obj" -bb rpm/openaaa.spec

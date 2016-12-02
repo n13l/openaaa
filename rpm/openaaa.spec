@@ -1,6 +1,6 @@
 Name:           openaaa
 Summary:        OpenAAA
-Version:        0.0.0
+Version:        %{_version}
 Release:        1%{dist}
 License:        MIT
 Group:          Applications/System
