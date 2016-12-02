@@ -154,24 +154,28 @@ before_deploy:
 before_install:
 - source ./scripts/travis/before_install.sh
 script:
-- git clone https://github.com/tarantool/build.git
-- ./build/pack/travis.sh
-- uname -a
+- git submodule update --init --recursive
+- git describe --long --always
+- git clone https://github.com/packpack/packpack.git packpack
 - make defconfig
 - make
+- make modules_install
+- packpack/packpack
+
+deploy:
+  # Deploy packages to PackageCloud
+  provider: packagecloud
+  username: ${PACKAGECLOUD_USER}
+  repository: ${PACKAGECLOUD_REPO}
+  token: ${PACKAGECLOUD_TOKEN}
+  dist: ${OS}/${DIST}
+  package_glob: build/*.{deb,rpm}
+  skip_cleanup: true
+  on:
+    branch: master
+    condition: -n "${OS}" && -n "${DIST}" && -n "${PACKAGECLOUD_TOKEN}"
+
 notifications:
   on_success: never
   on_failure: never
   email: false
-git:
-  depth: 5
-deploy:
-  provider: releases
-  api_key:
-    secure: jXSZuvXQzlli8DIEvDfIiqYYTgYGqjNCZaZzkV1xzNNzmLfzHR3Rp50DlkfBvg6AEQeeA5si2xBtXfYcjehgljdzdUxrMs3L0YUi7gG7WtzVU5v2GErgqWdpTWH+MAshPL6TAFGpnThdJPFADzhHgW4BdosKQQCOghnVZq4e3N1+9OkKBqlTF5xqmVruo9wlrh0JbImKJ/XPY/KcxQH1BkG53jWXnvF/6SjHshDXNdgzp6Jp41/ucJTVlScKTt5sNf+n44t9DFHFUrrcF7kS2c8UJfKZPN0zm9EnGw24eSoU/gzcLTG/5yUQQHtwID8jVrEFW53K9pypULEo6exbQI9e5Cy8vWMZm3NtI8CnMKE4N/H+rQIokrSP/SWPauLYFb7cRYPJpPdSR3bQ9XFV32V8PaoDI50B0xJvqyGgs3HcVeat6MU2oj7LFLkdkWkhkMm22PlSh+ot7+ukcK2GH4fI60nBbdGJNFAK21PGwUbcA+ThugsvaJwNzLmiF5XzRtkjAfsWGFs7EfP2XsCC3iUA42C7eoabpIQ/CU6I5KAWFlZSWV8b7MEU2YovVI5vEVhQ0SshqhoSGqgbOj65gwul/Z9FSldVSyjSHOl6wKiZSrkIugqdl8y8N26kBxrLD9fKqBRjVHKgVBqDd8rg9HM3Xx0pWscmjk0Y5IKTZ/k=
-  file: "$BUILD_ARCHIVE"
-  skip_cleanup: true
-  on:
-    tags: yes
-    repo: n13l/openaaa
-    condition: "$BUILD_DEPLOY = 1"
