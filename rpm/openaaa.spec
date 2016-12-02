@@ -27,40 +27,29 @@ OpenAAA PKCS#11 Bridge
 %setup -q
 
 %build
-#export CFLAGS="$RPM_OPT_FLAGS"
-#export CPPFLAGS="$RPM_OPT_FLAGS"
-#echo "RPM_OPT_FLAGS: ${RPM_OPT_FLAGS}"
-#echo "path: %{_tmppath}/%{name}-%{version}"
-#echo "buildroot: ${buildroot}"
-#echo "home: ${HOME}"
-#echo "build: %{buildroot}"
-#find %{buildroot}
-#find /build/
-#ls -la /build/openaaa-0.0.1.tar.xz
-#tar xf /build/openaaa-0.0.1.tar.xz
-#echo "${PWD}"
-#find .
 make defconfig DEBUG=1 -j1
 make -j1
 
 %install
-make modules_install INSTALL_PATH="%{buildroot}"
+make modules_install INSTALL_MOD_PATH="%{buildroot}/%{_libdir}"
 find %{buildroot}
 
 %clean
 rm -rf %{buildroot}
 
 %post -p /sbin/ldconfig
-
+find %{buildroot}
 %postun -p /sbin/ldconfig
+find %{buildroot}
 
 %files
 %defattr(-, root, root)
+%{_libdir}/*
 
 %files vpn
 %defattr(-, root, root)
-/lib/openaaa/modules/openvpn/vpn-%{version}.so
+%{_libdir}/lib/openaaa/modules/openvpn/*
 
 %files pkcs11
 %defattr(-, root, root)
-/lib/openaaa/modules/pkcs11/pkcs11-%{version}.so
+%{_libdir}/lib/openaaa/modules/pkcs11/*
