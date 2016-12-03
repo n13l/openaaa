@@ -151,7 +151,6 @@ matrix:
       osx_image: xcode7.1
 before_deploy:
 - export BUILD_ARCHIVE=openaaa-$BUILD_MAJOR.$BUILD_MINOR.$BUILD_REVISION-$BUILD_OS_NAME-$BUILD_OS_ARCH-$BUILD_OS_RELEASE.tar.gz
-- ./scripts/travis/archive.sh $BUILD_ARCHIVE
 before_install:
 - source ./scripts/travis/before_install.sh
 - gem install package_cloud
@@ -177,10 +176,8 @@ deploy:
   package_glob: build/*.{deb,rpm}
   skip_cleanup: true
   on:
-    tags: true
     branch: master
     condition: -n "${OS}" && -n "${DIST}" && -n "${PACKAGECLOUD_TOKEN}"
-
 notifications:
   on_success: never
   on_failure: never

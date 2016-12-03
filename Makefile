@@ -654,11 +654,9 @@ package-all   := $(package-objs) $(package-libs)
 package: $(package-all)
 $(sort $(package-all)): $(package-dirs) ;
 
-
 PHONY += $(package-dirs)                                                        
 $(package-dirs): scripts_basic
 	$(Q)$(MAKE) $(build)=$@
-
 
 #KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
 
@@ -675,14 +673,6 @@ endif
 
 ifdef CONFIG_SUPPORT_LANGUAGE
 -include scripts/Makefile.bindings
-endif
-
-ifdef CONFIG_64BIT
-#KBUILD_CFLAGS += -m64
-endif
-
-ifdef CONFIG_64BIT
-#export S390_ARCH=-q64
 endif
 
 # Tell gcc to never replace conditional load with a non-conditional one
@@ -1131,7 +1121,7 @@ endif
 
 # By default, build modules as well
 
-all: $(progs) modules
+all: prepare $(progs) modules
 
 # Build modules
 #
