@@ -880,7 +880,7 @@ endif
 #
 # INSTALL_PATH specifies where to place the updated kernel and system map
 # images. Default is /boot, but you can set it to other values
-export INSTALL_PATH ?= /opt/aaa
+export INSTALL_PATH ?= /usr
 export INSTALL_MOD_PATH ?= $(INSTALL_PATH)
 
 #
@@ -896,8 +896,7 @@ export INSTALL_DTBS_PATH ?= $(INSTALL_PATH)/dtbs/$(PACKAGERELEASE)
 # makefile but the argument can be passed to make if needed.
 #
 
-MODLIB = $(INSTALL_MOD_PATH)/lib/$(PACKAGERELEASE)
-#MODLIB = $(INSTALL_MOD_PATH)/lib
+MODLIB = $(INSTALL_MOD_PATH)/$(PACKAGERELEASE)
 export MODLIB
 
 #

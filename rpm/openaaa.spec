@@ -48,8 +48,8 @@ find %{buildroot}
 
 %files vpn
 %defattr(-, root, root)
-%{_libdir}/lib/openaaa/modules/openvpn/*
+%{_libdir}/openaaa/modules/openvpn/*
 
 %files pkcs11
 %defattr(-, root, root)
-%{_libdir}/lib/openaaa/modules/pkcs11/*
+%{_libdir}/openaaa/modules/pkcs11/*

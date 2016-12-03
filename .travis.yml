@@ -155,6 +155,7 @@ before_install:
 - source ./scripts/travis/before_install.sh
 - gem install package_cloud
 script:
+- export
 - git submodule update --init --recursive
 - git describe --long --always
 - git clone https://github.com/packpack/packpack.git packpack
