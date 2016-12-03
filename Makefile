@@ -985,7 +985,7 @@ define filechk_package.release
 endef
 
 # Store (new) PACKAGERELEASE string in include/config/package.release
-include/config/package.release: /include/config/auto.conf FORCE
+include/config/package.release: include/config/auto.conf FORCE
 	$(call filechk,package.release)
 
 
@@ -1003,7 +1003,7 @@ PHONY += prepare archprepare prepare0 prepare1 prepare2 prepare3
 # 1) Check that make has not been executed in the kernel src $(srctree)
 prepare3: include/config/package.release
 ifneq ($(KBUILD_SRC),)
-	@$(kecho) '  Using $(srctree) as source for kernel'
+#	@$(kecho) '  Using $(srctree) as source for build'
 	$(Q)if [ -f $(srctree)/.config -o -d $(srctree)/include/config ]; then \
 		echo >&2 "  $(srctree) is not clean, please run 'make mrproper'"; \
 		echo >&2 "  in the '$(srctree)' directory.";\
