@@ -162,7 +162,7 @@ script:
 - if [[ $PACK == 'none' ]]; then 
     make defconfig ;
     make ;
-    make modules_install ;
+    sudo make modules_install ;
   else
     packpack/packpack; 
   fi
