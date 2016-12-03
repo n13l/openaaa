@@ -31,7 +31,8 @@ make defconfig DEBUG=1 -j1
 make -j1
 
 %install
-make modules_install INSTALL_MOD_PATH="%{buildroot}/%{_libdir}"
+printf "buildroot=%{buildroot} libdir=%{_libdir} \n"
+make modules_install INSTALL_MOD_PATH="%{buildroot}%{_libdir}"
 find %{buildroot}
 
 %clean

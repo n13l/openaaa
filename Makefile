@@ -881,7 +881,14 @@ endif
 # INSTALL_PATH specifies where to place the updated kernel and system map
 # images. Default is /boot, but you can set it to other values
 export INSTALL_PATH ?= /usr
-export INSTALL_MOD_PATH ?= $(INSTALL_PATH)
+
+ifneq "$(wildcard $(INSTALL_PATH)/lib64 )" ""
+export INSTALL_MOD_PATH ?= $(INSTALL_PATH)/lib64
+endif
+
+ifneq "$(wildcard $(INSTALL_PATH)/lib )" ""
+export INSTALL_MOD_PATH ?= $(INSTALL_PATH)/lib
+endif
 
 #
 # INSTALL_DTBS_PATH specifies a prefix for relocations required by build roots.
