@@ -158,10 +158,13 @@ script:
 - git submodule update --init --recursive
 - git describe --long --always
 - git clone https://github.com/packpack/packpack.git packpack
-- make defconfig
-- make
-- make modules_install
-- if [[ $PACK == 'rpm' ]]; then packpack/packpack; fi
+- if [[ $PACK == 'none' ]]; then 
+    make defconfig
+    make
+    make modules_install
+  else
+    packpack/packpack; 
+  fi
 deploy:
   # Deploy packages to PackageCloud
   provider: packagecloud
@@ -172,6 +175,7 @@ deploy:
   package_glob: build/*.{deb,rpm}
   skip_cleanup: true
   on:
+    tags: true
     branch: master
     condition: -n "${OS}" && -n "${DIST}" && -n "${PACKAGECLOUD_TOKEN}"
 
