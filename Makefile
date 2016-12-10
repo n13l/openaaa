@@ -521,7 +521,7 @@ asm-generic:
 # Detect when mixed targets is specified, and make a second invocation
 # of make so .config is not included in this case either (for *config).
 
-version_h := include/generated/uapi/version.h
+version_h := include/generated/version.h
 old_version_h := include/version.h
 
 no-dot-config-targets := clean mrproper distclean \
@@ -640,11 +640,11 @@ endif # $(dot-config)
 
 objs-y += arch/$(SRCARCH) sys posix mem net crypto lib 
 # TODO: tests in objs-m does not look right
-objs-m += test
+objs-m += test tools
 
 include arch/$(SRCARCH)/Makefile                                                
 -include modules/Makefile                                                        
--include tools/Makefile
+#-include tools/Makefile
 
 package-dirs  := $(objs-y) $(libs-y) $(objs-m) 
 package-objs  := $(patsubst %,%/built-in.o, $(objs-y))
@@ -1010,7 +1010,7 @@ endif
 # prepare2 creates a makefile if using a separate output directory
 prepare2: prepare3 outputmakefile asm-generic
 
-prepare1: prepare2 $(version_h) include/generated/utsrelease.h \
+prepare1: prepare2 $(version_h) include/generated/release.h \
                    include/config/auto.conf
 	$(cmd_crmodverdir)
 
@@ -1029,12 +1029,12 @@ prepare: prepare0
 # needs to be updated, so this check is forced on all builds
 
 uts_len := 64
-define filechk_utsrelease.h
+define filechk_release.h
 	if [ `echo -n "$(PACKAGERELEASE)" | wc -c ` -gt $(uts_len) ]; then \
 	  echo '"$(PACKAGERELEASE)" exceeds $(uts_len) characters' >&2;    \
 	  exit 1;                                                         \
 	fi;                                                               \
-	(echo \#define UTS_RELEASE \"$(PACKAGERELEASE)\";)
+	(echo \#define PACKAGE_RELEASE \"$(PACKAGERELEASE)\";)
 endef
 
 define filechk_version.h
@@ -1047,8 +1047,8 @@ $(version_h): $(srctree)/Makefile FORCE
 	$(call filechk,version.h)
 	$(Q)rm -f $(old_version_h)
 
-include/generated/utsrelease.h: include/config/package.release FORCE
-	$(call filechk,utsrelease.h)
+include/generated/release.h: include/config/package.release FORCE
+	$(call filechk,release.h)
 
 PHONY += headerdep
 headerdep:

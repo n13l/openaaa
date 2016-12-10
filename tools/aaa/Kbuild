@@ -1,14 +1,1 @@
-obj-y := main.o
-
-#aaa-dirs := $(package-dirs)
-#aaa-objs := $(patsubst %,%/built-in.o, $(objs-y))
-#aaa-libs := $(patsubst %,%/lib.a, $(libs-y))
-#aaa-all  := $(aaa-objs) $(aaa-libs)
-
-#targets += aaa
-
-#quiet_cmd_aaa = LD      $@
-#	cmd_aaa = $(CC) $(LDFLAGS) -o $@ $(aaa-libs) $(aaa-objs)
-#
-#$(obj)/aaa: $(aaa-all) FORCE
-#	$(call if_changed,aaa)
+testprogs-y := aaa
