@@ -1,1 +1,4 @@
-testprogs-y := aaa
+toolprogs-y := aaa
+aaa-y := main.o
+
+

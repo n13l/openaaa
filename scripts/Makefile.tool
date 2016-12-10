@@ -53,8 +53,8 @@ $(tool-cobjs): $(__obj_fixed)/%.o: $(__src_fixed)/%.c FORCE
 	$(call if_changed_dep,tool-cobjs)
 
 # Link an executable based on list of .o files
-quiet_cmd_tool-cmulti	= LD      $@
-      cmd_tool-cmulti	= $(LD) $(toolld_flags) -o $@ \
+quiet_cmd_tool-cmulti	= CC      $@
+      cmd_tool-cmulti	= $(CC) $(toolld_flags) -o $@ \
 			  $(addprefix $(obj)/,$($(@F)-y)) $(toolld_builtin) \
       			  $(toolld_libs)
 $(tool-cmulti): $(__obj_fixed)/%: $(tool-cobjs) FORCE

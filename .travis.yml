@@ -156,6 +156,8 @@ before_install:
 - gem install package_cloud
 script:
 - export
+- mkdir rpm
+- ln -s ./scripts/package/openaaa.spec ./rpm/ 
 - git submodule update --init --recursive
 - git describe --long --always
 - git clone https://github.com/packpack/packpack.git packpack
