@@ -8,4 +8,4 @@ tar --exclude='.git*' --exclude='obj*' --transform $transform \
 
 #--transform 's,^openaaa,openaaa-${VERSION},' 
 rpmbuild --define "_builddir $PWD/obj" \
-         --define "_version $VERSION" -vv -bb rpm/openaaa.spec
+         --define "_version $VERSION" -vv -bb scripts/package/openaaa.spec

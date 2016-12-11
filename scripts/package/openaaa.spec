@@ -31,7 +31,6 @@ make defconfig DEBUG=1 -j1
 make -j1
 
 %install
-printf "buildroot=%{buildroot} libdir=%{_libdir} \n"
 make modules_install INSTALL_MOD_PATH="%{buildroot}%{_libdir}"
 find %{buildroot}
 
@@ -49,8 +48,8 @@ find %{buildroot}
 
 %files vpn
 %defattr(-, root, root)
-%{_libdir}/openaaa/modules/openvpn/*
+%{_libdir}/openaaa/modules/vpn*
 
 %files pkcs11
 %defattr(-, root, root)
-%{_libdir}/openaaa/modules/pkcs11/*
+%{_libdir}/openaaa/modules/pkcs11*

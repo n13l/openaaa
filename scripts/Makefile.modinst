@@ -19,8 +19,9 @@ __modinst: $(modules)
 # Don't stop modules_install if we can't sign external modules.
 quiet_cmd_modules_install = INSTALL $@
       cmd_modules_install = \
-    mkdir -p $(2) ; \
-    cp $(srctree)/$(KBUILD_OUTPUT)/$@ $(2) ; \
+    mkdir -p $(MODLIB)/modules ; \
+    echo "modlib=$(MODLIB)" ; \
+    cp $(srctree)/$(KBUILD_OUTPUT)/$@ $(MODLIB)/modules ; \
     $(mod_strip_cmd) $(2)/$(notdir $@) ; \
     $(mod_sign_cmd) $(2)/$(notdir $@) $(patsubst %,|| true,$(KBUILD_EXTMOD)) ; \
     $(mod_compress_cmd) $(2)/$(notdir $@)
