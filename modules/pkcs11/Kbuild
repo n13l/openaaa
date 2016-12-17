@@ -9,7 +9,7 @@ $(libname)-objs := pkcs11.o
 
 #swflags           := -debug-module 1
 
-lib$(lib)-dirs := mem net crypto lib/aaa sys/$(PLATFORM) arch/$(SRCARCH)
+lib$(lib)-dirs := mem net crypto lib/aaa sys/unix sys/$(PLATFORM) arch/$(SRCARCH)
 lib$(lib)-objs := $(patsubst %,%/built-in.o, $(lib$(lib)-dirs)) \
                       modules/pkcs11/$(libname).o
 

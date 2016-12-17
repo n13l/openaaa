@@ -5,7 +5,7 @@ always             += $(if $(CONFIG_MODULES),$(libname).$(so),)
 obj-m := $(libname).o
 $(libname)-objs := plugin.o
 
-libaaa-pkcs11-dirs := mem net crypto lib/aaa sys/$(PLATFORM) arch/$(SRCARCH)
+libaaa-pkcs11-dirs := mem net crypto lib/aaa sys/unix sys/$(PLATFORM) arch/$(SRCARCH)
 libaaa-pkcs11-objs := $(patsubst %,%/built-in.o, $(libaaa-pkcs11-dirs)) modules/openvpn/$(libname).o
 libaaa-pkcs11-libs := $(patsubst %,%/lib.a, $(libs-y))
 libaaa-pkcs11-all  := $(libaaa-pkcs11-objs) $(libaaa-pkcs11-libs) $(KBUILD_LIBS)
