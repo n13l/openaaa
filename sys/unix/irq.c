@@ -28,7 +28,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
-#include <posix/irq.h>
+#include <unix/irq.h>
 
 /* block mask for the signals */
 __thread sigset_t blk_mask;

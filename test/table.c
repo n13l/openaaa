@@ -27,8 +27,8 @@
 #include <mem/alloc.h>
 #include <mem/cache.h>
 #include <mem/page.h>
-#include <posix/list.h>
-#include <posix/hash.h>
+#include <unix/list.h>
+#include <unix/hash.h>
 
 DECLARE_HASHTABLE(person_name, 9);
 DECLARE_HASHTABLE(person_age,  9);

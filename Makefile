@@ -403,6 +403,8 @@ USERINCLUDE    := \
 		-include include/generated/autoconf.h \
 		-I$(srctree)/lib \
 		-Ilib -I$(srctree)/arch \
+		-I$(srctree)/sys \
+		-I$(srctree)/sys/unix \
 		-I$(srctree)/arch/$(hdr-arch) \
 		-include $(srctree)/sys/$(PLATFORM)/platform.h \
 		-I$(srctree)/sys/$(PLATFORM) \
@@ -638,7 +640,7 @@ else
 include/config/auto.conf: ;
 endif # $(dot-config)
 
-objs-y += arch/$(SRCARCH) sys posix mem net crypto lib 
+objs-y += arch/$(SRCARCH) sys mem net crypto lib 
 # TODO: tests in objs-m does not look right
 objs-m += test tools
 
@@ -961,7 +963,7 @@ export KBUILD_libarch_MAIN := $(core-y) $(libs-y) $(drivers-y) $(net-y)
 export LDFLAGS_libarch
 # used by scripts/pacmage/Makefile
 export KBUILD_ALLDIRS := $(sort $(filter-out arch/%,$(package-dirs)) \
-                         arch sys posix include lib scripts tools modules net mem tools test)
+                         arch sys include lib scripts tools modules net mem tools test)
 
 ifdef CONFIG_HEADERS_CHECK
 	$(Q)$(MAKE) -f $(srctree)/Makefile headers_check

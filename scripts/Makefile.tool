@@ -30,8 +30,7 @@ toolc_flags = -Wp,-MD,$(depfile) $(KBUILD_CFLAGS) $(KBUILD_CPPFLAGS) \
 	      -include $(srctree)/sys/$(PLATFORM)/platform.h
 
 toolld_flags = 
-toolld_builtin = sys/built-in.o \
-		 posix/built-in.o mem/built-in.o arch/$(SRCARCH)/built-in.o
+toolld_builtin = sys/built-in.o mem/built-in.o arch/$(SRCARCH)/built-in.o
 toolld_libs = $(KBUILD_LIBS)
 
 # tool-csingle -> executable

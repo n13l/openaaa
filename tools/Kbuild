@@ -1,1 +1,2 @@
 subdir-y := aaa/
+#subdir-y += sysconfig/

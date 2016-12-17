@@ -2,7 +2,7 @@
 #include <sys/cpu.h>
 #include <mem/alloc.h>
 #include <mem/cache.h>
-#include <posix/list.h>
+#include <unix/list.h>
 
 struct person {
 	const char *name;

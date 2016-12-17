@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <time.h>
-#include <posix/timespec.h>
+#include <unix/timespec.h>
 
 #ifndef CLOCK_REALTIME
 #define CLOCK_REALTIME 1

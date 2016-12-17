@@ -35,8 +35,10 @@
 #include <unistd.h>
 #include <getopt.h>
 
+/*
 #undef KBUILD_MODNAME
 #define KBUILD_MODNAME KBUILD_STR(sys)
+*/
 
 _unused static struct option long_options[] = {
 	{"cpu-caps", no_argument, 0, 0  },

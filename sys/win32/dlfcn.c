@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <sys/compiler.h>
 #include <mem/alloc.h>
-#include <posix/list.h>
+#include <unix/list.h>
 
 #include "dlfcn.h"
 

@@ -2,8 +2,8 @@
 #include <sys/cpu.h>
 #include <mem/alloc.h>
 #include <mem/cache.h>
-#include <posix/list.h>
-#include <posix/hash.h>
+#include <unix/list.h>
+#include <unix/hash.h>
 
 DEFINE_HASHTABLE(table, 9);
 

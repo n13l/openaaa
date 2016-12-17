@@ -31,7 +31,7 @@
 #include <sys/cpu.h>
 #include <mem/debug.h>
 #include <mem/vm.h>
-#include <posix/list.h>
+#include <unix/list.h>
 
 /* fixed-size memory block    */
 struct mm_block {

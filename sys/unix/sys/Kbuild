@@ -1,2 +1,2 @@
+obj-y := log.c
 obj-y += $(PLATFORM)/
-obj-y += unix/

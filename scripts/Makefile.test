@@ -30,8 +30,7 @@ testc_flags = -Wp,-MD,$(depfile) $(KBUILD_CFLAGS) $(KBUILD_CPPFLAGS) \
 	      -include $(srctree)/sys/$(PLATFORM)/platform.h
 
 testld_flags = 
-testld_builtin = sys/built-in.o \
-		 posix/built-in.o mem/built-in.o arch/$(SRCARCH)/built-in.o
+testld_builtin = sys/built-in.o mem/built-in.o arch/$(SRCARCH)/built-in.o
 testld_libs = $(KBUILD_LIBS)
 
 # test-csingle -> executable

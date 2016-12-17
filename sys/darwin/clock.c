@@ -27,7 +27,7 @@
 #include <mach/mach_time.h>
 #include <time.h>
 #include <errno.h>
-//#include <posix/darwin/platform.h>
+//#include <unix/darwin/platform.h>
 
 int
 posix_clock_gettime(int clock_id, struct timespec *ts)

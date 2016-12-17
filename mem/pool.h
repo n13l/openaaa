@@ -11,8 +11,8 @@
 #include <mem/block.h>
 #include <mem/generic.h>
 
-#include <posix/timespec.h>
-#include <posix/list.h>
+#include <unix/timespec.h>
+#include <unix/list.h>
 #include <inttypes.h>
 #include <assert.h>
 
