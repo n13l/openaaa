@@ -1,10 +1,10 @@
 ifeq ($(PLATFORM),win32)
 KBUILD_LIBS           += -lcomdlg32 -lwinspool -lcomctl32 -lsetupapi -lwininet \
                          -lwin32spl -lws2_32 -lpsapi -lshlwapi -ladvapi32 \
-                         -lgdi32 -lpsapi -lole32 -lshlwapi
+			 -lgdi32 -lpsapi -lole32 -lshlwapi
 SHLIB_LDFLAGS         := -shared -static-libgcc -static-libstdc++ \
+                         -Wl,-Bstatic -lgcc -lstdc++ -lwinpthread -Wl,-Bdynamic \
                          -Wl,--subsystem,console -Wl,--add-stdcall-alias
-#LD                    := $(CC)
 so                    := dll
 exe                   := .exe
 KBUILD_CFLAGS         += -D_WIN32_WINNT=0x0501

@@ -29,7 +29,7 @@ toolc_flags = -Wp,-MD,$(depfile) $(KBUILD_CFLAGS) $(KBUILD_CPPFLAGS) \
 	      $(USERINCLUDE) $(tool_CFLAGS) -I. -I../ \
 	      -include $(srctree)/sys/$(PLATFORM)/platform.h
 
-toolld_flags = 
+toolld_flags = $(EXE_LDFLAGS)
 toolld_builtin = sys/built-in.o mem/built-in.o arch/$(SRCARCH)/built-in.o
 toolld_libs = $(KBUILD_LIBS)
 

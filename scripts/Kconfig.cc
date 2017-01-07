@@ -22,7 +22,7 @@ config CC_STACKPROTECTOR
 choice
 	prompt "Stack Protector buffer overflow detection"
 	depends on HAVE_CC_STACKPROTECTOR
-	depends on CC_FEATURES
+	depends on CC_FEATURES && (COMPILER=clang || COMPILER=gcc)
 	default CC_STACKPROTECTOR_NONE
 	help
 	This option turns on the "stack-protector" GCC feature. This
@@ -110,7 +110,7 @@ endchoice
 config CC_IPA
         bool "Enable IBM XL C/C++ interprocedural analysis optimization"
         default n
-        depends on CC_FEATURES && CC_OPTIMIZE
+        depends on CC_FEATURES && CC_OPTIMIZE && COMPILER=xlc
         help
         IPA (interprocedural analysis) optimization is independent from and can be
         used in addition to the c89/cc/c++ optimization level options.
