@@ -20,7 +20,6 @@ __modinst: $(modules)
 quiet_cmd_modules_install = INSTALL $@
       cmd_modules_install = \
     mkdir -p $(MODLIB)/modules ; \
-    echo "modlib=$(MODLIB)" ; \
     cp $(srctree)/$(KBUILD_OUTPUT)/$@ $(MODLIB)/modules ; \
     $(mod_strip_cmd) $(2)/$(notdir $@) ; \
     $(mod_sign_cmd) $(2)/$(notdir $@) $(patsubst %,|| true,$(KBUILD_EXTMOD)) ; \

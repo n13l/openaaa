@@ -2,7 +2,7 @@
 # For a description of the syntax of this configuration file,
 # see Documentation/kbuild/kconfig-language.txt.
 #
-mainmenu "$PACKAGE_NAME/$SRCARCH $ARCH $D Configuration on $PLATFORM"
+mainmenu "$PACKAGE_NAME/$SRCARCH $ARCH $D $COMPILER Configuration on $PLATFORM"
 
 config ARCH 
 	string 
@@ -25,6 +25,9 @@ config PLATFORM
 config DEBUG
 	string
 	option env="DEBUG"
+config COMPILER
+	string
+	option env="COMPILER"
 config PACKAGE_NAME
 	string
 	option env="PACKAGE_NAME"

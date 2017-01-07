@@ -384,8 +384,7 @@ PERL		= perl
 PYTHON		= python
 CHECK		= sparse
 
-CHECKFLAGS     := -D__unix__ -Dunix -D__STDC__ \
-		  -Wbitwise -Wno-return-void $(CF)
+CHECKFLAGS     := -D__unix__ -Dunix -D__STDC__ -Wbitwise -Wno-return-void $(CF)
 CFLAGS_MODULE   =
 AFLAGS_MODULE   =
 LDFLAGS_MODULE  =
@@ -396,10 +395,6 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 # Use USERINCLUDE when you must reference the UAPI directories only.
 USERINCLUDE    := \
-		-I$(srctree)/arch/$(hdr-arch)/include/uapi \
-		-Iarch/$(hdr-arch)/include/generated/uapi \
-		-I$(srctree)/include/uapi \
-		-Iinclude/generated/uapi \
 		-include include/generated/autoconf.h \
 		-I$(srctree)/lib \
 		-Ilib -I$(srctree)/arch \
@@ -414,7 +409,6 @@ USERINCLUDE    := \
 # Needed to be compatible with the O= option
 LINUXINCLUDE    := \
 		-I$(srctree)/arch/$(hdr-arch)/include \
-		-Iarch/$(hdr-arch)/include/generated/uapi \
 		-Iarch/$(hdr-arch)/include/generated \
 		$(if $(KBUILD_SRC), -I$(srctree)/include) \
 		-I$(srctree)/include \
@@ -1149,7 +1143,8 @@ PHONY += modules_prepare
 modules_prepare: prepare scripts
 
 # Target to install modules
-PHONY += modules_install 
+PHONY += modules_install install 
+install: modules_install
 modules_install: _modinst_ _modinst_post
 
 PHONY += _modinst_
@@ -1422,10 +1417,11 @@ $(module-dirs): crmodverdir $(objtree)/Module.symvers
 	$(Q)$(MAKE) $(build)=$(patsubst _module_%,%,$@)
 
 modules: $(module-dirs)
-	@$(kecho) '  Building modules, stage 2.';
+#	@$(kecho) '  Building modules, stage 2.';
 #	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
 
-PHONY += modules_install 
+PHONY += modules_install install
+install: modules_install 
 modules_install: _emodinst_ _emodinst_post
 
 install-dir := $(if $(INSTALL_MOD_DIR),$(INSTALL_MOD_DIR),extra)
