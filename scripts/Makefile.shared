@@ -1,3 +1,5 @@
+export SO=so
+
 ifeq ($(PLATFORM),win32)
 KBUILD_LIBS           += -lcomdlg32 -lwinspool -lcomctl32 -lsetupapi -lwininet \
                          -lwin32spl -lws2_32 -lpsapi -lshlwapi -ladvapi32 \

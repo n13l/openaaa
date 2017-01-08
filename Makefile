@@ -432,7 +432,7 @@ KBUILD_LDFLAGS_MODULE := -T $(srctree)/scripts/module-common.lds
 
 # Read PACKAGERELEASE from include/config/package.release (if it exists)
 PACKAGEVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
-PACKAGERELEASE = $(PACKAGE_NAME)
+export PACKAGERELEASE = $(PACKAGEVERSION)
 export VERSION PATCHLEVEL SUBLEVEL PACKAGERELEASE PACKAGEVERSION
 export ARCH SUBARCH SRCARCH CONFIG_SHELL HOSTCC HOSTCFLAGS CROSS_COMPILE AS LD CC
 export CPP AR NM STRIP OBJCOPY OBJDUMP
@@ -443,7 +443,6 @@ export KBUILD_CPPFLAGS NOSTDINC_FLAGS LINUXINCLUDE OBJCOPYFLAGS LDFLAGS
 export KBUILD_CFLAGS CFLAGS_MODULE CFLAGS_GCOV CFLAGS_KASAN
 export KBUILD_AFLAGS AFLAGS_MODULE
 export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_LDFLAGS_MODULE
-export PACKAGERELEASE=2.4.0-pre4
 export KBUILD_ARFLAGS
 export TARGET_PLATFORM
 export HOST_PLATFORM
@@ -884,7 +883,7 @@ export INSTALL_DTBS_PATH ?= $(INSTALL_PATH)/dtbs/$(PACKAGERELEASE)
 #
 
 #MODLIB = $(INSTALL_MOD_PATH)/$(PACKAGERELEASE)
-export MODLIB=$(INSTALL_MOD_PATH)/
+export MODLIB=$(INSTALL_MOD_PATH)/$(PACKAGE_NAME)
 
 #
 # INSTALL_MOD_STRIP, if defined, will cause modules to be
@@ -1107,8 +1106,8 @@ PHONY += modules_prepare
 modules_prepare: prepare scripts
 
 # Target to install modules
-PHONY += modules_install install 
-install: modules_install
+PHONY += modules_install 
+#install: modules_install
 modules_install: _modinst_ _modinst_post
 
 PHONY += _modinst_
@@ -1381,16 +1380,18 @@ $(module-dirs): crmodverdir $(objtree)/Module.symvers
 	$(Q)$(MAKE) $(build)=$(patsubst _module_%,%,$@)
 
 modules: $(module-dirs)
-#	@$(kecho) '  Building modules, stage 2.';
+	@$(kecho) '  Building modules, stage 2.';
 #	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
 
-PHONY += modules_install install
-install: modules_install 
+PHONY += modules_install 
+#install: modules_install 
 modules_install: _emodinst_ _emodinst_post
+	echo "modules_install"
 
 install-dir := $(if $(INSTALL_MOD_DIR),$(INSTALL_MOD_DIR),extra)
 PHONY += _emodinst_
 _emodinst_:
+	echo "$(MODLIB)/$(install-dir)"
 	$(Q)mkdir -p $(MODLIB)/$(install-dir)
 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modinst
 

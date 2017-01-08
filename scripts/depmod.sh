@@ -7,7 +7,7 @@ if test $# -ne 3; then
 	exit 1
 fi
 DEPMOD=$1
-KERNELRELEASE=$2
+PACKAGERELEASE=$2
 SYMBOL_PREFIX=$3
 
 if ! test -r System.map -a -x "$DEPMOD"; then
@@ -36,25 +36,25 @@ fi
 # numbers, so we cheat with a symlink here
 depmod_hack_needed=true
 tmp_dir=$(mktemp -d ${TMPDIR:-/tmp}/depmod.XXXXXX)
-mkdir -p "$tmp_dir/lib/modules/$KERNELRELEASE"
-if "$DEPMOD" -b "$tmp_dir" $KERNELRELEASE 2>/dev/null; then
-	if test -e "$tmp_dir/lib/modules/$KERNELRELEASE/modules.dep" -o \
-		-e "$tmp_dir/lib/modules/$KERNELRELEASE/modules.dep.bin"; then
+mkdir -p "$tmp_dir/lib/modules/$PACKAGERELEASE"
+if "$DEPMOD" -b "$tmp_dir" $PACKAGERELEASE 2>/dev/null; then
+	if test -e "$tmp_dir/lib/modules/$PACKAGERELEASE/modules.dep" -o \
+		-e "$tmp_dir/lib/modules/$PACKAGERELEASE/modules.dep.bin"; then
 		depmod_hack_needed=false
 	fi
 fi
 rm -rf "$tmp_dir"
 if $depmod_hack_needed; then
-	symlink="$INSTALL_MOD_PATH/lib/modules/99.98.$KERNELRELEASE"
-	ln -s "$KERNELRELEASE" "$symlink"
-	KERNELRELEASE=99.98.$KERNELRELEASE
+	symlink="$INSTALL_MOD_PATH/lib/modules/99.98.$PACKAGERELEASE"
+	ln -s "$PACKAGERELEASE" "$symlink"
+	PACKAGERELEASE=99.98.$PACKAGERELEASE
 fi
 
 set -- -ae -F System.map
 if test -n "$INSTALL_MOD_PATH"; then
 	set -- "$@" -b "$INSTALL_MOD_PATH"
 fi
-"$DEPMOD" "$@" "$KERNELRELEASE" $SYMBOL_PREFIX
+"$DEPMOD" "$@" "$PACKAGERELEASE" $SYMBOL_PREFIX
 ret=$?
 
 if $depmod_hack_needed; then
