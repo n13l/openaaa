@@ -1,4 +1,4 @@
-KBUILD_OUTPUT=obj
+export KBUILD_OUTPUT=obj
 VERSION ?= 0
 PATCHLEVEL ?= 0
 SUBLEVEL ?= 1
@@ -9,12 +9,6 @@ EXTRAVERSION =
 endif
 
 export PACKAGE_VERSION="$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)"
-export PACKAGE_NAME=openaaa
-NAME = openaaa
-SO=so
-export SO
-export KBUILD_OUTPUT
-
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
 # More info can be located in ./README
@@ -225,6 +219,7 @@ obj		:= $(objtree)
 VPATH		:= $(srctree)$(if $(KBUILD_EXTMOD),:$(KBUILD_EXTMOD))
 
 export srctree objtree VPATH
+export PACKAGE_NAME=$(shell $(srctree)/scripts/package/name.sh)
 
 include scripts/Makefile.target
 
@@ -378,7 +373,6 @@ OBJCOPY		?= $(CROSS_COMPILE)objcopy
 OBJDUMP		?= $(CROSS_COMPILE)objdump
 AWK		= awk
 GENKSYMS	= scripts/genksyms/genksyms
-INSTALLKERNEL  := installkernel
 DEPMOD		= /sbin/depmod
 PERL		= perl
 PYTHON		= python
@@ -430,29 +424,24 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes \
 
 -include scripts/Makefile.shared
 
-KBUILD_AFLAGS_KERNEL  :=
-KBUILD_CFLAGS_KERNEL  :=
 KBUILD_AFLAGS         := -D__ASSEMBLY__
 KBUILD_AFLAGS_MODULE  := -DMODULE
 KBUILD_CFLAGS_MODULE  := -DMODULE
 KBUILD_LDFLAGS_MODULE := -T $(srctree)/scripts/module-common.lds
 
 # Read PACKAGERELEASE from include/config/package.release (if it exists)
-#PACKAGERELEASE = $(shell cat include/config/package.release 2> /dev/null)
 PACKAGEVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
-PACKAGERELEASE = openaaa
 
 export VERSION PATCHLEVEL SUBLEVEL PACKAGERELEASE PACKAGEVERSION
 export ARCH SUBARCH SRCARCH CONFIG_SHELL HOSTCC HOSTCFLAGS CROSS_COMPILE AS LD CC
 export CPP AR NM STRIP OBJCOPY OBJDUMP
-export MAKE AWK GENKSYMS INSTALLKERNEL PERL PYTHON UTS_MACHINE
+export MAKE AWK GENKSYMS PERL PYTHON UTS_MACHINE
 export HOSTCXX HOSTCXXFLAGS LDFLAGS_MODULE CHECK CHECKFLAGS
 
 export KBUILD_CPPFLAGS NOSTDINC_FLAGS LINUXINCLUDE OBJCOPYFLAGS LDFLAGS
-export KBUILD_CFLAGS CFLAGS_KERNEL CFLAGS_MODULE CFLAGS_GCOV CFLAGS_KASAN
-export KBUILD_AFLAGS AFLAGS_KERNEL AFLAGS_MODULE
+export KBUILD_CFLAGS CFLAGS_MODULE CFLAGS_GCOV CFLAGS_KASAN
+export KBUILD_AFLAGS AFLAGS_MODULE
 export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_LDFLAGS_MODULE
-export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL
 export KBUILD_ARFLAGS
 export TARGET_PLATFORM
 export HOST_PLATFORM
@@ -616,14 +605,14 @@ include/config/%.conf: $(KCONFIG_CONFIG) include/config/auto.conf.cmd
 else
 # external modules needs include/generated/autoconf.h and include/config/auto.conf
 # but do not care if they are up-to-date. Use auto.conf to trigger the test
-PHONY += include/config/auto.conf
+PHONY += include/config/auto.conf include/config/dirs.conf
 
 include/config/auto.conf:
 	$(Q)test -e include/generated/autoconf.h -a -e $@ || (		\
 	echo >&2;							\
-	echo >&2 "  ERROR: Kernel configuration is invalid.";		\
+	echo >&2 "  ERROR: Package configuration is invalid.";		\
 	echo >&2 "         include/generated/autoconf.h or $@ are missing.";\
-	echo >&2 "         Run 'make oldconfig && make prepare' on kernel src to fix it.";	\
+	echo >&2 "         Run 'make oldconfig && make prepare' on src to fix it.";	\
 	echo >&2 ;							\
 	/bin/false)
 
@@ -634,13 +623,13 @@ else
 include/config/auto.conf: ;
 endif # $(dot-config)
 
-objs-y += arch/$(SRCARCH) sys mem net crypto lib 
-# TODO: tests in objs-m does not look right
-objs-m += test tools
+-include include/config/dirs.conf
+export BUILD_DIRS
+
+objs-y += arch/$(SRCARCH) sys mem $(BUILD_DIRS)
 
 include arch/$(SRCARCH)/Makefile                                                
 -include modules/Makefile                                                        
-#-include tools/Makefile
 
 package-dirs  := $(objs-y) $(libs-y) $(objs-m) 
 package-objs  := $(patsubst %,%/built-in.o, $(objs-y))
@@ -924,19 +913,6 @@ ifdef CONFIG_MODULE_COMPRESS
 endif # CONFIG_MODULE_COMPRESS
 export mod_compress_cmd
 
-# Select initial ramdisk compression format, default is gzip(1).
-# This shall be used by the dracut(8) tool while creating an initramfs image.
-#
-INITRD_COMPRESS-y                  := gzip
-INITRD_COMPRESS-$(CONFIG_RD_BZIP2) := bzip2
-INITRD_COMPRESS-$(CONFIG_RD_LZMA)  := lzma
-INITRD_COMPRESS-$(CONFIG_RD_XZ)    := xz
-INITRD_COMPRESS-$(CONFIG_RD_LZO)   := lzo
-INITRD_COMPRESS-$(CONFIG_RD_LZ4)   := lz4
-# do not export INITRD_COMPRESS, since we didn't actually
-# choose a sane default compression above.
-# export INITRD_COMPRESS := $(INITRD_COMPRESS-y)
-
 ifdef CONFIG_MODULE_SIG_ALL
 MODSECKEY = ./signing_key.priv
 MODPUBKEY = ./signing_key.x509
@@ -947,24 +923,14 @@ mod_sign_cmd = true
 endif
 export mod_sign_cmd
 
-
 ifeq ($(KBUILD_EXTMOD),)
-
-# Externally visible symbols (used by link-libarch.sh)
-export KBUILD_libarch_INIT := $(head-y) $(init-y)
-export KBUILD_libarch_MAIN := $(core-y) $(libs-y) $(drivers-y) $(net-y)
-#export KBUILD_LDS          := arch/$(SRCARCH)/kernel/libarch.lds
-export LDFLAGS_libarch
 # used by scripts/pacmage/Makefile
 export KBUILD_ALLDIRS := $(sort $(filter-out arch/%,$(package-dirs)) \
-                         arch sys include lib scripts tools modules net mem tools test)
+                         arch sys mem scripts modules $(BUILD_DIRS))
 
 ifdef CONFIG_HEADERS_CHECK
 	$(Q)$(MAKE) -f $(srctree)/Makefile headers_check
 endif
-#ifdef CONFIG_SAMPLES
-#	$(Q)$(MAKE) $(build)=samples
-#endif
 ifdef CONFIG_BUILD_DOCSRC
 	$(Q)$(MAKE) $(build)=doc
 endif
@@ -979,6 +945,13 @@ endef
 # Store (new) PACKAGERELEASE string in include/config/package.release
 include/config/package.release: include/config/auto.conf FORCE
 	$(call filechk,package.release)
+
+define filechk_dirs.conf
+	echo "$$($(CONFIG_SHELL) $(srctree)/scripts/setdirs.sh $(srctree) $(PACKAGE_NAME))"
+endef
+
+include/config/dirs.conf: .config
+	$(call filechk,dirs.conf)
 
 
 # Things we need to do before we recursively start building the kernel
@@ -1007,7 +980,7 @@ endif
 prepare2: prepare3 outputmakefile asm-generic
 
 prepare1: prepare2 $(version_h) include/generated/release.h \
-                   include/config/auto.conf
+                   include/config/auto.conf include/config/dirs.conf
 	$(cmd_crmodverdir)
 
 archprepare: archheaders archscripts prepare1 scripts_basic
@@ -1050,19 +1023,6 @@ PHONY += headerdep
 headerdep:
 	$(Q)find $(srctree)/include/ -name '*.h' | xargs --max-args 1 \
 	$(srctree)/scripts/headerdep.pl -I$(srctree)/include
-
-# ---------------------------------------------------------------------------
-# Firmware install
-#INSTALL_FW_PATH=$(INSTALL_MOD_PATH)/lib/firmware
-#export INSTALL_FW_PATH
-
-#PHONY += firmware_install
-#firmware_install: FORCE
-#	@mkdir -p $(objtree)/firmware
-#	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.fwinst obj=firmware __fw_install
-
-# ---------------------------------------------------------------------------
-# Kernel headers
 
 #Default location for installed headers
 export INSTALL_HDR_PATH = $(objtree)/usr
@@ -1116,7 +1076,6 @@ KBUILD_CFLAGS         += -fPIC
 endif
 
 # By default, build modules as well
-
 all: prepare $(progs) modules
 
 # Build modules
@@ -1128,9 +1087,8 @@ all: prepare $(progs) modules
 PHONY += modules 
 modules: $(package-dirs) $(if $(KBUILD_BUILTIN),package) modules.builtin
 	$(Q)$(AWK) '!x[$$0]++' $(package-dirs:%=$(objtree)/%/modules.order) > $(objtree)/modules.order
-	@$(kecho) '  Building modules, stage 2.';
+#	@$(kecho) '  Building modules, stage 2.';
 #	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
-#	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.fwinst obj=firmware __fw_modbuild
 
 modules.builtin: $(package-dirs:%=%/modules.builtin)
 	$(Q)$(AWK) '!x[$$0]++' $^ > $(objtree)/modules.builtin
@@ -1149,7 +1107,6 @@ modules_install: _modinst_ _modinst_post
 
 PHONY += _modinst_
 _modinst_:
-	@rm -rf $(MODLIB)/kernel
 	@rm -f $(MODLIB)/source
 	@mkdir -p $(MODLIB)
 	@ln -s `cd $(srctree) && /bin/pwd` $(MODLIB)/source
@@ -1177,20 +1134,21 @@ endif
 
 else # CONFIG_MODULES
 
-all: $(progs) 
+all: prepare $(progs) 
 
 #modules
 
 # Modules not configured
 # ---------------------------------------------------------------------------
 
-#modules modules_install: FORCE
-#	@echo >&2
-#	@echo >&2 "The present kernel configuration has modules disabled."
-#	@echo >&2 "Type 'make config' and enable loadable module support."
-#	@echo >&2 "Then build a kernel with module support enabled."
-#	@echo >&2
-#	@exit 1
+#modules 
+modules_install: FORCE
+	@echo >&2
+	@echo >&2 "The present package configuration has modules disabled."
+	@echo >&2 "Type 'make config' and enable loadable module support."
+	@echo >&2 "Then build a package with module support enabled."
+	@echo >&2
+	@exit 1
 
 endif # CONFIG_MODULES
 
@@ -1206,8 +1164,8 @@ CLEAN_DIRS  += $(MODVERDIR)
 
 # Directories & files removed with 'make mrproper'
 MRPROPER_DIRS  += include/config usr/include include/generated          \
-		  arch/*/include/generated .tmp_objdiff
-MRPROPER_FILES += .config .config.old .version .old_version \
+		  arch/*/include/generated .tmp_objdiff 
+MRPROPER_FILES += .config .dirs .config.old .version .old_version \
 		  Module.symvers tags TAGS cscope* GPATH GTAGS GRTAGS GSYMS \
 		  signing_key.priv signing_key.x509 x509.genkey		\
 		  extra_certificates signing_key.x509.keyid		\

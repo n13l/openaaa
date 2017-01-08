@@ -45,4 +45,4 @@ source "scripts/Kconfig.debug"
 source "scripts/Kconfig.bindings"
 endmenu
 
-source "scripts/package/Kconfig"
+source "$PACKAGE_NAME.kconfig"
