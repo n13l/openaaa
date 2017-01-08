@@ -83,10 +83,5 @@ main(int argc, char *argv[])
 	info_cpu();
 	info_sys();
 
-	linkmap_init();
-
-
-	linkmap_fini();
-
 	return 0;
 }

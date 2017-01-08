@@ -1,7 +1,6 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/log.h>
-#include <elf/lib.h>
 
 #undef KBUILD_MODNAME
 #define KBUILD_MODNAME KBUILD_STR(arm)

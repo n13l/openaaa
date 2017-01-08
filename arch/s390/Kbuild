@@ -1,4 +1,3 @@
 obj-y += asm/
-obj-y += elf/
 obj-y += mem/
 
