@@ -387,12 +387,12 @@ AFLAGS_PACKAGE	=
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 
-# Use USERINCLUDE when you must reference the UAPI directories only.
 USERINCLUDE    := \
 		-include include/generated/autoconf.h \
 		-I$(srctree)/lib \
 		-Ilib -I$(srctree)/arch \
 		-I$(srctree)/sys \
+		-I$(srctree)/sys/exec \
 		-I$(srctree)/sys/unix \
 		-I$(srctree)/arch/$(hdr-arch) \
 		-include $(srctree)/sys/$(PLATFORM)/platform.h \
@@ -415,6 +415,8 @@ KBUILD_CPPFLAGS := -D"CONFIG_PLATFORM=KBUILD_STR($(PLATFORM))" \
 		   -D"PACKAGE_NAME=KBUILD_STR($(PACKAGE_NAME))"\
 		   -D"PACKAGE_VERSION=KBUILD_STR($(PACKAGE_VERSION))"\
                    -DCONFIG_$(PLAT)=1 \
+
+export CONFIG_$(PLAT)=y
 
 # -Werror-implicit-function-declaration \
 
