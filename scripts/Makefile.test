@@ -30,16 +30,13 @@ testc_flags = -Wp,-MD,$(depfile) $(KBUILD_CFLAGS) $(KBUILD_CPPFLAGS) \
 	      -include $(srctree)/sys/$(PLATFORM)/platform.h
 
 testld_flags = 
-testld_builtin = sys/built-in.o mem/built-in.o arch/$(SRCARCH)/built-in.o
+testld_builtin = arch/$(SRCARCH)/built-in.o sys/$(PLATFORM)/built-in.o sys/unix/built-in.o mem/built-in.o
 testld_libs = $(KBUILD_LIBS)
 
 # test-csingle -> executable
 quiet_cmd_test-csingle = CC      $@
       cmd_test-csingle = $(CC) $(testc_flags) -o $@ $< $(testld_builtin) \
                                $(testld_libs)
-#$(test-csingle): $(obj)/%: $(src)/%.c FORCE
-#	echo "test-csingle: $@ $< $@.c $*"
-#	$(call if_changed_dep,test-csingle)
 
 $(test-csingle): $(__obj_fixed)/%: $(__src_fixed)/%.c FORCE
 	$(call if_changed_dep,test-csingle)
@@ -53,7 +50,7 @@ $(test-cobjs): $(__obj_fixed)/%.o: $(__src_fixed)/%.c FORCE
 
 # Link an executable based on list of .o files
 quiet_cmd_test-cmulti	= LD      $@
-      cmd_test-cmulti	= $(LD) $(testld_flags) -o $@ \
+      cmd_test-cmulti	= $(CC) $(testld_flags) -o $@ \
 			  $(addprefix $(obj)/,$($(@F)-y)) $(testld_builtin) \
       			  $(testld_libs)
 $(test-cmulti): $(__obj_fixed)/%: $(test-cobjs) FORCE

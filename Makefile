@@ -412,6 +412,7 @@ KBUILD_CPPFLAGS := -D"CONFIG_PLATFORM=KBUILD_STR($(PLATFORM))" \
                    -D"CONFIG_SRCARCH=KBUILD_STR($(SRCARCH))" \
 		   -D"CONFIG_ARCH=KBUILD_STR($(ARCH))" \
                    -D"CONFIG_SUBARCH=KBUILD_STR($(SUBARCH))" \
+		   -D"PACKAGE_NAME=KBUILD_STR($(PACKAGE_NAME))"\
 		   -D"PACKAGE_VERSION=KBUILD_STR($(PACKAGE_VERSION))"\
                    -DCONFIG_$(PLAT)=1 \
 
@@ -442,7 +443,7 @@ export KBUILD_CPPFLAGS NOSTDINC_FLAGS LINUXINCLUDE OBJCOPYFLAGS LDFLAGS
 export KBUILD_CFLAGS CFLAGS_MODULE CFLAGS_GCOV CFLAGS_KASAN
 export KBUILD_AFLAGS AFLAGS_MODULE
 export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_LDFLAGS_MODULE
-export PACKAGERELEASE
+export PACKAGERELEASE=2.4.0-pre4
 export KBUILD_ARFLAGS
 export TARGET_PLATFORM
 export HOST_PLATFORM
@@ -606,7 +607,7 @@ include/config/%.conf: $(KCONFIG_CONFIG) include/config/auto.conf.cmd
 else
 # external modules needs include/generated/autoconf.h and include/config/auto.conf
 # but do not care if they are up-to-date. Use auto.conf to trigger the test
-PHONY += include/config/auto.conf include/config/dirs.conf
+PHONY += include/config/auto.conf include/config/package.config
 
 include/config/auto.conf:
 	$(Q)test -e include/generated/autoconf.h -a -e $@ || (		\
@@ -624,10 +625,11 @@ else
 include/config/auto.conf: ;
 endif # $(dot-config)
 
--include include/config/dirs.conf
+-include include/config/package.config
 export BUILD_DIRS
 
-objs-y += arch/$(SRCARCH) sys mem $(BUILD_DIRS)
+objs-y += arch/$(SRCARCH) sys/$(PLATFORM) sys/unix mem sys/test sys/tools \
+          $(BUILD_DIRS)
 
 include arch/$(SRCARCH)/Makefile                                                
 -include modules/Makefile                                                        
@@ -643,6 +645,8 @@ $(sort $(package-all)): $(package-dirs) ;
 PHONY += $(package-dirs)                                                        
 $(package-dirs): scripts_basic
 	$(Q)$(MAKE) $(build)=$@
+
+export package-objs
 
 #KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
 
@@ -927,7 +931,8 @@ export mod_sign_cmd
 ifeq ($(KBUILD_EXTMOD),)
 # used by scripts/pacmage/Makefile
 export KBUILD_ALLDIRS := $(sort $(filter-out arch/%,$(package-dirs)) \
-                         arch sys mem scripts modules $(BUILD_DIRS))
+                         arch sys/$(PLATFORM) sys/unix mem sys/test sys/tools \
+			 scripts modules $(BUILD_DIRS))
 
 ifdef CONFIG_HEADERS_CHECK
 	$(Q)$(MAKE) -f $(srctree)/Makefile headers_check
@@ -947,12 +952,12 @@ endef
 include/config/package.release: include/config/auto.conf FORCE
 	$(call filechk,package.release)
 
-define filechk_dirs.conf
+define filechk_package.config
 	echo "$$($(CONFIG_SHELL) $(srctree)/scripts/setdirs.sh $(srctree) $(PACKAGE_NAME))"
 endef
 
-include/config/dirs.conf: .config
-	$(call filechk,dirs.conf)
+include/config/package.config: .config
+	$(call filechk,package.config)
 
 
 # Things we need to do before we recursively start building the kernel
@@ -981,7 +986,7 @@ endif
 prepare2: prepare3 outputmakefile asm-generic
 
 prepare1: prepare2 $(version_h) include/generated/release.h \
-                   include/config/auto.conf include/config/dirs.conf
+                   include/config/auto.conf include/config/package.config
 	$(cmd_crmodverdir)
 
 archprepare: archheaders archscripts prepare1 scripts_basic
@@ -1191,7 +1196,7 @@ clean: archclean libarchclean
 #
 mrproper: rm-dirs  := $(wildcard $(MRPROPER_DIRS))
 mrproper: rm-files := $(wildcard $(MRPROPER_FILES))
-mrproper-dirs      := $(addprefix _mrproper_,doc/DocBook scripts)
+mrproper-dirs      := $(addprefix _mrproper_,scripts/doc/DocBook scripts)
 
 PHONY += $(mrproper-dirs) mrproper archmrproper
 $(mrproper-dirs):
@@ -1285,7 +1290,7 @@ help:
 	@$(MAKE) $(build)=$(package-dir) help
 	@echo  ''
 	@echo  'Documentation targets:'
-#@$(MAKE) -f $(srctree)/doc/DocBook/Makefile dochelp
+#@$(MAKE) -f $(srctree)/scripts/doc/DocBook/Makefile dochelp
 	@echo  ''
 	@echo  'Architecture specific targets ($(SRCARCH)):'
 	@$(if $(archhelp),$(archhelp),\
@@ -1335,7 +1340,7 @@ $(help-board-dirs): help-%:
 # ---------------------------------------------------------------------------
 %docs: scripts_basic FORCE
 	$(Q)$(MAKE) $(build)=scripts build_docproc
-	$(Q)$(MAKE) $(build)=doc/DocBook $@
+	$(Q)$(MAKE) $(build)=scripts/doc/DocBook $@
 
 else # KBUILD_EXTMOD
 

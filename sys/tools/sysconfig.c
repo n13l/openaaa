@@ -39,6 +39,12 @@
 #undef KBUILD_MODNAME
 #define KBUILD_MODNAME KBUILD_STR(sys)
 */
+#ifdef KBUILD_STR
+#undef KBUILD_STR
+#endif
+
+#define KBUILD_STR(s) #s
+
 
 _unused static struct option long_options[] = {
 	{"cpu-caps", no_argument, 0, 0  },
