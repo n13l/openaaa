@@ -243,6 +243,13 @@ cpu_has_cap(int capability)
 	return 0;
 }
 
+static inline 
+unsigned long long cpu_getcycles(void)
+{
+	unsigned hi, lo;
+	__asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+	return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+}
 
 void
 cpu_dump_extension(void)
