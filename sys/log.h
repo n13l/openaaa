@@ -90,12 +90,12 @@ do { \
 #ifdef CONFIG_LOGGING
 #define debug(fmt, ...) \
 do { \
-	printf(fmt "\n", ## __VA_ARGS__); \
+  printf("%s:%s(): " fmt "\n", KBUILD_MODNAME, __func__,  ## __VA_ARGS__); \
 } while(0)
 
 #define info(fmt, ...) \
 do { \
-	printf(fmt "\n", ## __VA_ARGS__); \
+  printf(fmt "\n", ## __VA_ARGS__); \
 } while(0)
 
 #define error(fmt, ...)

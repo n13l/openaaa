@@ -39,10 +39,11 @@
 
 struct abi_crypto_openssl {
 	struct abi_version version;
-	defn_abi_call(long,         SSLeay, void);
-	defn_abi_call(const char *, SSLeay_version, int);
 };
 
 extern struct abi_crypto_openssl abi_crypto_openssl;
+
+void
+crypto_lookup(void);
 
 #endif/*__ABI_SSL_PLATFORM_H__*/

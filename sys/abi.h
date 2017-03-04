@@ -34,9 +34,6 @@
 #ifndef __PLATFORM_ABI_H__
 #define __PLATFORM_ABI_H__
 
-#define ARCH_INTERPOSE_DLBIND 0x01
-#define ARCH_INTERPOSE_DLTRAM 0x02
-
 #include <sys/compiler.h>
 
 #define I_OPTIONAL 0x1
@@ -78,11 +75,12 @@ arch_has_mechanism(void);
 int
 arch_has_cap(void);
 
+/*
 #define defn_abi_call(rv, fn, args...) \
 	rv ((*abi_##fn)(args)); \
 
 #define defn_abi(ns, rv, fn, args...) \
-	rv ((*sym_##fn)(args)); \
+	rv ((*ns_##fn)(args)); \
 
 #define decl_abi(ns, rv, fn, args...) \
 	_noinline rv abi_##ns##_##fn(args)
@@ -90,12 +88,12 @@ arch_has_cap(void);
 #define defn_abi_link(dll, fn) \
 	sym_##fn = dlsym((void *)dll, #fn);
 
-#define decl_abi_sym(fn, mode) \
-	{ stringify(fn), &sym_##fn, mode } 
+#define decl_abi_sym(ns, fn, mode) \
+	{ stringify(fn), &ns_##fn, mode } 
 
 #define call_abi(ns, fn, args...) \
-	sym_##fn(args)
-	
+	ns_##fn(args)
+*/	
 void
 linkmap_init(void);
 

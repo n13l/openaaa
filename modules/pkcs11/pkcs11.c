@@ -22,108 +22,189 @@
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
-#include <sys/link.h>
+#include <sys/log.h>
+#include <sys/dll.h>
+#include <mem/stack.h>
+#include <mem/debug.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 #include <unistd.h>
 #include <crypto/pkcs11.h>
 
-#define CK_VERSION_MAJOR 2
-#define CK_VERSION_MINOR 22
+#include <crypto/abi/lib.h>
 
-#define LIBRARY_DESC    "OpenAAA PKCS11 Module"
-#define MANUFACTURER_ID "OpenAAA"
-#define SLOT_DESC       "OpenAAA PKCS11 Slot"
+#define PKCS11_MAJOR 2
+#define PKCS11_MINOR 22
+
+#define CK_VERSION(X, Y) \
+	(struct ck_version) { .major = X, .minor = Y };
+
+#define CK_STRING(str, value) \
+	strpadl(str,  sizeof(str),  ' ', value)
+ 
+#define LIBRARY_DESC "OpenAAA PKCS11 Module"
+#define MANUFACTURER "OpenAAA"
+#define SLOT_DESC    "OpenAAA PKCS11 Slot"
+
+#undef KBUILD_MODNAME
+#define KBUILD_MODNAME "pkcs11"
 
 static unsigned long
-pkcs11_initialize(void *args)
+initialize(void *args)
 {
+	debug("openaaa bridge");
+
+	crypto_lookup();
 	return CKR_OK;
 }
                                                                                 
 static unsigned long
-pkcs11_finalize(void *args)
+finalize(void *args)
 {
+	debug("openaaa bridge");
+	return CKR_OK;
+}
+
+int
+spadr(char *buf, size_t size, int pad, char *str)
+{
+	int len = size - strlen(str);
+	if(len < 0) len = 0;
+
+	char *padding = sp_alloc(size);
+	memset(padding, pad, size);
+	return snprintf(buf, size, "%*.*s%s", len, len, padding, str);
+}
+
+int
+strpadl(char *buf, size_t size, int pad, char *str)
+{
+	int len = size - strlen(str);
+	if(len < 0) len = 0;
+
+	char *padding = sp_alloc(size);
+	memset(padding, pad, size);
+	return snprintf(buf, size, "%s%*.*s", str, len, len, padding);
+}
+
+static unsigned long
+get_info(struct ck_info *info)
+{
+	/* 
+	 * PKCS #11: CRYPTOGRAPHIC TOKEN INTERFACE STANDARD
+	 *
+	 * Character-string must be padded with the blank character (‘ ‘). 
+	 * Should not be null-terminated
+	 */
+
+	CK_STRING(info->description,  LIBRARY_DESC);
+	CK_STRING(info->manufacturer, MANUFACTURER);
+
+	info->library = CK_VERSION(1, 0);
+	info->crypto  = CK_VERSION(PKCS11_MAJOR, PKCS11_MINOR);
+	info->flags = 0;
+
+	debug("crypto version=%d.%d", info->crypto.major, info->crypto.minor);
+
 	return CKR_OK;
 }
                                                                                 
 static unsigned long
-pkcs11_get_info(struct ck_info *info)
+get_slot_list(bool present, ck_slot_id *id, ck_ulong *count)
 {
+	*count = present ? 0 : 1;
+	if (!id) 
+		return CKR_OK;
+
+	*id = (ck_slot_id)MM_ADDR_POISON1;
+	debug("id=%u", (unsigned int)*id);
 	return CKR_OK;
 }
                                                                                 
 static unsigned long
-pkcs11_get_slot_list(bool present, ck_slot_id *id, ck_ulong *count)
+get_slot_info(ck_ulong id, struct ck_slot_info *slot)
 {
-	*count = 0;
-	return 0;
+	debug("id=%lu", id);
+
+	CK_STRING(slot->description,  LIBRARY_DESC);
+	CK_STRING(slot->manufacturer, MANUFACTURER);
+
+	slot->firmware = CK_VERSION(1, 0);
+	slot->hardware = CK_VERSION(1, 0);
+	slot->flags    = CKF_REMOVABLE_DEVICE;
+
+	return CKR_OK;
 }
                                                                                 
 static unsigned long
-pkcs11_get_slot_info(ck_ulong id, struct ck_slot_info *slot)
+get_token_info(ck_ulong id, struct ck_token_info *token)
 {
-	return 0;
+	debug("pkcs11");
+	return CKR_OK;
 }
                                                                                 
 static unsigned long
-pkcs11_get_token_info(ck_ulong id, struct ck_token_info *token)
+get_mechanism_list(ck_ulong id, ck_ulong *type, ck_ulong *count)
 {
-	return 0;
+	debug("pkcs11");
+	return CKR_OK;
 }
                                                                                 
 static unsigned long
-pkcs11_get_mechanism_list(ck_ulong id, ck_ulong *type, ck_ulong *count)
+get_mechanism_info(ck_ulong id, ck_ulong type, struct ck_mechanism_info *info)
 {
-	return 0;
-}
-                                                                                
-static unsigned long
-pkcs11_get_mechanism_info(ck_ulong id, ck_ulong type, struct ck_mechanism_info *info)
-{
-	return 0;
+	debug("pkcs11");
+	return CKR_OK;
 }
 
 static unsigned long
-pkcs11_init_token(ck_ulong id, byte *pin, ck_ulong len, byte *label)
+init_token(ck_ulong id, byte *pin, ck_ulong len, byte *label)
 {
-	return 0;
+	debug("pkcs11");
+	return CKR_OK;
 }
 
 static unsigned long
-pkcs11_open_session(ck_ulong id, ck_flags flags, void *app, ck_notify fn, ck_ulong *s)
+open_session(ck_ulong id, ck_flags flags, void *app, ck_notify fn, ck_ulong *s)
 {
+	debug("pkcs11");
 	return CKR_TOKEN_NOT_PRESENT;
 }
 
 static unsigned long
-pkcs11_close_session(ck_ulong session)
+close_session(ck_ulong session)
 {
+	debug("pkcs11");
 	return CKR_TOKEN_NOT_PRESENT;
 }
 
 static unsigned long
-pkcs11_close_all_sessions(ck_ulong id)
+close_all_sessions(ck_ulong id)
 {
+	debug("pkcs11");
 	return CKR_TOKEN_NOT_PRESENT;
 }
 
 static unsigned long
-pkcs11_get_function_status(ck_ulong id)
+get_function_status(ck_ulong id)
 {
+	debug("pkcs11");
 	return CKR_OK;
 }
 
 static unsigned long
-pkcs11_cancel_function(ck_ulong id)
+cancel_function(ck_ulong id)
 {
+	debug("pkcs11");
 	return CKR_OK;
 }
 
 static unsigned long
-pkcs11_wait_for_slot_event(ck_flags flags, ck_ulong *slot, void *a)
+wait_for_slot_event(ck_flags flags, ck_ulong *slot, void *a)
 {
+	debug("pkcs11");
 	return CKR_NO_EVENT;
 }
 
@@ -148,25 +229,22 @@ struct pkcs11_entry {
 };
 
 static struct pkcs11_entry pkcs11_entry = {
-	.version             = { 
-		.major = CK_VERSION_MAJOR, 
-		.minor = CK_VERSION_MINOR
-	},
-	.initialize          = pkcs11_initialize,
-	.finalize            = pkcs11_finalize,
-	.get_info            = pkcs11_get_info,
-	.get_slot_list       = pkcs11_get_slot_list,
-	.get_slot_info       = pkcs11_get_slot_info,
-	.get_token_info      = pkcs11_get_token_info,
-	.get_mechanism_list  = pkcs11_get_mechanism_list,
-	.get_mechanism_info  = pkcs11_get_mechanism_info,
-	.init_token          = pkcs11_init_token,
-	.open_session        = pkcs11_open_session,
-	.close_session       = pkcs11_close_session,
-	.close_all_sessions  = pkcs11_close_all_sessions,
-	.get_function_status = pkcs11_get_function_status,
-	.cancel_function     = pkcs11_cancel_function,
-	.wait_for_slot_event = pkcs11_wait_for_slot_event,
+	.version             = {.major = PKCS11_MAJOR, .minor = PKCS11_MINOR},
+	.initialize          = initialize,
+	.finalize            = finalize,
+	.get_info            = get_info,
+	.get_slot_list       = get_slot_list,
+	.get_slot_info       = get_slot_info,
+	.get_token_info      = get_token_info,
+	.get_mechanism_list  = get_mechanism_list,
+	.get_mechanism_info  = get_mechanism_info,
+	.init_token          = init_token,
+	.open_session        = open_session,
+	.close_session       = close_session,
+	.close_all_sessions  = close_all_sessions,
+	.get_function_status = get_function_status,
+	.cancel_function     = cancel_function,
+	.wait_for_slot_event = wait_for_slot_event,
 };
 
 EXPORT(unsigned long)

@@ -27,19 +27,52 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE         /* See feature_test_macros(7) */
+#endif
+#include <link.h>
 #include <crypto/abi/lib.h>
 
-defn_abi(openssl1, long,         SSLeay, void);
-defn_abi(openssl1, const char *, SSLeay_version, int);
+#define DEFINE_ABI_call(rv, fn, args...) \
+	rv ((*abi_##fn)(args)); \
 
+#define DEFINE_ABI(ns, rv, fn, args...) \
+	rv ((* openssl_##fn)(args)); \
+
+#define decl_abi_sym(ns, fn, mode) \
+	{ stringify(fn), &ns_##fn, mode } 
+
+#define call_abi(ns, fn, args...) \
+	ns_##fn(args)
+
+#define defn_abi_call(rv, fn, args...) \
+	rv ((*abi_##fn)(args)); \
+
+
+typedef void *SSL_METHOD;
+typedef void *SSL;
+typedef void *SSL_CTX;
+
+DEFINE_ABI(openssl, long,         SSLeay, void);
+DEFINE_ABI(openssl, const char *, SSLeay_version, int);
+
+DEFINE_ABI(openssl, SSL_CTX *,    SSL_CTX_new, const SSL_METHOD *);
+DEFINE_ABI(openssl, void,         SSL_CTX_free, SSL_CTX *);
+DEFINE_ABI(openssl, SSL *,        SSL_new, SSL_CTX *);
+DEFINE_ABI(openssl, void,         SSL_free, SSL *);
+DEFINE_ABI(openssl, int,          SSL_session_reused, SSL *);
+
+/*
 struct abi_sym abi_table_openssl1[] = {
 	decl_abi_sym(SSLeay,         ABI_CALL_REQUIRE),
 	decl_abi_sym(SSLeay_version, ABI_CALL_REQUIRE)
 };
+*/
 
-decl_abi(openssl1, const char *, SSLeay_version, int v)
+/*
+decl_abi(openssl, const char *, SSLeay_version, int v)
 {
-	return call_abi(openssl1, SSLeay_version, v);
+	return call_abi(openssl, SSLeay_version, v);
 }
 
 static _unused void
@@ -54,9 +87,40 @@ ssl_version(void)
 
 	sys_dbg("openssl-%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
 }
+*/
+void
+dump_symbol(void *addr)
+{
+	Dl_info info;
+	dladdr(addr, &info);
+
+	debug("base=%p", info.dli_fbase);
+	debug("name=%s module=%s", info.dli_sname, info.dli_fname);
+}
 
 int
-crypto_openssl(void)
+crypto_module(struct dl_phdr_info *info, size_t size, void *data)
 {
+	if (!info->dlpi_name || !*info->dlpi_name)
+		return 0;
+
+	debug("module name=%s", info->dlpi_name);
 	return 0;
+}
+	
+void
+crypto_lookup(void)
+{
+	debug("checking for openssl crypto");
+
+	openssl_SSLeay_version = dlsym(RTLD_DEFAULT,"SSLeay_version");
+	if (!openssl_SSLeay_version)
+		return;
+
+	openssl_SSLeay = dlsym(RTLD_DEFAULT,"SSL_new");
+	if (!openssl_SSLeay)
+		return;
+
+	dump_symbol(openssl_SSLeay_version);
+	dump_symbol(openssl_SSLeay);
 }

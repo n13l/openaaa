@@ -24,27 +24,22 @@
  * THE SOFTWARE.
  **/
 
-#ifndef __GENERIC_SDC_LIST_H__
-#define __GENERIC_SDC_LIST_H__
-
-#include <sys/compiler.h>
-#include <mem/debug.h>
-
-struct node  { struct node *next, *prev; };
-struct snode { struct snode *next; };
-struct hnode { struct hnode *next, **prev; };
-struct list  { struct node head; };
-struct slist { struct snode *head; };
-struct hlist { struct hnode *head;};
+#ifndef __GENERIC_LIST_H__
+#define __GENERIC_LIST_H__
 
 #define DEFINE_LIST(name)          struct list name;
 #define DEFINE_NODE(name)          struct node name;
-
 #define DECLARE_LIST(name)         struct list name = DECLARE_INIT_LIST(name)
 #define DECLARE_NODE(name)         struct node name = DECLARE_INIT_NODE
 #define DECLARE_INIT_NODE         (struct node ){ .next = NULL, .prev = NULL }
-#define DECLARE_INIT_LIST(name) {{(struct node *)&(name), \
-                                  (struct node *)&(name)}}
+#define DECLARE_INIT_LIST(name) {{(struct node *)&(name), (struct node *)&(name)}}
+
+struct node  { struct node  *next, *prev; };
+struct snode { struct snode *next; };
+struct hnode { struct hnode *next, **prev; };
+struct list  { struct node   head; };
+struct slist { struct snode *head; };
+struct hlist { struct hnode *head; };
 
 #ifdef CONFIG_DEBUG_LIST
 void 
@@ -137,9 +132,11 @@ list_add_tail(struct list *list, struct node *node)
 }
 
 #ifdef CONFIG_DEBUG_LIST
-void __list_del(struct node *node);
+void 
+__list_del(struct node *node);
 #else
-static inline void __list_del(struct node *node)
+static inline void 
+__list_del(struct node *node)
 {
 	struct node *before = node->prev;
 	struct node *after  = node->next;
@@ -147,7 +144,7 @@ static inline void __list_del(struct node *node)
 	after->prev = before;
 }
 #endif
-static inline void
+static inline void 
 list_del(struct node *node)
 {
 	__list_del(node);
@@ -195,8 +192,9 @@ slist_add_after(struct snode *node, struct snode *after)
 static inline void
 slist_remove(struct snode *node, struct snode *prev)
 {
-	if (prev)
-		prev->next = node->next;
+	if (!prev)
+		return;
+	prev->next = node->next;
 }
 
 #define slist_for_each_delsafe(item, member, it) \
@@ -289,4 +287,4 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 #define hlist_for_each_delsafe(node, it, list) \
 	for (node = hlist_first(list); it && ({it = pos->next; 1;}); node = it)
 
-#endif
+#endif/*__GENERIC_LIST_H__*/

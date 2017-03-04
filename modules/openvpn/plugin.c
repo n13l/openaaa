@@ -3,7 +3,7 @@
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
-#include <sys/link.h>
+#include <sys/dll.h>
 #include <mem/pool.h>
 
 #include <stdlib.h>

@@ -638,6 +638,11 @@
 #define CKR_FUNCTION_REJECTED                   0x00000200
 #define CKR_VENDOR_DEFINED                      0x80000000
 
+
+#define CKF_TOKEN_PRESENT                       0x00000001
+#define CKF_REMOVABLE_DEVICE                    0x00000002
+#define	CKF_HW_SLOT                             0x00000004
+
 /* API version, they compare as integers */
 #define API_VERSION PACKAGE_VERSION
 
@@ -672,15 +677,14 @@ struct ck_info {
 	struct ck_version crypto;
 	unsigned char manufacturer[32];             /* blank padded */
 	unsigned long int flags;
-	unsigned char desc[32];                     /* blank padded */
+	unsigned char description[32];              /* blank padded */
 	struct ck_version library;
 } __attribute__ ((packed));
 
 struct ck_slot_info {
-	unsigned char desc[64];
+	unsigned char description[64];
 	unsigned char manufacturer[32];
 	unsigned long int flags;
-
 	struct ck_version hardware;                 /* version of hardware */
 	struct ck_version firmware;                 /* version of firmware */
 } __attribute__ ((packed));
@@ -725,10 +729,11 @@ struct ck_mechanism_info {
 	unsigned long int flags;
 } __attribute__ ((packed));
 
-unsigned long
+/*
+typedef unsigned long
 (*ck_initialize)(void *);
 
-unsigned long 
+typedef unsigned long 
 (*ck_finalize)(void *);
 
 unsigned long 
@@ -739,6 +744,7 @@ unsigned long
 
 unsigned long
 (*ck_get_slot_info)(ck_slot_id, struct ck_slot_info *);
+
 unsigned long
 (*ck_get_token_info)(ck_slot_id, struct ck_token_info *);
 
@@ -762,5 +768,5 @@ unsigned long
 
 unsigned long
 (*ck_get_function_list)(void **list);
-
+*/
 #endif/*__PKCS11_LIB_H__*/
