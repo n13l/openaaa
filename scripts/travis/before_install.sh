@@ -20,15 +20,6 @@ export PATCHLEVEL="$BUILD_MINOR"
 export SUBLEVEL="$BUILD_REVISION"
 
 if [ "$BUILD_TARGET" == "win32" ]; then 
-#  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys
-#  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1397BC53640DB551
-#  sudo apt-get update -q
-# sudo add-apt-repository ppa:wine/wine-builds -y
-#  sudo add-apt-repository ppa:ubuntu-wine/ppa -y
-#  sudo apt-get update -q
-#  sudo apt-get -f install
-#  sudo apt-get install wine1.6 -y
-# sudo apt-get install --install-recommends winehq-devel
   unset CC 
   export CROSS_COMPILE="i686-w64-mingw32-"
   export MINGW=/opt/mingw64 
@@ -40,18 +31,6 @@ if [ "$BUILD_TARGET" == "win32" ]; then
   export OS_EXEC="wine"
 fi 
 if [ "$BUILD_TARGET" == "win64" ]; then 
-#  sudo dpkg --add-architecture i386
-#  sudo apt-get -f install
-#  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys
-#  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1397BC53640DB551
-#  sudo apt-get update -q
-#
-# sudo add-apt-repository ppa:wine/wine-builds -y
-#  sudo add-apt-repository ppa:ubuntu-wine/ppa -y
-#  sudo apt-get update -q
-#  sudo apt-get -f install
-#  sudo apt-get install wine1.6 -y
-# sudo apt-get install --install-recommends winehq-devel
   unset CC 
   export CROSS_COMPILE="x86_64-w64-mingw32-"
   export MINGW=/opt/mingw64 

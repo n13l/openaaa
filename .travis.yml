@@ -164,7 +164,11 @@ script:
 - if [[ $PACK == 'none' ]]; then 
     make defconfig ;
     make ;
-    sudo make modules_install ;
+    if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      sudo make modules_install ;
+    else
+      sudo make modules_install INSTALL_PATH=/opt;
+    fi
   else
     packpack/packpack; 
   fi
