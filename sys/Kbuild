@@ -1,2 +1,3 @@
 obj-y += $(PLATFORM)/
 obj-y += unix/
+obj-y += plt/

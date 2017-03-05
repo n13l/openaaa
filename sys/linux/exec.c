@@ -55,32 +55,3 @@ get_process_file(void)
 	readlink("/proc/self/exe", file, sizeof(file) - 1);
 	return strdup(file);
 }
-
-/*
-char *
-get_process_file(char *path, size_t len)
-{
-	if (readlink ("/proc/self/exe", path, len) == -1)
-		return NULL;
-
-	dirname (path);
-	strcat  (path, "/");
-	return path;
-}
-*/
-
-int
-open_uri(const char *uri)
-{
-	return -EINVAL;
-}
-
-void
-exec_init(void)
-{
-}
-
-void
-exec_fini(void)
-{
-}

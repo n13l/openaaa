@@ -26,28 +26,20 @@
 #include <sys/log.h>
 #include <stdlib.h>
 #include <stdio.h>
-
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE         /* See feature_test_macros(7) */
-#endif
-#include <link.h>
 #include <crypto/abi/lib.h>
-
-#define DEFINE_ABI_call(rv, fn, args...) \
-	rv ((*abi_##fn)(args)); \
+#include <sys/plt/plthook.h>
 
 #define DEFINE_ABI(ns, rv, fn, args...) \
-	rv ((* openssl_##fn)(args)); \
+	rv ((*ns##_##fn)(args)); \
 
-#define decl_abi_sym(ns, fn, mode) \
-	{ stringify(fn), &ns_##fn, mode } 
+#define DECLARE_ABI(fn) \
+	abi##_##fn
 
-#define call_abi(ns, fn, args...) \
-	ns_##fn(args)
+#define OPENSSL_CALL(fn) \
+	openssl##_##fn
 
-#define defn_abi_call(rv, fn, args...) \
-	rv ((*abi_##fn)(args)); \
-
+#define OPENSSL_LINK(fn) \
+	plthook_replace(plt, stringify(fn), abi_##fn, (void**)&openssl_##fn)
 
 typedef void *SSL_METHOD;
 typedef void *SSL;
@@ -61,65 +53,49 @@ DEFINE_ABI(openssl, SSL *,        SSL_new, SSL_CTX *);
 DEFINE_ABI(openssl, void,         SSL_free, SSL *);
 DEFINE_ABI(openssl, int,          SSL_session_reused, SSL *);
 
-/*
-struct abi_sym abi_table_openssl1[] = {
-	decl_abi_sym(SSLeay,         ABI_CALL_REQUIRE),
-	decl_abi_sym(SSLeay_version, ABI_CALL_REQUIRE)
-};
-*/
-
-/*
-decl_abi(openssl, const char *, SSLeay_version, int v)
-{
-	return call_abi(openssl, SSLeay_version, v);
-}
-
-static _unused void
+static void
 ssl_version(void)
 {
-	long version = call_abi(openssl, SSLeay);
+	long version = OPENSSL_CALL(SSLeay)();
 
 	byte major = (version >> 28) & 0xFF;
 	byte minor = (version >> 20) & 0xFF;
 	byte patch = (version >> 12) & 0XFF;
 	byte dev   = (version >>  4) & 0XFF;
 
-	sys_dbg("openssl-%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
+	debug("openssl-%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
 }
-*/
+
+long
+DECLARE_ABI(SSLeay)(void)
+{
+	return OPENSSL_CALL(SSLeay)();
+}
+
+SSL *
+DECLARE_ABI(SSL_new)(SSL_CTX *ctx)
+{
+	debug("ctx = %p", ctx);
+	ssl_version();
+	return OPENSSL_CALL(SSL_new)(ctx);
+}
+
 void
-dump_symbol(void *addr)
+DECLARE_ABI(SSL_free)(SSL *ssl)
 {
-	Dl_info info;
-	dladdr(addr, &info);
-
-	debug("base=%p", info.dli_fbase);
-	debug("name=%s module=%s", info.dli_sname, info.dli_fname);
+	debug("ssl = %p", ssl);
+	return OPENSSL_CALL(SSL_free)(ssl);
 }
 
-int
-crypto_module(struct dl_phdr_info *info, size_t size, void *data)
-{
-	if (!info->dlpi_name || !*info->dlpi_name)
-		return 0;
-	debug("module name=%s", info->dlpi_name);
-	return 0;
-}
-	
 void
 crypto_lookup(void)
 {
-	debug("checking for openssl crypto");
+	plthook_t *plt;
+	plthook_open(&plt, NULL);
 
-	openssl_SSLeay_version = dlsym(RTLD_DEFAULT,"SSLeay_version");
-	if (!openssl_SSLeay_version)
-		return;
+	OPENSSL_LINK(SSLeay);
+	OPENSSL_LINK(SSL_new);
+	OPENSSL_LINK(SSL_free);
 
-	openssl_SSLeay = dlsym(RTLD_DEFAULT,"SSL_new");
-	if (!openssl_SSLeay)
-		return;
-
-	dump_symbol(crypto_lookup);
-	dump_symbol(openssl_SSLeay_version);
-	dump_symbol(openssl_SSLeay);
+	plthook_close(plt);
 }

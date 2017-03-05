@@ -1,1 +1,1 @@
-obj-y := proc.o
+obj-y := proc.o exec.o

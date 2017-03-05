@@ -20,4 +20,7 @@
 #define gmtime_s(a,b) gmtime_r(b,a)
 #endif
 
+const char *
+get_process_file(void);
+
 #endif
