@@ -161,17 +161,17 @@ script:
 - git submodule update --init --recursive
 - git describe --long --always
 - git clone https://github.com/packpack/packpack.git packpack
-- if [[ $PACK == 'none' ]]; then 
+- 'if [[ $PACK == "none" ]]; then 
     make defconfig ;
     make ;
-    if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       sudo make modules_install INSTALL_PATH=/opt/aaa ;
     else
       sudo make modules_install ;
     fi
   else
     packpack/packpack; 
-  fi
+  fi'
 deploy:
   # Deploy packages to PackageCloud
   provider: packagecloud
