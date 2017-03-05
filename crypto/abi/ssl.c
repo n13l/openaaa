@@ -29,8 +29,8 @@
 #include <crypto/abi/lib.h>
 #include <sys/plt/plthook.h>
 
-#define DEFINE_ABI(ns, rv, fn, args...) \
-	rv ((*ns##_##fn)(args)); \
+#define OPENSSL_ABI(rv, fn, args...) \
+	rv ((*openssl_##fn)(args)); \
 
 #define DECLARE_ABI(fn) \
 	abi##_##fn
@@ -45,13 +45,19 @@ typedef void *SSL_METHOD;
 typedef void *SSL;
 typedef void *SSL_CTX;
 
-DEFINE_ABI(openssl, long,         SSLeay, void);
-DEFINE_ABI(openssl, const char *, SSLeay_version, int);
-DEFINE_ABI(openssl, SSL_CTX *,    SSL_CTX_new, const SSL_METHOD *);
-DEFINE_ABI(openssl, void,         SSL_CTX_free, SSL_CTX *);
-DEFINE_ABI(openssl, SSL *,        SSL_new, SSL_CTX *);
-DEFINE_ABI(openssl, void,         SSL_free, SSL *);
-DEFINE_ABI(openssl, int,          SSL_session_reused, SSL *);
+void (*info_cb)(int write_p, int version, int content_type, const void *buf, size_t len, SSL *ssl, void *arg);
+
+OPENSSL_ABI(int,       SSL_library_init, void);
+OPENSSL_ABI(long,      SSLeay, void);
+OPENSSL_ABI(SSL_CTX *, SSL_CTX_new, const SSL_METHOD *);
+OPENSSL_ABI(void,      SSL_CTX_free, SSL_CTX *);
+OPENSSL_ABI(SSL *,     SSL_new, SSL_CTX *);
+OPENSSL_ABI(void,      SSL_free, SSL *);
+OPENSSL_ABI(int,       SSL_session_reused, SSL *);
+OPENSSL_ABI(int,       SSL_set_ex_data, SSL *, int, void *);
+OPENSSL_ABI(void *,    SSL_get_ex_data, const SSL *, int);
+//OPENSSL_ABI(void,      SSL_CTX_set_msg_callback, SSL_CTX *, void (*callback)());    
+//OPENSSL_ABI(void,      SSL_CTX_set_info_callback, SSL_CTX *, void (*callback)());
 
 static void
 ssl_version(void)
@@ -66,18 +72,68 @@ ssl_version(void)
 	debug("openssl-%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
 }
 
+int
+DECLARE_ABI(SSL_library_init)(void)
+{
+	debug("init");
+	return OPENSSL_CALL(SSL_library_init)();
+}
+
 long
 DECLARE_ABI(SSLeay)(void)
 {
 	return OPENSSL_CALL(SSLeay)();
 }
 
+/*
+void
+DECLARE_ABI(SSL_CTX_set_msg_callback)(SSL_CTX *ctx, void (*callback)())
+{
+	debug("ctx=%p", ctx);
+	OPENSSL_CALL(SSL_CTX_set_msg_callback)(ctx, callback);
+}
+
+void
+DECLARE_ABI(SSL_CTX_set_info_callback,)(SSL_CTX *ctx, void (*callback)())
+{
+	debug("ctx=%p", ctx);
+	OPENSSL_CALL(SSL_CTX_set_msg_callback)(ctx, callback);
+}
+*/
+int
+DECLARE_ABI(SSL_set_ex_data)(SSL *ssl, int index, void *data)
+{
+	debug("ssl=%p index=%d data=%p", ssl, index, data);
+	return OPENSSL_CALL(SSL_set_ex_data)(ssl, index, data);
+}
+
+void *
+DECLARE_ABI(SSL_get_ex_data)(const SSL *ssl, int index)
+{
+	void *data = OPENSSL_CALL(SSL_get_ex_data)(ssl, index);
+	debug("ssl=%p index=%d data=%p", ssl, index, data);
+	return data;
+}
+
+SSL_CTX *
+DECLARE_ABI(SSL_CTX_new)(const SSL_METHOD *m)
+{
+	ssl_version();
+	return OPENSSL_CALL(SSL_CTX_new)(m);
+}
+
+void
+DECLARE_ABI(SSL_CTX_free)(SSL_CTX *ctx)
+{
+	OPENSSL_CALL(SSL_CTX_free)(ctx);
+}
+
 SSL *
 DECLARE_ABI(SSL_new)(SSL_CTX *ctx)
 {
-	debug("ctx = %p", ctx);
-	ssl_version();
-	return OPENSSL_CALL(SSL_new)(ctx);
+	SSL *ssl = OPENSSL_CALL(SSL_new)(ctx);
+	debug("ssl = %p ctx=%p", ssl, ctx);
+	return ssl;
 }
 
 void
@@ -92,8 +148,14 @@ crypto_lookup(void)
 {
 	plthook_t *plt;
 	plthook_open(&plt, NULL);
+	if (!plt)
+		return;
 
 	OPENSSL_LINK(SSLeay);
+	OPENSSL_LINK(SSL_set_ex_data);
+	OPENSSL_LINK(SSL_get_ex_data);
+	OPENSSL_LINK(SSL_CTX_new);
+	OPENSSL_LINK(SSL_CTX_free);
 	OPENSSL_LINK(SSL_new);
 	OPENSSL_LINK(SSL_free);
 
