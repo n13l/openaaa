@@ -1,1 +1,2 @@
-obj-y := ssl.o nss.o gsk.o
+obj-y := nss.o gsk.o
+obj-$(CONFIG_LINUX) += ssl.o

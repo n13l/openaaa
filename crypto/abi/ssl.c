@@ -55,7 +55,6 @@ typedef void *SSL_CTX;
 
 DEFINE_ABI(openssl, long,         SSLeay, void);
 DEFINE_ABI(openssl, const char *, SSLeay_version, int);
-
 DEFINE_ABI(openssl, SSL_CTX *,    SSL_CTX_new, const SSL_METHOD *);
 DEFINE_ABI(openssl, void,         SSL_CTX_free, SSL_CTX *);
 DEFINE_ABI(openssl, SSL *,        SSL_new, SSL_CTX *);
@@ -103,7 +102,6 @@ crypto_module(struct dl_phdr_info *info, size_t size, void *data)
 {
 	if (!info->dlpi_name || !*info->dlpi_name)
 		return 0;
-
 	debug("module name=%s", info->dlpi_name);
 	return 0;
 }
@@ -121,6 +119,7 @@ crypto_lookup(void)
 	if (!openssl_SSLeay)
 		return;
 
+	dump_symbol(crypto_lookup);
 	dump_symbol(openssl_SSLeay_version);
 	dump_symbol(openssl_SSLeay);
 }
