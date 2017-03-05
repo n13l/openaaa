@@ -22,3 +22,8 @@ win32_stacktrace(CONTEXT *ctx)
 
 	SymCleanup(GetCurrentProcess());
 }
+
+void
+crypto_lookup(void)
+{
+}
