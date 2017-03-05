@@ -165,9 +165,9 @@ script:
     make defconfig ;
     make ;
     if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      sudo make modules_install INSTALL_PATH=/opt/aaa;
+      sudo make modules_install INSTALL_PATH=/opt/aaa ;
     else
-      sudo make modules_install 
+      sudo make modules_install ;
     fi
   else
     packpack/packpack; 
