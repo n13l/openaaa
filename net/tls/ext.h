@@ -49,7 +49,11 @@ enum tls_ext_e {
 	TLS_EXT_SESSION_TICKET         = 35,
 	TLS_EXT_OPAQUE_PRF_INPUT       = 38183,
 	TLS_EXT_RENEGOTIATE            = 0xff01,
-	TLS_EXT_NEXT_PROTO_NEG         = 13172
+	TLS_EXT_NEXT_PROTO_NEG         = 13172,
+	TLS_EXT_SUPPLEMENTAL_DATA      = 1000,
+	TLS_EXT_CHANNEL_ID             = 30032,
+	TLS_EXT_ALPN                   = 16,
+	TLS_EXT_EXTENDED_MASTER_SECRET = 23,
 };
 
 const char *

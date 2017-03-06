@@ -44,7 +44,12 @@ static const char *__tls_ext_names[] = {
 	[TLS_EXT_SIGNATURE_ALGORITHMS]   = "signature_algorithms",
 	[TLS_EXT_USE_SRTP]               = "use_srtp",
 	[TLS_EXT_SESSION_TICKET]         = "session_ticket",
-	[TLS_EXT_NEXT_PROTO_NEG]         = "next_proto_neg"
+	[TLS_EXT_NEXT_PROTO_NEG]         = "next_proto_neg",
+	[TLS_EXT_ALPN]                   = "alpn",
+	[TLS_EXT_CHANNEL_ID]             = "channel_id",
+	[TLS_EXT_EXTENDED_MASTER_SECRET] = "extended_master_secret",
+	[TLS_EXT_SUPPLEMENTAL_DATA]      = "supplemental_data"
+
 };
 
 const char *                                                                    
