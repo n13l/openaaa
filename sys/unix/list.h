@@ -31,7 +31,7 @@
 #define DEFINE_NODE(name)          struct node name;
 #define DECLARE_LIST(name)         struct list name = DECLARE_INIT_LIST(name)
 #define DECLARE_NODE(name)         struct node name = DECLARE_INIT_NODE
-#define DECLARE_INIT_NODE         (struct node ){ .next = NULL, .prev = NULL }
+#define DECLARE_INIT_NODE          { .next = NULL, .prev = NULL }
 #define DECLARE_INIT_LIST(name) {{(struct node *)&(name), (struct node *)&(name)}}
 
 struct node  { struct node  *next, *prev; };

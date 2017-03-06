@@ -49,7 +49,8 @@
 #define DEFINE_ABI_CALL(fn) abi_##fn
 #define CALL_ABI(fn) plt_##fn.plt_##fn
 #define IMPORT_ABI(fn) \
-        plt_##fn.plt_##fn = dlsym(RTLD_DEFAULT, stringify(fn));
+        plt_##fn.plt_##fn = dlsym(RTLD_DEFAULT, stringify(fn)); \
+	list_add_tail(&ssl_syms, &plt_##fn.node);
 
 #define EXISTS_ABI(fn) \
 ({ int _X = plt_##fn.plt_##fn != NULL ? 1 : 0; _X; })
