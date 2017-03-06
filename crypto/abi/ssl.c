@@ -24,6 +24,10 @@
 #include <sys/compiler.h>
 #include <sys/abi.h>
 #include <sys/log.h>
+
+#include <mem/stack.h>
+
+#include <dlfcn.h>
 #include <sys/plt/plthook.h>
 #include <net/tls/ext.h>
 #include <crypto/abi/lib.h>
@@ -33,27 +37,12 @@
 #include <crypto/abi/openssl/ssl.h>
 #include <crypto/abi/openssl/bio.h>
 
-#define DEFINE_ABI(fn) \
-	struct plt_##fn { \
-		const char *name; struct node node; \
-		typeof(fn) *abi_##fn; typeof(fn) *plt_##fn; \
-	} plt_##fn = { \
-		.name     = stringify(fn), .node = DECLARE_INIT_NODE, \
-		.abi_##fn = NULL, .plt_##fn = NULL \
-	}
-
-#define DEFINE_ABI_CALL(fn) abi_##fn
-#define CALL_ABI(fn) plt_##fn.plt_##fn
-
-#define IMPORT_ABI(fn) \
-	plt_##fn.abi_##fn = (typeof(plt_##fn.abi_##fn))abi_##fn; \
-	plthook_replace(plt, stringify(fn), abi_##fn, (void**)&plt_##fn.plt_##fn)
-
-DECLARE_LIST(openssl_abi);
-
+DEFINE_LIST(openssl);
 DEFINE_ABI(SSLeay);
 DEFINE_ABI(SSL_CTX_new);
 DEFINE_ABI(SSL_CTX_free);
+DEFINE_ABI(SSL_CTX_add_client_custom_ext);
+DEFINE_ABI(SSL_CTX_add_server_custom_ext);
 DEFINE_ABI(SSL_new);
 DEFINE_ABI(SSL_free);
 DEFINE_ABI(SSL_set_ex_data);
@@ -89,16 +78,33 @@ DEFINE_ABI(SSL_get_SSL_CTX);
 DEFINE_ABI(SSL_CTX_get_cert_store);
 DEFINE_ABI(SSL_extension_supported);
 
-
-void (*ssl_info_callback)  (SSL *s, int, int) = NULL;
-void (*ssl_tlsext_callback)(SSL *s, int client_server, 
+typedef void (*ssl_cb_tlsext)(SSL *s, int client_server, 
                                 int type, unsigned char *data, 
-                                int len, void *arg) = NULL;
+                                int len, void *arg);
 
-typedef void (*openssl_msg_cb)
+typedef void (*ssl_cb_msg)
 (int wp, int ver, int type, const void *buf, size_t len, SSL *ssl, void *arg);
-typedef void (*openssl_info_cb)
-(const SSL *s, int where, int ret);
+typedef void (*ssl_cb_info)(const SSL *s, int where, int ret);
+
+struct ssl_cb {
+	ssl_cb_msg cb_msg;
+	ssl_cb_info cb_info;
+	ssl_cb_tlsext cb_tlsext;
+};
+
+struct ssl_ctxt {
+	SSL_CTX *ctx;
+	ssl_cb_msg cb_msg;
+	ssl_cb_info cb_info;
+	ssl_cb_tlsext cb_tlsext;
+};
+
+struct ssl_sess {
+	SSL *ssl;
+	ssl_cb_msg cb_msg;
+	ssl_cb_info cb_info;
+	ssl_cb_tlsext cb_tlsext;
+};
 
 static void
 ssl_version(void)
@@ -113,6 +119,160 @@ ssl_version(void)
 	debug("openssl-%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
 }
 
+int
+ssl_ext_srv_add(SSL *s, unsigned int type,
+                const unsigned char **out, size_t *outlen, int *al, void *arg)
+{
+	const char *authority = getenv("OPENAAA_AUTHORITY");
+
+	debug("extension name=%s type=%d send [%s]",
+	        tls_strext(type), type, authority);	
+
+	*out = authority;
+	*outlen = authority ? strlen(authority) : 0;
+	return 1;
+}
+
+int
+ssl_ext_srv_parse(SSL *s, unsigned int type,
+                  const unsigned char *in, size_t inlen, int *al, void *arg)
+{
+	const char *v = sp_strndup(in, inlen);
+	debug("extension name=%s type=%d recv [%s]",tls_strext(type), type, v);
+	return 1;
+}
+
+
+int
+ssl_ext_cli_add(SSL *s, unsigned int type,
+                const unsigned char **out, size_t *outlen, int *al, void *arg)
+{
+	const char *v = "protocol=aaa";
+	debug("extension name=%s type=%d send [%s]",tls_strext(type), type, v);
+
+	*out = v;
+	*outlen = strlen(v);
+	return 1;
+}
+
+int
+ssl_ext_cli_parse(SSL *s, unsigned int type,
+                  const unsigned char *in, size_t inlen, int *al, void *arg)
+{
+	const char *v = sp_strndup(in, inlen);
+	debug("extension name=%s type=%d recv [%s]", tls_strext(type), type, v);
+/*
+	if (type==1000)
+		tls_set_authority(v);
+*/		
+	return 1;
+}
+
+
+const char *
+ssl_get_value_desc(SSL *s, int code)
+{
+	return NULL;
+}
+
+static void
+info_handler(SSL *s, const char *str)
+{
+	char *d = sp_printf("%s:%s", str, CALL_ABI(SSL_state_string_long)(s));
+	debug("openaaa:msg:ssl:%s", d);
+}
+
+static void
+info_handler_alert(int where, int rv)
+{
+	char *desc = sp_printf("alert %s:%s:%s", (where & SSL_CB_READ) ?
+	                        "read" : "write",
+	                        CALL_ABI(SSL_alert_type_string_long)(rv),
+	                        CALL_ABI(SSL_alert_desc_string_long)(rv));
+
+	debug("openaaa:msg:ssl:%s", desc);		
+}
+
+static void
+info_handler_exit_failed(SSL *s, const char *str, int rv)
+{
+	char *err = sp_printf("%s:failed in %s", str,
+	                       CALL_ABI(SSL_state_string_long)(s));
+
+	const char *desc = ssl_get_value_desc(s, rv);
+	debug("openaaa:msg:ssl:%s %s", err, desc);
+}
+
+static void
+info_handler_default(SSL *s, const char *str, int rv)
+{
+	char *err = sp_printf("%s:error in %s", str, 
+	                       CALL_ABI(SSL_state_string_long)(s));
+
+	const char *desc = ssl_get_value_desc(s, rv);
+	debug("openaaa:msg:ssl:%s %s", err, desc);
+}
+
+static void
+info_handler_exit_error(SSL *s, const char *str, int rv)
+{
+	switch(CALL_ABI(SSL_get_error)(s, rv)) {
+	case SSL_ERROR_WANT_READ:
+	case SSL_ERROR_WANT_WRITE:
+	break;
+	default:
+		info_handler_default(s, str, rv);
+	break;
+	}
+}
+
+
+void
+openssl_info_handler(SSL *s, int where, int ret)
+{
+        const char *str, *err, *cb, *desc;
+        int w = where & ~SSL_ST_MASK, rv = ret;
+
+        str = (w & SSL_ST_CONNECT)     ? "connect" :
+	      (w & SSL_ST_ACCEPT)      ? "accept"  :
+	      (w & SSL_ST_INIT)        ? "init" :
+	      (w & SSL_ST_BEFORE)      ? "before" :
+	      (w & SSL_ST_OK)          ? "ok" :
+	      (w & SSL_ST_RENEGOTIATE) ? "renegotiate" : "negotiate";
+
+	if (where & SSL_CB_HANDSHAKE_DONE) {
+		info_handler(s, str);
+		goto next;
+	}
+
+        if (where & SSL_CB_LOOP) {
+		info_handler(s, str);
+		goto next;
+	} else if (where & SSL_CB_ALERT) {
+		info_handler_alert(where, rv);
+		goto next;
+	} else if (where & SSL_CB_EXIT) {
+		if (rv == 0) {
+			info_handler_exit_failed(s, str, rv);
+			goto next;
+		} else if (rv < 0)
+			info_handler_exit_error(s, str, rv);
+	}
+
+next:	
+/*
+	if (where & SSL_CB_HANDSHAKE_DONE)
+		openssl_handshake_handler(s);
+
+	if (openssl_info_callback == openssl_info_handler)
+		return;
+
+	if (!openssl_info_callback)
+		return;
+*/
+//	openssl_info_callback(s, where, ret);
+	debug("ssl");
+}
 long
 DEFINE_ABI_CALL(SSLeay)(void)
 {
@@ -120,28 +280,28 @@ DEFINE_ABI_CALL(SSLeay)(void)
 }
 
 void
-DEFINE_ABI_CALL(SSL_CTX_set_msg_callback)(SSL_CTX *ctx, openssl_msg_cb msg)
+DEFINE_ABI_CALL(SSL_CTX_set_msg_callback)(SSL_CTX *ctx, ssl_cb_msg msg)
 {
 	debug("ctx=%p", ctx);
 	CALL_ABI(SSL_CTX_set_msg_callback)(ctx, msg);
 }
 
 void
-DEFINE_ABI_CALL(SSL_CTX_set_info_callback)(SSL_CTX *ctx, openssl_info_cb cb)
+DEFINE_ABI_CALL(SSL_CTX_set_info_callback)(SSL_CTX *ctx, ssl_cb_info cb)
 {
 	debug("ctx=%p", ctx);
 	CALL_ABI(SSL_CTX_set_info_callback)(ctx, cb);
 }
 
 void
-DEFINE_ABI_CALL(SSL_set_msg_callback)(SSL *ssl, openssl_msg_cb msg)
+DEFINE_ABI_CALL(SSL_set_msg_callback)(SSL *ssl, ssl_cb_msg msg)
 {
 	debug("ssl=%p", ssl);
 	CALL_ABI(SSL_set_msg_callback)(ssl, msg);
 }
 
 void
-DEFINE_ABI_CALL(SSL_set_info_callback)(SSL *ssl, openssl_info_cb cb)
+DEFINE_ABI_CALL(SSL_set_info_callback)(SSL *ssl, ssl_cb_info cb)
 {
 	debug("ssl=%p", ssl);
 	CALL_ABI(SSL_set_info_callback)(ssl, cb);
@@ -163,11 +323,21 @@ DEFINE_ABI_CALL(SSL_get_ex_data)(const SSL *ssl, int index)
 }
 
 SSL_CTX *
-DEFINE_ABI_CALL(SSL_CTX_new)(const SSL_METHOD *m)
+DEFINE_ABI_CALL(SSL_CTX_new)(const SSL_METHOD *method)
 {
-	debug("method=%p", m);
+	SSL_CTX *ctx = CALL_ABI(SSL_CTX_new)(method);
 	ssl_version();
-	return CALL_ABI(SSL_CTX_new)(m);
+
+	debug("client=%d", EXISTS_ABI(SSL_CTX_add_client_custom_ext));
+	debug("server=%d", EXISTS_ABI(SSL_CTX_add_server_custom_ext));
+
+	CALL_ABI(SSL_CTX_add_client_custom_ext)(ctx, TLS_EXT_SUPPLEMENTAL_DATA, 
+	                                  ssl_ext_cli_add, NULL, NULL,
+	                                  ssl_ext_cli_parse, NULL);
+	CALL_ABI(SSL_CTX_add_server_custom_ext)(ctx, TLS_EXT_SUPPLEMENTAL_DATA,
+	                                  ssl_ext_srv_add, NULL, NULL, 
+	                                  ssl_ext_srv_parse, NULL);
+	return ctx;
 }
 
 void
@@ -195,22 +365,63 @@ DEFINE_ABI_CALL(SSL_free)(SSL *ssl)
 void
 crypto_lookup(void)
 {
+	
+	IMPORT_ABI(SSLeay);
+	IMPORT_ABI(SSL_CTX_new);
+	IMPORT_ABI(SSL_CTX_free);
+	IMPORT_ABI(SSL_CTX_add_client_custom_ext);
+	IMPORT_ABI(SSL_CTX_add_server_custom_ext);
+	IMPORT_ABI(SSL_new);
+	IMPORT_ABI(SSL_free);
+	IMPORT_ABI(SSL_set_ex_data);
+	IMPORT_ABI(SSL_get_ex_data);
+	IMPORT_ABI(SSL_CTX_set_msg_callback);
+	IMPORT_ABI(SSL_CTX_set_info_callback);
+	IMPORT_ABI(SSL_set_msg_callback);
+	IMPORT_ABI(SSL_set_info_callback);
+	IMPORT_ABI(SSL_export_keying_material);
+	IMPORT_ABI(SSL_state_string);
+	IMPORT_ABI(SSL_state_string_long);
+	IMPORT_ABI(SSL_alert_type_string);
+	IMPORT_ABI(SSL_alert_type_string_long);
+	IMPORT_ABI(SSL_alert_desc_string);
+	IMPORT_ABI(SSL_alert_desc_string_long);
+	IMPORT_ABI(SSL_get_error);
+	IMPORT_ABI(SSL_get_session);
+	IMPORT_ABI(SSL_SESSION_free);
+	IMPORT_ABI(SSL_SESSION_get_id);
+	IMPORT_ABI(SSL_SESSION_print);
+	IMPORT_ABI(BIO_new);
+	IMPORT_ABI(BIO_free);
+	IMPORT_ABI(BIO_s_mem);
+	IMPORT_ABI(BIO_ctrl);
+	IMPORT_ABI(BIO_read);
+	IMPORT_ABI(X509_NAME_oneline);
+	IMPORT_ABI(SSL_get_ex_data_X509_STORE_CTX_idx);
+	IMPORT_ABI(X509_STORE_CTX_get_ex_data);
+	IMPORT_ABI(SSL_callback_ctrl);
+	IMPORT_ABI(SSL_get_peer_certificate);
+	IMPORT_ABI(SSL_get_certificate);
+	IMPORT_ABI(SSL_get_SSL_CTX);
+	IMPORT_ABI(SSL_CTX_get_cert_store);
+	IMPORT_ABI(SSL_extension_supported);
+
 	plthook_t *plt;
 	plthook_open(&plt, NULL);
 	if (!plt)
 		return;
 
-	IMPORT_ABI(SSLeay);
-	IMPORT_ABI(SSL_set_ex_data);
-	IMPORT_ABI(SSL_get_ex_data);
-	IMPORT_ABI(SSL_CTX_new);
-	IMPORT_ABI(SSL_CTX_free);
-	IMPORT_ABI(SSL_new);
-	IMPORT_ABI(SSL_free);
-	IMPORT_ABI(SSL_CTX_set_msg_callback);
-	IMPORT_ABI(SSL_CTX_set_info_callback);
-	IMPORT_ABI(SSL_set_msg_callback);
-	IMPORT_ABI(SSL_set_info_callback);
+	UPDATE_ABI(SSLeay);
+	UPDATE_ABI(SSL_set_ex_data);
+	UPDATE_ABI(SSL_get_ex_data);
+	UPDATE_ABI(SSL_CTX_new);
+	UPDATE_ABI(SSL_CTX_free);
+	UPDATE_ABI(SSL_new);
+	UPDATE_ABI(SSL_free);
+	UPDATE_ABI(SSL_CTX_set_msg_callback);
+	UPDATE_ABI(SSL_CTX_set_info_callback);
+	UPDATE_ABI(SSL_set_msg_callback);
+	UPDATE_ABI(SSL_set_info_callback);
 
 	plthook_close(plt);
 }

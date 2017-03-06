@@ -37,6 +37,28 @@
 #include <sys/compiler.h>
 #include <sys/abi.h>
 
+#define DEFINE_ABI(fn) \
+	struct plt_##fn { \
+		const char *name; struct node node; \
+		typeof(fn) *abi_##fn; typeof(fn) *plt_##fn; \
+	} plt_##fn = { \
+		.name     = stringify(fn), .node = DECLARE_INIT_NODE, \
+		.abi_##fn = NULL, .plt_##fn = NULL \
+	}
+
+#define DEFINE_ABI_CALL(fn) abi_##fn
+#define CALL_ABI(fn) plt_##fn.plt_##fn
+#define IMPORT_ABI(fn) \
+        plt_##fn.plt_##fn = dlsym(RTLD_DEFAULT, stringify(fn));
+
+#define EXISTS_ABI(fn) \
+({ int _X = plt_##fn.plt_##fn != NULL ? 1 : 0; _X; })
+
+#define UPDATE_ABI(fn) \
+	plt_##fn.abi_##fn = (typeof(plt_##fn.abi_##fn))abi_##fn; \
+	plthook_replace(plt, stringify(fn), abi_##fn, (void**)&plt_##fn.plt_##fn)
+
+
 struct abi_crypto_openssl {
 	struct abi_version version;
 };

@@ -77,7 +77,6 @@ struct mm_stack {
  	_X; \
 })
 
-
 #define sp_zalloc(size) \
 ({\
 	void *_X = alloca(size); memset(_X, 0, size); _X; \

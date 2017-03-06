@@ -118,7 +118,7 @@ get_slot_list(bool present, ck_slot_id *id, ck_ulong *count)
 	if (!id) 
 		return CKR_OK;
 
-	*id = (ck_slot_id)MM_ADDR_POISON1;
+	*id = (ck_slot_id)0x1234;
 	debug("id=%u", (unsigned int)*id);
 	return CKR_OK;
 }
