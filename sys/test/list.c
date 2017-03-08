@@ -20,11 +20,11 @@ test1_list(void)
 	struct person eve     = {.name = "Eve",     .node = DECLARE_INIT_NODE};
 	struct person robot   = {.name = "Robot",   .node = DECLARE_INIT_NODE};
 
-	list_add_tail(&list, &daniel.node);
-	list_add_tail(&list, &daniela.node);
-	list_add_tail(&list, &adam.node);
-	list_add_tail(&list, &eve.node);
-	list_add_tail(&list, &robot.node);
+	list_add(&list, &daniel.node);
+	list_add(&list, &daniela.node);
+	list_add(&list, &adam.node);
+	list_add(&list, &eve.node);
+	list_add(&list, &robot.node);
 
 	/* iterate over all objects */
 	list_for_each(n, list) {
@@ -79,7 +79,6 @@ test2_list(void)
 		list_del(n);
 
 }
-
 
 int 
 main(int argc, char *argv[]) 
