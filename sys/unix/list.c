@@ -8,6 +8,7 @@
 #include <unix/timespec.h>
 #include <list.h>
 
+/*
 #define list_debug(fmt, ...) \
 	debug("%s() " fmt, __func__, __VA_ARGS__)
 
@@ -83,3 +84,5 @@ __list_walk_next_delsafe(struct node *node)
 	debug("node=%p", node);
 	return node;
 }
+
+*/

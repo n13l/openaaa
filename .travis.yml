@@ -157,8 +157,7 @@ before_install:
 - source ./scripts/travis/before_install.sh
 - gem install package_cloud
 script:
-- export
-- mkdir rpm
+- mkdir ./rpm
 - ln -s ./scripts/package/openaaa.spec ./rpm/ 
 - git submodule update --init --recursive
 - git describe --long --always

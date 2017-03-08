@@ -199,22 +199,14 @@ hlist_empty(const struct hlist *hlist)
 	return !hlist->head;
 }
 
-#ifdef CONFIG_DEBUG_LIST
-void __hlist_del(struct hnode *hnode);
-#else
-static inline void __hlist_del(struct hnode *hnode)
+static inline void 
+hlist_del(struct hnode *hnode)
 {
 	struct hnode *next  = hnode->next;
 	struct hnode **prev = hnode->prev;
 	*prev = next;
 	if (next)
 		next->prev = prev;
-}
-#endif
-static inline void
-hlist_del(struct hnode *hnode)
-{
-	__hlist_del(hnode);
 }
 
 static inline void
