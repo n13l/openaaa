@@ -31,7 +31,6 @@
 #define it_next(container, type, member) NULL
 
 #define it_for_each(container, type, member)
-	for (; 0; )
 
 
 /*

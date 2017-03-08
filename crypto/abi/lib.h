@@ -53,7 +53,7 @@ struct symbol {
 		const char *name; struct node node; \
 		typeof(fn) *abi_##fn; typeof(fn) *plt_##fn; \
 	} plt_##fn = { \
-		.name     = stringify(fn), .node = DECLARE_INIT_NODE, \
+		.name     = stringify(fn), .node = INIT_NODE, \
 		.abi_##fn = NULL, .plt_##fn = NULL \
 	}
 

@@ -1,8 +1,12 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
+#include <sys/log.h>
 
 #include <list.h>
 #include <iter.h>
+
+#include <stdlib.h>
+#include <string.h>
 
 struct person {
 	const char *name;
@@ -10,18 +14,18 @@ struct person {
 };
 
 #define DECLARE_PERSON(name) \
-	({ .(struct person){.name = ##name,  .node = DECLARE_INIT_NODE}; })
+	({ .(struct person){.name = ##name,  .node = INIT_NODE}; })
 
 static void
 test0_list(void)
 {
 	DECLARE_LIST(list);
 
-	struct person daniel  = {.name = "Daniel",  .node = DECLARE_INIT_NODE};
-	struct person daniela = {.name = "Daniela", .node = DECLARE_INIT_NODE};
-	struct person adam    = {.name = "Adam",    .node = DECLARE_INIT_NODE};
-	struct person eve     = {.name = "Eve",     .node = DECLARE_INIT_NODE};
-	struct person robot   = {.name = "Robot",   .node = DECLARE_INIT_NODE};
+	struct person daniel  = {.name = "Daniel",  .node = INIT_NODE};
+	struct person daniela = {.name = "Daniela", .node = INIT_NODE};
+	struct person adam    = {.name = "Adam",    .node = INIT_NODE};
+	struct person eve     = {.name = "Eve",     .node = INIT_NODE};
+	struct person robot   = {.name = "Robot",   .node = INIT_NODE};
 
 	list_add(&list, &daniel.node);
 	list_add(&list, &daniela.node);
@@ -29,17 +33,17 @@ test0_list(void)
 	list_add(&list, &eve.node);
 	list_add(&list, &robot.node);
 
-	struct person pepa = {.name = "Daniel", .node = DECLARE_INIT_NODE};
+	struct person pepa = {.name = "Daniel", .node = INIT_NODE};
 
 	list_add(&list, &pepa.node);
 
 	struct person *p;
 	for (p = it_begin(list, p, node); p; p = it_next(list, p, node)) {
-		debug("person=%p name=%s", p, p->name);
+		printf("person=%p name=%s\n", p, p->name);
 	}
 
 	it_for_each(list, p, node) {
-		debug("person=%p name=%s", p, p->name);
+		printf("person=%p name=%s\n", p, p->name);
 	}
 }
 
@@ -48,11 +52,11 @@ test1_list(void)
 {
 	DECLARE_LIST(list);
 
-	struct person daniel  = {.name = "Daniel",  .node = DECLARE_INIT_NODE};
-	struct person daniela = {.name = "Daniela", .node = DECLARE_INIT_NODE};
-	struct person adam    = {.name = "Adam",    .node = DECLARE_INIT_NODE};
-	struct person eve     = {.name = "Eve",     .node = DECLARE_INIT_NODE};
-	struct person robot   = {.name = "Robot",   .node = DECLARE_INIT_NODE};
+	struct person daniel  = {.name = "Daniel",  .node = INIT_NODE};
+	struct person daniela = {.name = "Daniela", .node = INIT_NODE};
+	struct person adam    = {.name = "Adam",    .node = INIT_NODE};
+	struct person eve     = {.name = "Eve",     .node = INIT_NODE};
+	struct person robot   = {.name = "Robot",   .node = INIT_NODE};
 
 	list_add(&list, &daniel.node);
 	list_add(&list, &daniela.node);
@@ -63,15 +67,15 @@ test1_list(void)
 	/* iterate over all objects */
 	list_for_each(n, list) {
 		struct person *p = __container_of(n, struct person, node);
-		debug("node=%p person=%p name=%s", n, p, p->name);
+		printf("node=%p person=%p name=%s\n", n, p, p->name);
 	}
 
 	/* iterate and unlink adam */
 	list_for_each_delsafe(n, list) {
 		struct person *p = __container_of(n, struct person, node);
-		if (!strcasecmp(p->name, "Adam"))
+		if (!strcmp(p->name, "Adam"))
 			list_del(&p->node);
-		debug("node=%p person=%p name=%s", n, p, p->name);
+		printf("node=%p person=%p name=%s\n", n, p, p->name);
 	}
 
 	struct node *cursor = &daniela.node;
@@ -97,11 +101,11 @@ test2_list(void)
 	DEFINE_LIST(list);
 	list_init(&list);
 
-	struct person daniel  = {.name = "Daniel",  .node = DECLARE_INIT_NODE};
-	struct person daniela = {.name = "Daniela", .node = DECLARE_INIT_NODE};
-	struct person adam    = {.name = "Adam",    .node = DECLARE_INIT_NODE};
-	struct person eve     = {.name = "Eve",     .node = DECLARE_INIT_NODE};
-	struct person robot   = {.name = "Robot",   .node = DECLARE_INIT_NODE};
+	struct person daniel  = {.name = "Daniel",  .node = INIT_NODE};
+	struct person daniela = {.name = "Daniela", .node = INIT_NODE};
+	struct person adam    = {.name = "Adam",    .node = INIT_NODE};
+	struct person eve     = {.name = "Eve",     .node = INIT_NODE};
+	struct person robot   = {.name = "Robot",   .node = INIT_NODE};
 
 	list_add_tail(&list, &daniel.node);
 	list_add_tail(&list, &daniela.node);
