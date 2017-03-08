@@ -35,11 +35,16 @@
 #include <crypto/hex.h>
 #include <crypto/abi/lib.h>
 
+#ifdef CONFIG_WIN32
+#include <windows.h>                                                            
+#include <wincrypt.h>
+#endif
+
 /* We dont't link agaist openssl but using important signatures */
 #include <crypto/abi/openssl/ssl.h>
 #include <crypto/abi/openssl/bio.h>
 #include <crypto/abi/openssl/tls1.h>
-#include <crypto/abi/openssl/x509.h> 
+#include <crypto/abi/openssl/x509.h>
 
 #define SSL_USER_IDX 666
 #define SSL_SESS_SET(ssl, data) \
@@ -272,7 +277,7 @@ ssl_server_add(SSL *s, unsigned int type, const byte **out, size_t *len,
                int *al, void *arg)
 {
 	struct session *sp = SSL_SESS_GET(s);
-	struct mm_pool *mp = sp->mp;
+	//struct mm_pool *mp = sp->mp;
 
 	sp->endpoint = TLS_EP_SERVER;
 
@@ -436,6 +441,8 @@ ssl_handshake1(const SSL *ssl)
 {
 	struct session *sp = SSL_SESS_GET(ssl);
 	const char *endpoint = ssl_endpoint_str(sp->endpoint);
+	X509_NAME *x_subject, *x_issuer;
+	char *subject, *issuer;
 
 	switch (sp->endpoint) {
 	case TLS_EP_SERVER:
@@ -453,11 +460,11 @@ ssl_handshake1(const SSL *ssl)
 	if (!sp->cert)
 		goto cleanup;
 
-	X509_NAME *x_subject = CALL_ABI(X509_get_subject_name)(sp->cert);
-	X509_NAME *x_issuer  = CALL_ABI(X509_get_issuer_name)(sp->cert);
+	x_subject = CALL_ABI(X509_get_subject_name)(sp->cert);
+	x_issuer  = CALL_ABI(X509_get_issuer_name)(sp->cert);
 
-	char *subject = CALL_ABI(X509_NAME_oneline)(x_subject, NULL, 0);
-	char *issuer  = CALL_ABI(X509_NAME_oneline)(x_issuer,  NULL, 0);
+	subject = CALL_ABI(X509_NAME_oneline)(x_subject, NULL, 0);
+	issuer  = CALL_ABI(X509_NAME_oneline)(x_issuer,  NULL, 0);
 
 	debug("checking for subject: %s", subject);
 	debug("checking for issuer:  %s", issuer);
