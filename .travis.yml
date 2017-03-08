@@ -136,6 +136,7 @@ matrix:
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=sid PACK=deb
       osx_image: xcode7.1
 before_deploy:
+- export
 - export BUILD_ARCHIVE=openaaa-$BUILD_MAJOR.$BUILD_MINOR.$BUILD_REVISION-$BUILD_OS_NAME-$BUILD_OS_ARCH-$BUILD_OS_RELEASE.tar.gz
 before_install:
 - source ./scripts/travis/before_install.sh
