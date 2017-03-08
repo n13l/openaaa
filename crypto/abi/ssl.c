@@ -39,6 +39,7 @@
 #include <crypto/abi/openssl/ssl.h>
 #include <crypto/abi/openssl/bio.h>
 #include <crypto/abi/openssl/tls1.h>
+#include <crypto/abi/openssl/x509.h> 
 
 #define SSL_USER_IDX 666
 #define SSL_SESS_SET(ssl, data) \
