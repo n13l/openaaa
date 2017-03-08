@@ -75,7 +75,6 @@ get_page_size(struct pagemap *map)
 	return 1 << map->shift;
 }
 
-
 static inline struct page *
 get_page(struct pagemap *map, unsigned int index)
 {

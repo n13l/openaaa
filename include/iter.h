@@ -30,10 +30,14 @@
 #define it_begin(obj) do { } while()
 #define it_end(obj) do { } while()
 #define it_iter(obj) do { } while()
-#define it_for_each(obj) do {} while()
 
-#define it_begin(it, set) \
-	typeof(it) *it;
+
+#define it_begin(container, type, member) NULL
+#define it_next(container, type, member) NULL
+
+#define it_for_each(container, type, member)
+	for (; 0; )
+
 
 /*
 #define it_for_each(it, container) \

@@ -1,13 +1,47 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
-#include <mem/alloc.h>
-#include <mem/cache.h>
-#include <unix/list.h>
+
+#include <list.h>
+#include <iter.h>
 
 struct person {
 	const char *name;
 	struct node node;
 };
+
+#define DECLARE_PERSON(name) \
+	({ .(struct person){.name = ##name,  .node = DECLARE_INIT_NODE}; })
+
+static void
+test0_list(void)
+{
+	DECLARE_LIST(list);
+
+	struct person daniel  = {.name = "Daniel",  .node = DECLARE_INIT_NODE};
+	struct person daniela = {.name = "Daniela", .node = DECLARE_INIT_NODE};
+	struct person adam    = {.name = "Adam",    .node = DECLARE_INIT_NODE};
+	struct person eve     = {.name = "Eve",     .node = DECLARE_INIT_NODE};
+	struct person robot   = {.name = "Robot",   .node = DECLARE_INIT_NODE};
+
+	list_add(&list, &daniel.node);
+	list_add(&list, &daniela.node);
+	list_add(&list, &adam.node);
+	list_add(&list, &eve.node);
+	list_add(&list, &robot.node);
+
+	struct person pepa = {.name = "Daniel", .node = DECLARE_INIT_NODE};
+
+	list_add(&list, &pepa.node);
+
+	struct person *p;
+	for (p = it_begin(list, p, node); p; p = it_next(list, p, node)) {
+		debug("person=%p name=%s", p, p->name);
+	}
+
+	it_for_each(list, p, node) {
+		debug("person=%p name=%s", p, p->name);
+	}
+}
 
 static void
 test1_list(void)
@@ -28,13 +62,13 @@ test1_list(void)
 
 	/* iterate over all objects */
 	list_for_each(n, list) {
-		struct person *p = container_of(n, struct person, node);
+		struct person *p = __container_of(n, struct person, node);
 		debug("node=%p person=%p name=%s", n, p, p->name);
 	}
 
 	/* iterate and unlink adam */
 	list_for_each_delsafe(n, list) {
-		struct person *p = container_of(n, struct person, node);
+		struct person *p = __container_of(n, struct person, node);
 		if (!strcasecmp(p->name, "Adam"))
 			list_del(&p->node);
 		debug("node=%p person=%p name=%s", n, p, p->name);
@@ -43,13 +77,13 @@ test1_list(void)
 	struct node *cursor = &daniela.node;
 	/* iterate over rest: starts at daniela node */
 	list_walk(cursor, n, list) {
-		struct person *p = container_of(n, struct person, node);
+		struct person *p = __container_of(n, struct person, node);
 		debug("node=%p person=%p name=%s", n, p, p->name);
 		break;
 	}
 	/* iterate over rest with del safety: starts at daniel node */
 	list_walk_delsafe(cursor, n, list) {
-		struct person *p = container_of(n, struct person, node);
+		struct person *p = __container_of(n, struct person, node);
 		debug("node=%p person=%p name=%s", n, p, p->name);
 		list_del(&p->node);
 	}
@@ -83,6 +117,7 @@ test2_list(void)
 int 
 main(int argc, char *argv[]) 
 {
+	test0_list();
 	test1_list();
 	test2_list();
 	return 0;

@@ -1,3 +1,4 @@
 subdir-y := crypto/ perf/ mem/
 testprogs-y += sandbox
 testprogs-y += hash
+testprogs-y += list
