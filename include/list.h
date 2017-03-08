@@ -116,6 +116,13 @@ list_add_tail(struct list *list, struct node *node)
 	list_add_before(node, &list->head);
 }
 
+static inline void
+list_add(struct list *list, struct node *node)
+{
+	list_add_before(node, &list->head);
+}
+
+
 static inline void 
 list_del(struct node *node)
 {
