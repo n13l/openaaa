@@ -10,8 +10,8 @@
 int 
 main(int argc, char *argv[]) 
 {
-	struct mm_pool *mp = mm_create(MM_POOL, CPU_PAGE_SIZE, 0);
+	struct mm_pool *mp = mm_pool_create(NULL, CPU_PAGE_SIZE, 0);
 
-	mm_destroy(mp);
+	mm_pool_destroy(mp);
 	return 0;
 }

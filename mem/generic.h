@@ -35,19 +35,6 @@
 #include <assert.h>
 
 /* Runtime zero-overhead metaprogramming in C language */
-#define mm_create_dispatch(mm, size, flags) \
-({ \
-	__build_bug_on(!(pointer_of(mm, struct mm_pool))); \
-	struct mm_pool *_X = mm_pool_create_const(mm, size, flags); \
-	_X; \
-})
-
-#define mm_destroy_dispatch(mm) \
-do { \
-	__build_bug_on(!(pointer_of(mm, struct mm_pool))); \
-	mm_pool_destroy(mm); \
-} while(0)
-
 #define mm_flush_dispatch(mm) \
 do { \
 	__build_bug_on(!(pointer_of(mm, struct mm_pool))); \

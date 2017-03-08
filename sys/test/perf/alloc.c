@@ -113,7 +113,7 @@ test_alloc_stack(size_t size, long long unsigned iter)
 int 
 main(int argc, char *argv[]) 
 {
-	struct mm_pool *pool = mm_create(MM_POOL, CPU_PAGE_SIZE * 40, 0);
+	struct mm_pool *pool = mm_pool_create(NULL, CPU_PAGE_SIZE * 40, 0);
 
 	test_alloc_stack(CPU_CACHE_LINE, iterations);
 	test_alloc_pool(pool, CPU_CACHE_LINE, iterations);
@@ -128,7 +128,7 @@ main(int argc, char *argv[])
 	test_alloc_heap(CPU_PAGE_SIZE * 4, iterations);
 
 
-	mm_destroy(pool);
+	mm_pool_destroy(pool);
 	
 	return 0;
 }

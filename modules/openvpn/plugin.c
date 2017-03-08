@@ -139,8 +139,8 @@ openvpn_plugin_client_destructor_v1(openvpn_plugin_handle_t handle, void *ctx)
 	//struct ovpn_ctxt *ovpn = (struct ovpn_ctxt *)handle;
 	struct ovpn_sess *sess = (struct ovpn_sess *)ctx;
 
-	mm_destroy(sess->mp_api);
-	mm_destroy(sess->mp);
+	mm_pool_destroy(sess->mp_api);
+	mm_pool_destroy(sess->mp);
 	sys_dbg("client destructor");
 }
 

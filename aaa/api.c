@@ -25,7 +25,7 @@ aaa_new(enum aaa_endpoint type)
 void
 aaa_free(struct aaa *aaa)
 {
-	mm_destroy(aaa->mp);
+	mm_pool_destroy(aaa->mp);
 }
 
 int

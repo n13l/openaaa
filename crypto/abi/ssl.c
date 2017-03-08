@@ -28,6 +28,7 @@
 #include <mem/pool.h>
 #include <mem/stack.h>
 #include <list.h>
+#include <dict.h>
 
 #include <dlfcn.h>
 #include <sys/plt/plthook.h>
@@ -145,6 +146,7 @@ struct ssl_aaa aaa;
 
 struct session {
 	struct mm_pool *mp;
+	struct dict dict;
 	SSL_CTX *ctx;
 	SSL *ssl;
 	X509 *cert;
@@ -203,7 +205,7 @@ ssl_parse_attr(struct session *sp, char *line, size_t size)
 	char *v = s + 1; *p = *s = 0;
 
 	for (int i = 1; i < array_size(aaa_attr_names); i++) {
-		if (strncmp(aaa_attr_names[i], line, strlen(line)))
+		if (strncmp(aaa_attr_names[i], line, strlen(aaa_attr_names[i])))
 			continue;
 		if (ssl_attr_value(sp, i, v))
 			return -EINVAL;
@@ -273,23 +275,34 @@ ssl_extensions(SSL *ssl, int c, int type, byte *data, int len, void *arg)
 }
 
 static int
-ssl_server_add(SSL *s, unsigned int type, const byte **out, size_t *len, 
-               int *al, void *arg)
+ssl_server_add(SSL *s, uint type, const byte **out, size_t *len, int *al, void *arg)
 {
 	struct session *sp = SSL_SESS_GET(s);
-	//struct mm_pool *mp = sp->mp;
+	struct mm_pool *mp = sp->mp;
 
 	sp->endpoint = TLS_EP_SERVER;
 
-	if (!aaa.authority_attr)
-		return 0;
+	dict_set(&sp->dict, "aaa.authority", aaa.authority);
+	dict_set(&sp->dict, "aaa.protocol",  aaa.protocol);
+	dict_set(&sp->dict, "aaa.version",   "1.0");
 
-	const char *e = tls_strext(type);
-	const char *v = aaa.authority_attr;
-	debug("extension name=%s type=%d send [%s]",e, type, v);
+	char bb[8192];
+	unsigned int sz = 0;
+	dict_for_each(attr, sp->dict.list) {
+		sz += snprintf(bb, sizeof(bb) - sz - 1, "%s=%s\n",attr->key, attr->val);
+	}
 
-	*out = aaa.authority_attr;
-	*len = strlen(aaa.authority_attr);
+	char *b = mm_alloc(mp, sz + 1);
+	*len = sz + 1;
+	sz = 0;
+	dict_for_each(attr, sp->dict.list) {
+		debug("extension %s=%s", attr->key, attr->val);
+		sz += snprintf(b + sz, *len, "%s=%s\n",attr->key, attr->val);
+	}
+
+	b[sz] = 0;
+	debug("extension name=%s type=%d send ",tls_strext(type), type);
+	*out = b;
 	return 1;
 }
 
@@ -297,9 +310,10 @@ int
 ssl_server_get(SSL *s, uint type, const byte*in, size_t len, int *l, void *a)
 {
 	struct session *sp = SSL_SESS_GET(s);
+	debug("extension name=%s type=%d recv",tls_strext(type), type);
 
-	const char *v = sp_strndup(in, len);
-	debug("extension name=%s type=%d recv [%s]",tls_strext(type), type, v);
+	if (!len)
+		return 1;
 
 	switch (type) {
 	case TLS_EXT_SUPPLEMENTAL_DATA:
@@ -311,17 +325,34 @@ ssl_server_get(SSL *s, uint type, const byte*in, size_t len, int *l, void *a)
 }
 
 int
-ssl_client_add(SSL *s, unsigned int type, const byte **out, size_t *outlen, 
-               int *al, void *arg)
+ssl_client_add(SSL *s, uint type, const byte **out, size_t *len, int *al, void *arg)
 {
 	struct session *sp = SSL_SESS_GET(s);
+	struct mm_pool *mp = sp->mp;
+
 	sp->endpoint = TLS_EP_CLIENT;
 
-	const char *v = aaa.protocol_attr;
-	debug("extension name=%s type=%d send [%s]",tls_strext(type), type, v);
+	dict_set(&sp->dict, "aaa.protocol", aaa.protocol);
+	dict_set(&sp->dict, "aaa.version",  "1.0");
 
-	*out = v;
-	*outlen = strlen(v);
+	char bb[8192];
+	unsigned int sz = 0;
+	dict_for_each(attr, sp->dict.list) {
+		sz += snprintf(bb, sizeof(bb) - sz - 1, "%s=%s\n",attr->key, attr->val);
+	}
+
+	char *b = mm_alloc(mp, sz + 1);
+	*len = sz + 1;
+	sz = 0;
+	dict_for_each(attr, sp->dict.list) {
+		debug("extension %s=%s", attr->key, attr->val);
+		sz += snprintf(b + sz, *len, "%s=%s\n",attr->key, attr->val);
+	}
+
+	b[sz] = 0;
+	debug("extension name=%s type=%d send ",tls_strext(type), type);
+
+	*out = b;
 	return 1;
 }
 
@@ -330,8 +361,10 @@ ssl_client_get(SSL *ssl, unsigned int type, const byte *in, size_t len,
                  int *al, void *arg)
 {
 	struct session *sp = SSL_SESS_GET(ssl);
-	const char *v = sp_strndup(in, len);
-	debug("extension name=%s type=%d recv [%s]", tls_strext(type), type, v);
+	debug("extension name=%s type=%d recv", tls_strext(type), type);
+
+	if (!len)
+		return 1;
 
 	switch (type) {
 	case TLS_EXT_SUPPLEMENTAL_DATA:
@@ -427,6 +460,7 @@ ssl_handshake0(const SSL *ssl)
 	struct session *sp = mm_zalloc(mp, sizeof(*sp));
 
 	sp->mp = mp;
+	dict_init(&sp->dict, mp);
 	SSL_SESS_SET((SSL *)ssl, sp);
 
 	void (*fn)(void) = (void (*)(void))ssl_extensions;
@@ -709,6 +743,8 @@ import_target(void)
 static void
 init_aaa_env(void)
 {
+	memset(&aaa, 0, sizeof(aaa));
+
 	char *authority = getenv("OPENAAA_AUTHORITY");
 	aaa.authority = authority ? authority : NULL;
 	char *protocol = getenv("OPENAAA_PROTOCOL");
@@ -718,23 +754,10 @@ init_aaa_env(void)
 
 	debug("checking for aaa environment");
 
-	aaa.authority_attr = "aaa.authority=https://example.com";
-	aaa.protocol_attr  = "aaa.protocol=aaa";
-
-	if (aaa.authority) {
-		char v[8192];
-		snprintf(v, sizeof(v) - 1,"aaa.authority=%s", aaa.authority);
-		aaa.authority_attr = strdup(v);
+	if (aaa.authority)
 		debug2("env aaa.authority=%s",aaa.authority);
-	}
-
-	if (aaa.protocol) {
-		char v[8192];
-		snprintf(v, sizeof(v) - 1,"aaa.protocol=%s", aaa.protocol);
-		aaa.protocol_attr = strdup(v);
-	
+	if (aaa.protocol)
 		debug2("env aaa.protocol=%s",aaa.protocol);
-	}
 	if (aaa.handler)
 		debug2("env aaa.handler=%s",aaa.handler);
 }

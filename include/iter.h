@@ -22,15 +22,25 @@
  * THE SOFTWARE.
  */
 
-#ifndef __ITERATOR_FILE_H__
-#define __ITERATOR_FILE_H__
+#ifndef __GENERIC_ITERATOR_H__
+#define __GENERIC_ITERATOR_H__
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
+#include <list.h>
 
 #define it_begin(obj) do { } while()
 #define it_end(obj) do { } while()
 #define it_iter(obj) do { } while()
+#define it_for_each(obj) do {} while()
+
+#define it_begin(it, set) \
+	typeof(it) *it;
+
+/*
+#define it_for_each(it, container) \
+	for (struct attr *(it) = \
+	             __container_of( (list).head.next, struct attr , node); \
+	     (it) != __container_of(&(list).head,      struct attr, node); \
+	     (it)  = __container_of( (it)->node.next,       struct attr, node))
+*/
 
 #endif/*__ITERATOR_FILE_LIB_H__*/

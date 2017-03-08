@@ -27,7 +27,7 @@
 #include <sys/log.h>
 #include <mem/alloc.h>
 #include <mem/pool.h>
-#include <unix/list.h>
+#include <list.h>
 #include <link.h>
 #include <dlfcn.h>
 #include <stdlib.h>

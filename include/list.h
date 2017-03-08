@@ -41,39 +41,24 @@ struct list  { struct node   head; };
 struct slist { struct snode *head; };
 struct hlist { struct hnode *head; };
 
-#ifdef CONFIG_DEBUG_LIST
-void 
-__list_init(struct list *list); 
-#else 
 static inline void
-__list_init(struct list *list)
+list_init(struct list *list)
 {
 	struct node *head = &list->head;
 	head->next = head->prev = head;
 }
-#endif
-static inline void
-list_init(struct list *list)
-{
-	__list_init(list);
-}
 
-#ifdef CONFIG_DEBUG_LIST
-void *
-__list_head(struct list *list); 
-#else
-static inline void *
-__list_head(struct list *list)
-{
-	return (list->head.next != &list->head) ? list->head.next : NULL;
-}
-#endif
 static inline void *
 list_head(struct list *list)
 {
-	return __list_head(list);
+	return (list->head.next != &list->head) ? list->head.next : NULL;
 }
 
+static inline void *
+list_first(struct list *list)
+{
+	return (list->head.next != &list->head) ? list->head.next : NULL;
+}
 
 static inline void *
 list_tail(struct list *list)
@@ -131,36 +116,19 @@ list_add_tail(struct list *list, struct node *node)
 	list_add_before(node, &list->head);
 }
 
-#ifdef CONFIG_DEBUG_LIST
-void 
-__list_del(struct node *node);
-#else
 static inline void 
-__list_del(struct node *node)
+list_del(struct node *node)
 {
 	struct node *before = node->prev;
 	struct node *after  = node->next;
 	before->next = after;
 	after->prev = before;
 }
-#endif
-static inline void 
-list_del(struct node *node)
-{
-	__list_del(node);
-}
 
-#ifdef CONFIG_DEBUG_LIST
-struct node *__list_walk_first(struct node *node);
-struct node *__list_walk_next(struct node *node);
-struct node *__list_walk_first_delsafe(struct node *node);
-struct node *__list_walk_next_delsafe(struct node *node);
-#else
 #define __list_walk_first(N) (N)
 #define __list_walk_next(N) (N)
 #define __list_walk_first_delsafe(N) (N)
 #define __list_walk_next_delsafe(N) (N)
-#endif
 
 #define list_walk(start, n, list) \
 	for (struct node *(n) = (start); (n) != &list.head; (n) = (n)->next)
@@ -183,13 +151,13 @@ snode_init(struct snode *snode)
 }
 
 static inline void
-slist_add_after(struct snode *node, struct snode *after)
+slist_add(struct snode *node, struct snode *after)
 {
 	after->next = node;
 }
 
 static inline void
-slist_remove(struct snode *node, struct snode *prev)
+slist_del(struct snode *node, struct snode *prev)
 {
 	if (!prev)
 		return;
@@ -270,9 +238,6 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 }
 
 #ifdef CONFIG_DEBUG_LIST
-#ifndef hlist_next_hook
-#define hlist_next_hook
-#endif
 # define hlist_first(node)     ({ (list)->head; )}
 # define hlist_next(node, pos) ({node = node->next; hlist_next_hook(pos) 1;})
 #else

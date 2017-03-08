@@ -98,26 +98,6 @@ extern struct mm_pool  *MM_POOL;
 /*
  * Type-generic macro
  *
- * mm_create - create mapped, heap or stack based memory pool.
- *
- * @size
- * @type
- * @flags
- */
-
-#define mm_create(mm, size, flags) \
-	({ void *_X = mm_create_dispatch(mm, size, flags); _X; })
-
-/*
- * mm_destroy - Destroy mm object and release all resource associated
- * @mm 
- *    types: struct mm_pool *
- */
-
-#define mm_destroy(mm) \
-	do { mm_destroy_dispatch(mm); } while(0)
-
-/*
  * mm_alloc - allocate memory buffer from stack, pool or heapp
  * @mm Optional opaque object representing the memory context
  * @size size of buffer

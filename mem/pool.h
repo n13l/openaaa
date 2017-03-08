@@ -15,6 +15,7 @@
 #include <list.h>
 #include <inttypes.h>
 #include <assert.h>
+#include <string.h>
 
 /* 
  * Allows deterministic behavior on real-time systems avoiding the out of 
@@ -56,7 +57,7 @@ __pool_alloc_threashold(struct mm_pool *pool, size_t size)
 	} else 
 		block = vm_vblock_alloc(pool->blocksize);
 
-	slist_add_after(pool->save.final[0], &block->node);
+	slist_add(pool->save.final[0], &block->node);
 
 	pool->save.final[0] = block;
 	pool->save.avail[0] = pool->blocksize - size;
@@ -71,7 +72,7 @@ __pool_alloc_aligned_block(struct mm_pool *pool, size_t size, size_t align)
 	size_t aligned = align_to(size, align);
 
 	block = vm_vblock_alloc(aligned);
-	slist_add_after((struct snode *)pool->save.final[1], &block->node);
+	slist_add((struct snode *)pool->save.final[1], &block->node);
 
 	pool->index = 1;
 	pool->save.final[1] = block;
@@ -128,7 +129,7 @@ static inline void
 mm_pool_destroy(struct mm_pool *pool)
 {
 	struct mm_vblock *it, *block;
-	mem_dbg("mm pool %p destroyed", pool);
+	debug4("pool %p destroyed", pool);
 
 	block = pool->save.final[1];
 	slist_for_each_delsafe(block, node, it)
@@ -157,7 +158,7 @@ mm_pool_flush(struct mm_pool *pool)
 	slist_for_each_delsafe(block, node, it) {
 		if ((void *)((u8*)block - block->size) == pool)
 			break;
-		slist_add_after(pool->avail, &block->node);
+		slist_add(pool->avail, &block->node);
 		pool->avail = block;
 	}
 
@@ -195,7 +196,7 @@ mm_pool_create(struct mm_pool *object, size_t blocksize, int flags)
 	block = vm_vblock_alloc(size);
 	struct mm_pool *pool = (void *)((u8 *)block - size);
 
-	mem_dbg("mm pool %p created with %" PRIuMAX " bytes", 
+	debug4("pool %p created with %" PRIuMAX " bytes", 
 	        pool, (uintmax_t)blocksize);
 
 	pool->save.avail[0] = size - sizeof(*pool);
@@ -205,16 +206,136 @@ mm_pool_create(struct mm_pool *object, size_t blocksize, int flags)
 	pool->total_bytes  = block->size + aligned;
 	pool->blocksize = size; 
 	pool->threshold = size >> 1;
+	pool->parent = object;
 
 	mm_savep_dump(&pool->save);
 
 	return pool;
 }
 
-static inline struct mm_pool *
-mm_pool_create_const(const struct mm_pool *pool, size_t size, int flags)
+static inline void *
+mm_pool_addr(struct mm_pool *mp)
 {
-	return mm_pool_create((struct mm_pool *)pool, size, flags);
+	return (u8 *)mp->save.final[mp->index] - mp->save.avail[mp->index];
+}
+                                                                                
+static inline size_t
+mm_pool_avail(struct mm_pool *mp)
+{
+	return mp->save.avail[mp->index];
+}
+
+static inline void *
+mm_pool_start(struct mm_pool *pool, size_t size)
+{
+	size_t avail = aligned_part(pool->save.avail[0], CPU_SIMD_ALIGN);
+	if (size <= avail) {
+		pool->index = 0;
+		pool->save.avail[0] = avail;
+		return (byte *)pool->save.final[0] - avail;
+	} else {
+		void *ptr = mm_pool_alloc(pool, size);
+		pool->save.avail[pool->index] += size;
+		return ptr;
+	}
+} 
+
+static inline void *
+mm_pool_end(struct mm_pool *mp, void *end)
+{
+	void *p = mm_pool_addr(mp);
+	mp->save.avail[mp->index] = (u8*)mp->save.avail[mp->index] - (u8*)end;
+	return p;
+}
+
+static inline void *
+mm_pool_grow(struct mm_pool *mp, size_t size)
+{
+	if (size <= mm_pool_avail(mp))
+		return mm_pool_addr(mp);
+
+	size_t avail = mm_pool_avail(mp);
+	void *ptr = mm_pool_addr(mp);
+
+	if (mp->index) {
+		size_t amortized = avail * 2;
+		amortized = max(amortized, size);
+		amortized = align_to(amortized, CPU_SIMD_ALIGN);
+
+		struct mm_vblock *chunk = (struct mm_vblock *)mp->save.final[1];
+	        struct mm_vblock *next  = (struct mm_vblock *)chunk->node.next;
+
+		mp->total_bytes = mp->total_bytes - chunk->size + amortized;
+
+		size_t aligned = align_simd(sizeof(*chunk)) + amortized;
+
+		debug("realloc ptr=%p aligned=%d", ptr, (int)aligned);
+
+		ptr = realloc(ptr, aligned);
+		chunk = ptr + amortized;
+
+		chunk->node.next = (struct snode *)next;
+		chunk->size = amortized;
+
+		mp->save.final[1] = chunk;
+		mp->save.avail[1] = amortized;
+		mp->final = ptr;
+		return ptr;
+	} 
+
+	void *p = mm_pool_alloc(mp, size);
+	mp->save.avail[mp->index] += size;
+	memcpy(p, ptr, avail);
+	return p;
+}
+
+static inline void *
+mm_pool_expand(struct mm_pool *mp)
+{
+	return mm_pool_grow(mp, mm_pool_avail(mp) + 1);
+}
+
+static char *
+mm_pool_vprintf_at(struct mm_pool *mp, size_t ofs, const char *fmt, va_list args)
+{
+	char *ret = mm_pool_grow(mp, ofs + 1) + ofs;
+	va_list args2;
+	va_copy(args2, args);
+	int cnt = vsnprintf(ret, mm_pool_avail(mp) - ofs, fmt, args2);
+	va_end(args2);
+	if (cnt < 0) {
+		do {
+			ret = mm_pool_expand(mp) + ofs;
+			va_copy(args2, args);
+			cnt = vsnprintf(ret, mm_pool_avail(mp) - ofs, fmt, args2);
+			va_end(args2);
+		} while (cnt < 0);
+	} else if ((uint)cnt >= mm_pool_avail(mp) - ofs) {
+		ret = mm_pool_grow(mp, ofs + cnt + 1) + ofs;
+		va_copy(args2, args);
+		vsnprintf(ret, cnt + 1, fmt, args2);
+		va_end(args2);
+	}
+
+	mm_pool_end(mp, ret + cnt + 1);
+	return ret - ofs;
+}
+
+_unused static char *
+mm_pool_vprintf(struct mm_pool *mp, const char *fmt, va_list args)
+{
+	mm_pool_start(mp, 1);
+	return mm_pool_vprintf_at(mp, 0, fmt, args);
+}
+
+_unused static char *
+mm_pool_printf(struct mm_pool *p, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	char *addr = mm_pool_vprintf(p, fmt, args);
+	va_end(args);
+	return addr;
 }
 
 #endif
