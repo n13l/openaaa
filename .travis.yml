@@ -10,7 +10,7 @@ os:
   - linux
   - osx
 osx:
-  - osx_image: beta-xcode6.2
+  - osx_image: beta-xcode6.4
 addons:
   apt:
     packages:
