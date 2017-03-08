@@ -36,10 +36,8 @@ env:
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=24 PACK=rpm
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=25 PACK=rpm
-    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=rawhide PACK=rpm
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=trusty PACK=deb
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=precise PACK=deb
-    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=wily PACK=deb
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=xenial PACK=deb
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=jessie PACK=deb
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=wheezy PACK=deb
@@ -51,10 +49,8 @@ matrix:
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=24 PACK=rpm
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=25 PACK=rpm
-    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=rawhide PACK=rpm
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=precise PACK=deb
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=trusty PACK=deb
-    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=wily PACK=deb
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=xenial PACK=deb
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=jessie PACK=deb
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=wheezy PACK=deb
@@ -69,13 +65,9 @@ matrix:
       compiler: clang
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=25 PACK=rpm
       compiler: clang
-    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=rawhide PACK=rpm
-      compiler: clang
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=precise PACK=deb
       compiler: clang
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=trusty PACK=deb
-      compiler: clang
-    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=wily PACK=deb
       compiler: clang
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=xenial PACK=deb
       compiler: clang
@@ -95,13 +87,9 @@ matrix:
       os: osx
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=25 PACK=rpm
       os: osx
-    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=rawhide PACK=rpm
-      os: osx
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=precise PACK=deb
       os: osx
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=trusty PACK=deb
-      os: osx
-    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=wily PACK=deb
       os: osx
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=xenial PACK=deb
       os: osx
@@ -133,13 +121,9 @@ matrix:
       osx_image: xcode7.1
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=25 PACK=rpm
       osx_image: xcode7.1
-    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=rawhide PACK=rpm
-      osx_image: xcode7.1
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=precise PACK=deb
       osx_image: xcode7.1
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=trusty PACK=deb
-      osx_image: xcode7.1
-    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=wily PACK=deb
       osx_image: xcode7.1
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=xenial PACK=deb
       osx_image: xcode7.1
