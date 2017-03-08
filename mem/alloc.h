@@ -38,7 +38,7 @@
 #include <mem/generic.h>
 
 #include <unix/timespec.h>
-#include <unix/list.h>
+#include <list.h>
 
 #include <assert.h>
 
@@ -127,9 +127,9 @@ extern struct mm_pool  *MM_POOL;
 	({ void *_X = mm_alloc_dispatch(__VA_ARGS__); _X; })
 
 #define mm_calloc(mm, size, elems)
-#define mm_zalloc(mm, size)
 
-#define mm_signal(mm, event)
+#define mm_zalloc(...) /* mm, size */ \
+	({ void *_X = mm_zalloc_dispatch(__VA_ARGS__); _X; })
 
 #define mm_flush(mm) \
 	do { mm_flush_dispatch(mm); } while(0)
@@ -139,8 +139,8 @@ extern struct mm_pool  *MM_POOL;
 #define mm_rollback(mm)
 #define mm_memdup(mm, addr, size)
 
-#define mm_strdup(mm, str) \
-	({ char *_X = mm_strdup_dispatch(mm, str); _X; })
+#define mm_strdup(...) /* mm, str */ \
+	({ char *_X = mm_strdup_dispatch(__VA_ARGS__); _X; })
 
 #define mm_strndup(mm, str, size)
 #define mm_strmem(mm, str, size)
@@ -148,7 +148,6 @@ extern struct mm_pool  *MM_POOL;
 /*
  * mm_describe - Return size in bytes of the last allocated memory object 
  */
-
 #define mm_describe(mm, addr)
 
 /*

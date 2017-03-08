@@ -54,7 +54,7 @@
 static unsigned long
 initialize(void *args)
 {
-	debug("openaaa bridge");
+	debug("openaaa tls-sca bridge");
 
 	crypto_lookup();
 	return CKR_OK;
@@ -63,7 +63,6 @@ initialize(void *args)
 static unsigned long
 finalize(void *args)
 {
-	debug("openaaa bridge");
 	return CKR_OK;
 }
 

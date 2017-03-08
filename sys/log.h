@@ -93,6 +93,27 @@ do { \
   printf("%s:%s(): " fmt "\n", KBUILD_MODNAME, __func__,  ## __VA_ARGS__); \
 } while(0)
 
+#define debug1(fmt, ...) \
+do { \
+  printf("%s:%s(): " fmt "\n", KBUILD_MODNAME, __func__,  ## __VA_ARGS__); \
+} while(0)
+
+#define debug2(fmt, ...) \
+do { \
+  printf("%s:%s(): " fmt "\n", KBUILD_MODNAME, __func__,  ## __VA_ARGS__); \
+} while(0)
+
+#define debug3(fmt, ...) \
+do { \
+  printf("%s:%s(): " fmt "\n", KBUILD_MODNAME, __func__,  ## __VA_ARGS__); \
+} while(0)
+
+#define debug4(fmt, ...) \
+do { \
+  printf("%s:%s(): " fmt "\n", KBUILD_MODNAME, __func__,  ## __VA_ARGS__); \
+} while(0)
+
+
 #define info(fmt, ...) \
 do { \
   printf(fmt "\n", ## __VA_ARGS__); \
@@ -102,6 +123,10 @@ do { \
 #define warning(fmt, ...)
 #else
 #define debug(fmt, ...) do { } while(0)
+#define debug1(fmt, ...) do { } while(0)
+#define debug2(fmt, ...) do { } while(0)
+#define debug3(fmt, ...) do { } while(0)
+#define debug4(fmt, ...) do { } while(0)
 #define info(fmt, ...) do { } while(0)
 #define error(fmt, ...) do { } while(0)
 #define warning(fmt, ...) do { } while(0)

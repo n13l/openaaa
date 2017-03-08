@@ -25,6 +25,7 @@
 #include <sys/cpu.h>
 #include <net/tls/ext.h>
 
+/* TODO" add hash function for inxeding because we dont want to eat 64Kb mem */
 static const char *__tls_ext_names[] = {
 	[TLS_EXT_RENEGOTIATE]            = "renegotiate",
 	[TLS_EXT_HEARTBEAT]              = "heartbeat",      

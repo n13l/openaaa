@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unix/timespec.h>
-#include <unix/list.h>
+#include <list.h>
 
 #define list_debug(fmt, ...) \
 	debug("%s() " fmt, __func__, __VA_ARGS__)

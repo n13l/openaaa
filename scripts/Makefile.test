@@ -26,7 +26,7 @@ test-cobjs   := $(addprefix $(__obj_fixed)/,$(test-cobjs))
 
 # Options to testcc.
 testc_flags = -Wp,-MD,$(depfile) $(KBUILD_CFLAGS) $(KBUILD_CPPFLAGS) \
-	      $(USERINCLUDE) $(TEST_CFLAGS) -I. -I../ \
+	      $(USERINCLUDE) $(TEST_CFLAGS) -I. -I../ -I../include \
 	      -include $(srctree)/sys/$(PLATFORM)/platform.h
 
 testld_flags = 

@@ -59,7 +59,7 @@ do { \
 
 #define mm_alloc_dispatch1(size) \
 ({ \
-	void *_X; _X = sp_alloc(size); _X; \
+	void *_X; _X = malloc(size); _X; \
 })
 
 #define mm_alloc_dispatch2(mm, size) \
@@ -72,10 +72,44 @@ do { \
 	_X; \
 })
 
-#define mm_strdup_dispatch(mm, str) \
+#define mm_zalloc_dispatch(...) \
+	macro_dispatcher(mm_zalloc_dispatch, __VA_ARGS__)(__VA_ARGS__)
+
+#define mm_zalloc_dispatch1(size) \
 ({ \
-	char *_S = "abc";\
-	_S; \
+	void *_X; _X = malloc(size); memset(_X, 0, size); _X; \
+})
+
+#define mm_zalloc_dispatch2(mm, size) \
+({ \
+	void *_X; \
+	if_pointer_of(mm, struct mm_pool) \
+		_X = mm_pool_alloc((struct mm_pool *)mm, size); \
+	if_pointer_of(mm, struct mm_stack) \
+		_X = sp_alloc(size); \
+	memset(_X, 0, size); \
+	_X; \
+})
+
+#define mm_strdup_dispatch(...) \
+	macro_dispatcher(mm_strdup_dispatch, __VA_ARGS__)(__VA_ARGS__)
+
+#define mm_strdup_dispatch1(str) \
+({ \
+	void *_X = strdup(str); \
+	_X; \
+})
+
+#define mm_strdup_dispatch2(mm, str) \
+({ \
+	void *_X; \
+	size_t _SIZE = strlen(str); \
+	if_pointer_of(mm, struct mm_pool) \
+		_X = mm_pool_alloc((struct mm_pool *)mm, _SIZE + 1); \
+	if_pointer_of(mm, struct mm_stack) \
+		_X = sp_alloc(_SIZE + 1); \
+	memcpy(_X, str, _SIZE + 1); \
+	_X; \
 })
 
 #define mm_printf_dispatch(mm, ...) \

@@ -2,8 +2,8 @@
 #include <sys/cpu.h>
 #include <sys/abi.h>
 #include <mem/alloc.h>
-#include <unix/list.h>
-#include <unix/version.h>
+#include <list.h>
+#include <version.h>
 
 #define DEFINE_SYMBOL(ns, rv, fn, args...) \
 	rv ((* ns##_##fn)(args))

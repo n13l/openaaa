@@ -33,7 +33,7 @@
 #include <errno.h>
 
 #define VERSION_NULL {.major = 0, .minor = 0, .patch = 0, .devel = 0}
-#define VERSION_CODE(a, b, c) (s32)( ((a) << 16) + ((b) << 8) + (c) )
+#define VERSION_CODE(a, b, c) (long)( ((a) << 16) + ((b) << 8) + (c) )
 
 #define VERSION_DECL(code) { \
 	.major = (code >> 28) & 0xFF; .minor = (code >> 20) & 0xFF;\

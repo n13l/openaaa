@@ -1,5 +1,5 @@
 /*
- * The MIT License (MIT)                                ABI SSL Runtime Support 
+ * The MIT License (MIT)
  *                               Copyright (c) 2015 Daniel Kubec <niel@rtfm.cz> 
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy 
@@ -31,58 +31,13 @@
  * sequences, is called a secure one.
  */
 
-#ifndef __ABI_SSL_PLATFORM_H__
-#define __ABI_SSL_PLATFORM_H__
+#ifndef __CRYPTO_HEX_H__
+#define __CRYPTO_HEX_H__
 
-#include <sys/compiler.h>
-#include <sys/abi.h>
+char *
+memhex(char *src, size_t bytes, char *dst);
 
-#define AAA_ATTR_AUTHORITY 1
-#define AAA_ATTR_PROTOCOL  2
-#define AAA_ATTR_VERSION   3
+char *
+hexmem(char *src, size_t bytes, char *dst);
 
-struct symbol {
-	const char *name; 
-	struct node node;
-	void *abi; 
-	void *plt; 
-};
-
-#define DEFINE_ABI(fn) \
-	struct plt_##fn { \
-		const char *name; struct node node; \
-		typeof(fn) *abi_##fn; typeof(fn) *plt_##fn; \
-	} plt_##fn = { \
-		.name     = stringify(fn), .node = DECLARE_INIT_NODE, \
-		.abi_##fn = NULL, .plt_##fn = NULL \
-	}
-
-#define DEFINE_ABI_CALL(fn) abi_##fn
-#define DEFINE_SSL_CALL(fn) abi_SSL_##fn
-#define DEFINE_CTX_CALL(fn) abi_SSL_CTX_##fn
-
-#define CALL_ABI(fn) plt_##fn.plt_##fn
-#define CALL_SSL(fn) plt_SSL_##fn.plt_SSL_##fn
-#define CALL_CTX(fn) plt_SSL_CTX_##fn.plt_SSL_CTX_##fn
-
-#define IMPORT_ABI(fn) \
-        plt_##fn.plt_##fn = dlsym(RTLD_DEFAULT, stringify(fn)); \
-	list_add_tail(&openssl_symtab, &plt_##fn.node);
-
-#define EXISTS_ABI(fn) \
-({ int _X = plt_##fn.plt_##fn != NULL ? 1 : 0; _X; })
-
-#define UPDATE_ABI(fn) \
-	plt_##fn.abi_##fn = (typeof(plt_##fn.abi_##fn))abi_##fn; \
-	plthook_replace(plt, stringify(fn), abi_##fn, (void**)&plt_##fn.plt_##fn)
-
-struct abi_crypto_openssl {
-	struct abi_version version;
-};
-
-extern struct abi_crypto_openssl abi_crypto_openssl;
-
-void
-crypto_lookup(void);
-
-#endif/*__ABI_SSL_PLATFORM_H__*/
+#endif/*__CRYPTO_HEX_H__*/

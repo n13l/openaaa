@@ -12,7 +12,7 @@
 #include <mem/generic.h>
 
 #include <unix/timespec.h>
-#include <unix/list.h>
+#include <list.h>
 #include <inttypes.h>
 #include <assert.h>
 
@@ -121,7 +121,6 @@ mm_pool_alloc(struct mm_pool *pool, size_t size)
 
 	if (size <= pool->threshold)
 		return __pool_alloc_threashold(pool, size);
-
 	return __pool_alloc_aligned_block(pool, size, CPU_SIMD_ALIGN);
 }
 

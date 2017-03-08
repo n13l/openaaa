@@ -170,8 +170,7 @@ struct node *__list_walk_next_delsafe(struct node *node);
 	     (n) != &list.head; (n) = it)
 
 #define list_for_each(n, list) \
-	for (struct node *(n) = (list).head.next;\
-	     (n) != &(list).head; (n) = (n)->next)
+	for (struct node *(n) = (list).head.next; (n) != &(list).head; (n) = (n)->next)
 
 #define list_for_each_delsafe(n, list) \
 	for (struct node *it, *(n) = (list).head.next; \
