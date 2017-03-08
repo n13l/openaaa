@@ -27,11 +27,6 @@
 
 #include <list.h>
 
-#define it_begin(obj) do { } while()
-#define it_end(obj) do { } while()
-#define it_iter(obj) do { } while()
-
-
 #define it_begin(container, type, member) NULL
 #define it_next(container, type, member) NULL
 
