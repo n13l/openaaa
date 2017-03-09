@@ -144,6 +144,7 @@ before_install:
 - gem install package_cloud
 script:
 - export
+- shell_session_update() { :; } # workarround mac os build bug
 # mkdir ./rpm
 # cp ./scripts/package/openaaa.spec ./rpm/ 
 - git submodule update --init --recursive
