@@ -115,8 +115,11 @@ extern struct mm_pool  *MM_POOL;
 	do { mm_flush_dispatch(mm); } while(0)
 
 #define mm_free(mm, addr)
-#define mm_save(mm)
-#define mm_rollback(mm)
+
+/* save memory state point */
+#define mm_savep(mm) 
+/* load memory state point */
+#define mm_loadp(mm)
 #define mm_memdup(mm, addr, size)
 
 #define mm_strdup(...) /* mm, str */ \
