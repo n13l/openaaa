@@ -171,7 +171,8 @@ deploy:
   package_glob: build/*.{deb,rpm}
   skip_cleanup: true
   on:
-    branch: master
+    tags: true
+#    branch: master
     condition: -n "${OS}" && -n "${DIST}" && -n "${PACKAGECLOUD_TOKEN}"
 notifications:
   on_success: never
