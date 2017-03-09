@@ -219,7 +219,8 @@ obj		:= $(objtree)
 VPATH		:= $(srctree)$(if $(KBUILD_EXTMOD),:$(KBUILD_EXTMOD))
 
 export srctree objtree VPATH
-export PACKAGE_NAME=$(shell $(srctree)/scripts/package/name.sh)
+
+export PACKAGE_NAME ?= $(shell $(srctree)/scripts/package/name.sh)
 
 include scripts/Makefile.target
 

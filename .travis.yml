@@ -142,7 +142,8 @@ before_install:
 - source ./scripts/travis/before_install.sh
 - gem install package_cloud
 script:
-- echo $PWD
+- export PACKAGE_NAME=openaaa
+- export
 # mkdir ./rpm
 # cp ./scripts/package/openaaa.spec ./rpm/ 
 - git submodule update --init --recursive
