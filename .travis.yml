@@ -37,13 +37,13 @@ env:
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=24 PACK=rpm
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=25 PACK=rpm
-    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=trusty PACK=deb
-    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=precise PACK=deb
-    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=xenial PACK=deb
-    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=jessie PACK=deb
-    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=wheezy PACK=deb
-    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=stretch PACK=deb
-    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=sid PACK=deb
+      #    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=trusty PACK=deb
+      #    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=precise PACK=deb
+      #    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=ubuntu DIST=xenial PACK=deb
+      #    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=jessie PACK=deb
+      #    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=wheezy PACK=deb
+      #    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=stretch PACK=deb
+      #    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=sid PACK=deb
 matrix:
   allow_failures:
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
