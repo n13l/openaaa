@@ -36,6 +36,7 @@ struct mm_pool {
 	unsigned int flags;
 	size_t aligned;
 	size_t total_bytes, useful_bytes;
+	size_t exhausted_bytes, amortized_bytes;
 #ifdef CONFIG_DEBUG_MEMPOOL
 	size_t frag_bytes;
 	size_t frag_count;
@@ -101,7 +102,7 @@ __pool_alloc_aligned(struct mm_pool *pool, size_t size, size_t align)
 	if (size <= pool->threshold)
 		return __pool_alloc_threashold(pool, size);
 	/* This is minimum align size supported right now */
-	return __pool_alloc_aligned_block(pool, size, CPU_SIMD_ALIGN);
+	return __pool_alloc_aligned_block(pool, size, CPU_ADDR_ALIGN);
 }
 #endif
 
@@ -122,7 +123,7 @@ mm_pool_alloc(struct mm_pool *pool, size_t size)
 
 	if (size <= pool->threshold)
 		return __pool_alloc_threashold(pool, size);
-	return __pool_alloc_aligned_block(pool, size, CPU_SIMD_ALIGN);
+	return __pool_alloc_aligned_block(pool, size, CPU_ADDR_ALIGN);
 }
 
 static inline void
@@ -178,7 +179,7 @@ mm_pool_create(struct mm_pool *object, size_t blocksize, int flags)
 
 	/*
 	 * Support CPU_PAGE_ALIGN for variable memory blocks.
-	 * Support CPU_SIMD_ALIGN for allocated memory buffers.
+	 * Support CPU_ADDR_ALIGN for allocated memory buffers.
 	 *
 	 * TODO:
 	 *
@@ -228,7 +229,7 @@ mm_pool_avail(struct mm_pool *mp)
 static inline void *
 mm_pool_start(struct mm_pool *pool, size_t size)
 {
-	size_t avail = aligned_part(pool->save.avail[0], CPU_SIMD_ALIGN);
+	size_t avail = aligned_part(pool->save.avail[0], CPU_ADDR_ALIGN);
 	if (size <= avail) {
 		pool->index = 0;
 		pool->save.avail[0] = avail;
@@ -260,7 +261,7 @@ mm_pool_grow(struct mm_pool *mp, size_t size)
 	if (mp->index) {
 		size_t amortized = avail * 2;
 		amortized = max(amortized, size);
-		amortized = align_to(amortized, CPU_SIMD_ALIGN);
+		amortized = align_to(amortized, CPU_ADDR_ALIGN);
 
 		struct mm_vblock *chunk = (struct mm_vblock *)mp->save.final[1];
 	        struct mm_vblock *next  = (struct mm_vblock *)chunk->node.next;

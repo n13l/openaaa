@@ -52,6 +52,8 @@
 #define CPU_SIMD_ALIGN 16
 #endif
 
+#define CPU_ADDR_ALIGN CPU_ARCH_BITS
+
 #ifdef CONFIG_LITTLE_ENDIAN
 #define CPU_LITTLE_ENDIAN y
 #endif
