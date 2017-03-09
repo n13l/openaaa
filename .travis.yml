@@ -27,6 +27,7 @@ env:
   global:
     - BUILD_BRANCH=$TRAVIS_BRANCH
     - BUILD_ID=$TRAVIS_BUILD_NUMBER
+    - PACKAGE_NAME=openaaa
   matrix:
     - BUILD_DEPLOY=1 BUILD_TARGET=linux PACK=none
     - BUILD_DEPLOY=1 BUILD_TARGET=osx PACK=none
@@ -142,7 +143,6 @@ before_install:
 - source ./scripts/travis/before_install.sh
 - gem install package_cloud
 script:
-- export PACKAGE_NAME=openaaa
 - export
 # mkdir ./rpm
 # cp ./scripts/package/openaaa.spec ./rpm/ 
