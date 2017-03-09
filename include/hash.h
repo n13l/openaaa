@@ -128,7 +128,7 @@ hash_string(const char *str)
 
 #define hash_init(table) \
 	for (unsigned __i = 0; __i < array_size(table); __i++) \
-		init_hlist(&table[__i]);
+		INIT_HLIST_PTR(&table[__i]);
 
 #define hash_add(table, node, key) \
 	hlist_add_head(node, &table[hash_data(key, hash_bits(table))])

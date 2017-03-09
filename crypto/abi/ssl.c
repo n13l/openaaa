@@ -521,7 +521,7 @@ static void
 ssl_info_state(const SSL *s, const char *str)
 {
 	const char *state = CALL_SSL(state_string_long)(s);
-	char *d = sp_printf("%s:%s", str, state);
+	char *d = printfa("%s:%s", str, state);
 	debug("msg:%s", d);
 }
 
@@ -531,7 +531,7 @@ ssl_info_alert(int where, int rv)
 	const char *type = CALL_SSL(alert_type_string_long)(rv);
 	const char *desc = CALL_SSL(alert_desc_string_long)(rv);
 
-	char *v = sp_printf("alert %s:%s:%s", (where & SSL_CB_READ) ?
+	char *v = printfa("alert %s:%s:%s", (where & SSL_CB_READ) ?
 	                    "read" : "write", type, desc);
 	debug("msg:%s", v);
 }
@@ -539,7 +539,7 @@ ssl_info_alert(int where, int rv)
 static void
 ssl_info_failed(const SSL *s, const char *str, int rv)
 {
-	char *err = sp_printf("%s:failed in %s", str, CALL_SSL(state_string_long)(s));
+	char *err = printfa("%s:failed in %s", str, CALL_SSL(state_string_long)(s));
 	const char *desc = ssl_get_value_desc(s, rv);
 	debug("msg:%s %s", err, desc);
 }
@@ -547,7 +547,7 @@ ssl_info_failed(const SSL *s, const char *str, int rv)
 static void
 ssl_info_default(const SSL *s, const char *str, int rv)
 {
-	char *e = sp_printf("%s:error in %s", str, CALL_SSL(state_string_long)(s));
+	char *e = printfa("%s:error in %s", str, CALL_SSL(state_string_long)(s));
 	const char *desc = ssl_get_value_desc(s, rv);
 	debug("msg:%s %s", e, desc);
 }

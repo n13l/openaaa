@@ -72,7 +72,7 @@ spadr(char *buf, size_t size, int pad, char *str)
 	int len = size - strlen(str);
 	if(len < 0) len = 0;
 
-	char *padding = sp_alloc(size);
+	char *padding = alloca(size);
 	memset(padding, pad, size);
 	return snprintf(buf, size, "%*.*s%s", len, len, padding, str);
 }
@@ -83,7 +83,7 @@ strpadl(char *buf, size_t size, int pad, char *str)
 	int len = size - strlen(str);
 	if(len < 0) len = 0;
 
-	char *padding = sp_alloc(size);
+	char *padding = alloca(size);
 	memset(padding, pad, size);
 	return snprintf(buf, size, "%s%*.*s", str, len, len, padding);
 }

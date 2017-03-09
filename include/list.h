@@ -68,6 +68,13 @@ list_tail(struct list *list)
 }
 
 static inline void *
+list_last(struct list *list)
+{
+	return (list->head.prev != &list->head) ? list->head.prev : NULL;
+}
+
+
+static inline void *
 list_next(struct list *list, struct node *node)
 {
 	return (node->next != &list->head) ? (void *)node->next: NULL;
@@ -123,7 +130,6 @@ list_add(struct list *list, struct node *node)
 	list_add_before(node, &list->head);
 }
 
-
 static inline void 
 list_del(struct node *node)
 {
@@ -172,16 +178,19 @@ slist_del(struct snode *node, struct snode *prev)
 	prev->next = node->next;
 }
 
+#define slist_for_each(item, member, it) \
+	for (; item ; item = it)
+
 #define slist_for_each_delsafe(item, member, it) \
 	for (; item && ({it = (__typeof__(item))item->member.next; 1;} ); \
 	       item = it)
 
-#define list_head_init(name) { &(name), &(name) }
-
-#define hlist_init { .head = NULL }
-#define hlist(name) struct hlist name = {  .head = NULL }
-#define init_hlist(ptr) ((ptr)->head = NULL)
-#define init_hnode (struct hnode) {.next = NULL, .prev = NULL}
+#define DEFINE_HLIST(name)    struct hlist name;
+#define DECLARE_HLIST(name)   struct hlist name = {  .head = NULL }
+#define INIT_HLIST            { .head = NULL }
+#define INIT_HLIST_PTR(ptr)   ((ptr)->head = NULL)
+#define INIT_HLIST_HEAD(name) { &(name), &(name) }
+#define INIT_HNODE            (struct hnode) {.next = NULL, .prev = NULL}
 
 static inline void
 hnode_init(struct hnode *hnode)
@@ -228,6 +237,17 @@ hlist_add_before(struct hnode *hnode, struct hnode *next)
 
 static inline void
 hlist_add_after(struct hnode *hnode, struct hnode *next)
+{
+	next->next = hnode->next;
+	hnode->next = next;
+	next->prev = &hnode->next;
+
+	if(next->next)
+		next->next->prev  = &next->next;
+}
+
+static inline void
+hlist_add(struct hnode *hnode, struct hnode *next)
 {
 	next->next = hnode->next;
 	hnode->next = next;

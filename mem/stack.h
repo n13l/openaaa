@@ -55,68 +55,51 @@ struct mm_stack {
 	unsigned int size;
 };
 
-/* Stack-based libc like functions */
-#define sp_alloc(size) \
-({\
-	void *_X = alloca(size); \
-	_X; \
-})
-
-/* Stack-based libc like functions */
-#define sp_alloc_safe(sp, size) \
-({\
-	void *_X = alloca(size); \
-	_X; \
-})
-
-/* call function prototype and alloca stack memory */
-#define sp_cfn(fn, ...) \
+/* call conforming function prototype and alloc stack memory */
+#define evala(fn, ...) \
 ({\
  	void *_X; \
-	mem_stack_dbg("sp_cfn"); \
  	_X; \
 })
 
-#define sp_zalloc(size) \
-({\
-	void *_X = alloca(size); memset(_X, 0, size); _X; \
-})
+#ifndef zalloca
+#define zalloca(size) ({ void *_X = alloca(size); memset(_X, 0, size); _X; })
+#endif
 
-#define sp_strdup(string) \
+#ifndef strdupa
+#define strdupa(string) \
 ({\
-	unsigned int ____size = strlen(string) + 1; \
+	unsigned ____size = strlen(string) + 1; \
 	char *_X = alloca(____size); memcpy(_X, string, ____size); _X; \
 })
+#endif
 
-#define sp_strndup(string, size) \
+#ifndef strndupa
+#define strndupa(string, size) \
 ({\
 	const char *_S = (string); size_t _L = strnlen(_S,(size)); \
 	char *_X = alloca(_L + 1); \
 	memcpy(_X, _S, _L); _X[_L] = 0; _X; \
 })
+#endif
 
-#define sp_strndupa(s, n) \
-({							\
-	const char *_O = (s);				\
-	size_t _L = strnlen(_O, (n));			\
-	char *_N = alloca(_L + 1);			\
-	_N[_L] = '\0';					\
-	memcpy(_N, _O, _L);				\
-})
-
-#define sp_printf(...) \
+#ifndef printfa
+#define printfa(...) \
 ({\
-	char *_S = (char *)alloca(sp_printfz((const char *)__VA_ARGS__)); \
+	char *_S = (char *)alloca(printfza((const char *)__VA_ARGS__)); \
         sprintf(_S, (const char *)__VA_ARGS__); _S; \
 })
+#endif
 
-#define sp_vprintf(fmt, args) \
+#ifndef vprintfa
+#define vprintfa(fmt, args) \
 ({\
-	char *_X = alloca(sp_vprintfz(fmt,args)); vsprintf(_X, fmt, args);_X;\
+	char *_X = alloca(vprintfza(fmt,args)); vsprintf(_X, fmt, args);_X;\
 })
+#endif
 
 /* Stack-based network layer functions */
-#define sp_inet_ntop(af, addr) \
+#define inet_ntopa(af, addr) \
 ({\
 	size_t _L = af == AF_INET ? INET_ADDRSTRLEN : INET6_ADDRSTRLEN;\
 	char *_S = alloca(_L + 1);\
@@ -126,7 +109,7 @@ struct mm_stack {
 })
 
 _unused _noinline static unsigned int
-sp_printfz(const char *fmt, ...)
+printfza(const char *fmt, ...)
 {
 	char *string = alloca(MM_STACK_BLOCK_SIZE);
 	unsigned int avail =  MM_STACK_BLOCK_SIZE;
@@ -150,7 +133,7 @@ stack_avail:
 }
 
 _unused _noinline static unsigned int 
-sp_printfz_safe(struct mm_stack *sp, const char *fmt, ...)
+printfza_safe(struct mm_stack *sp, const char *fmt, ...)
 {
 	char *string = alloca(MM_STACK_BLOCK_SIZE);
 	unsigned int avail =  MM_STACK_BLOCK_SIZE;
@@ -175,7 +158,7 @@ stack_avail:
 
 
 _unused _noinline static unsigned int 
-sp_vprintfz(const char *fmt, va_list args)
+vprintfza(const char *fmt, va_list args)
 {
 	char *string = alloca(MM_STACK_BLOCK_SIZE);
 	unsigned int avail  = MM_STACK_BLOCK_SIZE;
@@ -198,7 +181,7 @@ stack_avail:
 
 /* Save version which check for the maximum limit for the current frame */
 _unused _noinline static unsigned int 
-sp_vprintfz_safe(struct mm_stack *sp, const char *fmt, va_list args)
+vprintfza_safe(struct mm_stack *sp, const char *fmt, va_list args)
 {
 	char *string = alloca(MM_STACK_BLOCK_SIZE);
 	unsigned int avail  = MM_STACK_BLOCK_SIZE;

@@ -55,7 +55,7 @@ do { \
 	if_pointer_of(mm, struct mm_pool) \
 		_X = mm_pool_alloc((struct mm_pool *)mm, size); \
 	if_pointer_of(mm, struct mm_stack) \
-		_X = sp_alloc(size); \
+		_X = alloca(size); \
 	_X; \
 })
 
@@ -73,7 +73,7 @@ do { \
 	if_pointer_of(mm, struct mm_pool) \
 		_X = mm_pool_alloc((struct mm_pool *)mm, size); \
 	if_pointer_of(mm, struct mm_stack) \
-		_X = sp_alloc(size); \
+		_X = alloca(size); \
 	memset(_X, 0, size); \
 	_X; \
 })
@@ -94,7 +94,7 @@ do { \
 	if_pointer_of(mm, struct mm_pool) \
 		_X = mm_pool_alloc((struct mm_pool *)mm, _SIZE + 1); \
 	if_pointer_of(mm, struct mm_stack) \
-		_X = sp_alloc(_SIZE + 1); \
+		_X = alloca(_SIZE + 1); \
 	memcpy(_X, str, _SIZE + 1); \
 	_X; \
 })
@@ -107,13 +107,13 @@ do { \
 	                 pointer_of(mm, struct mm_heap )  )); \
 	char *_X; \
 	if (aryptr_of(mm, char ))\
-		_X = sp_printf(mm, __VA_ARGS__); \
+		_X = printfa(mm, __VA_ARGS__); \
 	else if (pointer_of(mm, struct mm_stack ))\
-		_X = sp_printf(__VA_ARGS__); \
+		_X = printfa(__VA_ARGS__); \
 	else if (pointer_of(mm, struct mm_pool ))\
 		_X = mm_pool_printf((struct mm_pool *)mm, __VA_ARGS__); \
 	else if (pointer_of(mm, struct mm_heap ))\
-		_X = sp_printf(__VA_ARGS__); \
+		_X = printfa(__VA_ARGS__); \
 	else abort(); \
 	_X; \
 })
