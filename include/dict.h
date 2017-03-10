@@ -108,7 +108,8 @@ dict_lookup(struct dict *dict, const char *key, int create)
 	struct attr *a = mm_pool_alloc(dict->mp, sizeof(*a));
 	debug("create key");
 	a->key   = mm_pool_strdup(dict->mp, key);
-	a->node  = INIT_NODE;
+	a->node.next = NULL;
+	a->node.prev = NULL;
 	a->flags = 0;
 
 	list_add(&dict->list, &a->node);
