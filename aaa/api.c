@@ -12,7 +12,7 @@
 struct aaa *
 aaa_new(enum aaa_endpoint type)
 {
-	struct mm_pool *mp = mm_pool_create(NULL, CPU_PAGE_SIZE, 0);
+	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
 	struct aaa *c = mm_alloc(mp, sizeof(*c));
 
 	c->mp = mp;

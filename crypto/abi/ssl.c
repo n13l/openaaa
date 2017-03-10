@@ -25,15 +25,20 @@
 #include <sys/abi.h>
 #include <sys/log.h>
 
-#include <mem/pool.h>
-#include <mem/stack.h>
+#include <bb.h>
 #include <list.h>
 #include <dict.h>
+
+#include <mem/pool.h>
+#include <mem/stack.h>
 
 #include <dlfcn.h>
 #include <sys/plt/plthook.h>
 #include <net/tls/ext.h>
+
 #include <crypto/hex.h>
+#include <crypto/b64.h>
+#include <crypto/sha1.h>
 #include <crypto/abi/lib.h>
 
 #ifdef CONFIG_WIN32
@@ -144,9 +149,16 @@ struct ssl_aaa {
 
 struct ssl_aaa aaa;
 
+struct aaa_keys {
+	struct bb tls_binding_key;
+	struct bb tls_binding_id;
+	struct bb aaa_binding_key;
+};
+
 struct session {
 	struct mm_pool *mp;
 	struct dict dict;
+	struct aaa_keys keys;
 	SSL_CTX *ctx;
 	SSL *ssl;
 	X509 *cert;
@@ -169,6 +181,84 @@ ssl_version(void)
 	byte dev   = (version >>  4) & 0XFF;
 
 	debug("openssl version=%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
+}
+
+static void
+ssl_session(SSL *ssl)
+{
+/*	
+	BIO *bio = BIO_new(BIO_s_mem());
+
+	SSL_SESSION *sess = SSL_get_session(ssl);
+	SSL_SESSION_print(bio, sess);
+
+	int len = BIO_pending(bio);
+	char *buf = alloca(len + 1);
+	BIO_read(bio, buf, len);
+	buf[len] = 0;
+
+	debug4("session id=%s", buf);
+	BIO_free(bio);
+*/	
+}
+
+static inline int
+export_keying_material(struct session *sp)
+{
+	SSL *s = sp->ssl;
+
+	char *lab = cf_tls_rfc5705.label;
+	size_t len = strlen(lab);
+	size_t sz = cf_tls_rfc5705.length;
+
+	char *key = sp->keys.tls_binding_key.addr = mm_zalloc(sp->mp, sz + 1);
+        if (!CALL_SSL(export_keying_material)(s, key, sz, lab, len, NULL,0,0))
+		return 1;
+	return 0;
+}
+
+static void
+print_keys(struct session *sp)
+{
+	struct aaa_keys *a = &sp->keys;
+/*
+	char *key = evala(memhex, a->tls_binding_key.addr, a->tls_binding_key.len);
+	debug("tls_binding_key=%s", key);
+*/	
+}
+
+static int
+ssl_derive_keys(struct session *sp)
+{
+	if (export_keying_material(sp))
+		return -EINVAL;
+
+	/*
+char *key = stk_mem_to_hex(tls->key, tls->key_size);
+
+byte enkey[(tls->key_size * 3) + 1];
+memset(enkey, 0, sizeof(enkey));
+b64_enc(enkey, (byte *)tls->key, tls->key_size);
+
+sha1_init(&sha1);
+sha1_update(&sha1, (byte *)key, strlen(key));
+hash = sha1_final(&sha1);
+
+char *id = stk_mem_to_hex((char *)hash, SHA1_SIZE / 2);
+byte enid[(tls->key_size * 3) + 1];
+memset(enid, 0, sizeof(enid));
+b64_enc(enid, (byte *)hash, SHA1_SIZE / 2);
+
+sha1_init(&sha1);
+sha1_update(&sha1, (byte *)hash, SHA1_SIZE / 2);
+hash = sha1_final(&sha1);
+byte entype[(tls->key_size * 3) + 1];
+memset(entype, 0, sizeof(entype));
+b64_enc(entype, (byte *)hash, SHA1_SIZE / 2);
+*/
+
+	print_keys(sp);
+	return 0;
 }
 
 static inline int
@@ -337,8 +427,8 @@ ssl_client_add(SSL *s, uint type, const byte **out, size_t *len, int *al, void *
 
 	char bb[8192];
 	unsigned int sz = 0;
-	dict_for_each(attr, sp->dict.list) {
-		sz += snprintf(bb, sizeof(bb) - sz - 1, "%s=%s\n",attr->key, attr->val);
+	dict_for_each(a, sp->dict.list) {
+		sz += snprintf(bb + sz, sizeof(bb) - sz, "%s=%s\n",a->key, a->val);
 	}
 
 	char *b = mm_alloc(mp, sz + 1);
@@ -433,7 +523,7 @@ cleanup:
 	sym_EVP_PKEY_free(key);
 }
 */
-
+/*
 static inline int
 export_keying_material(SSL *s)
 {
@@ -442,24 +532,24 @@ export_keying_material(SSL *s)
 	char *lab = cf_tls_rfc5705.label;
 	size_t len = strlen(lab);
 	size_t sz = cf_tls_rfc5705.length;
-	char key[sz + 1];
+
+	char *key = s->keys.tls_binding_key = mm_zalloc(s->mp, sz + 1);
 
         if (!CALL_SSL(export_keying_material)(s, key, sz, lab, len, NULL,0,0))
 		return 1;
-
-	sp->tls_binding_key = malloc((sz * 2) + 1);
-	memhex(key, sz, sp->tls_binding_key);
 	return 0;
 }
-
+*/
 /* TLS Handshake phaze 0 */
 static void
 ssl_handshake0(const SSL *ssl)
 {
-	struct mm_pool *mp = mm_pool_create(NULL, CPU_PAGE_SIZE, 0);
+	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
 	struct session *sp = mm_zalloc(mp, sizeof(*sp));
 
 	sp->mp = mp;
+	sp->ssl = (SSL *)ssl;
+
 	dict_init(&sp->dict, mp);
 	SSL_SESS_SET((SSL *)ssl, sp);
 
@@ -503,9 +593,13 @@ ssl_handshake1(const SSL *ssl)
 	debug("checking for subject: %s", subject);
 	debug("checking for issuer:  %s", issuer);
 
-	export_keying_material((SSL *)ssl);
+	ssl_derive_keys(sp);
+	ssl_session((SSL *)ssl);
 
+/*
+	export_keying_material((SSL *)ssl);
 	debug("tls_binding_key=%s", sp->tls_binding_key);
+*/
 
 cleanup:
 	mm_pool_destroy(sp->mp);

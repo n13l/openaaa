@@ -90,7 +90,7 @@ void
 alloc_stack(size_t size)
 {
 	for (int i = 0; i < 20; i++) {
-		char *p = mm_alloc(MM_STACK, CPU_CACHE_LINE);
+		char *p = alloca(CPU_CACHE_LINE);
 		volatile u8 *u = (u8*)p; *u = 0;
 	}
 }
@@ -113,7 +113,7 @@ test_alloc_stack(size_t size, long long unsigned iter)
 int 
 main(int argc, char *argv[]) 
 {
-	struct mm_pool *pool = mm_pool_create(NULL, CPU_PAGE_SIZE * 40, 0);
+	struct mm_pool *pool = mm_pool_create(CPU_PAGE_SIZE * 40, 0);
 
 	test_alloc_stack(CPU_CACHE_LINE, iterations);
 	test_alloc_pool(pool, CPU_CACHE_LINE, iterations);

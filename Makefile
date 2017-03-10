@@ -757,9 +757,9 @@ endif
 
 #KBUILD_CFLAGS   += $(call cc-option, -fno-var-tracking-assignments)
 
-ifndef CONFIG_DEBUG
-KBUILD_CFLAGS += -O3
-endif
+#ifdef CONFIG_DEBUG
+#KBUILD_CFLAGS += -O0
+#endif
 
 ifdef CONFIG_DEBUG_INFO
 ifdef CONFIG_DEBUG_INFO_SPLIT

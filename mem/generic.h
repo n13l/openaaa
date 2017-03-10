@@ -51,11 +51,10 @@ do { \
 
 #define mm_alloc_dispatch2(mm, size) \
 ({ \
-	void *_X; \
-	if_pointer_of(mm, struct mm_pool) \
+	void *_X = NULL; \
+	if_pointer_of(mm, struct mm_pool) { \
 		_X = mm_pool_alloc((struct mm_pool *)mm, size); \
-	if_pointer_of(mm, struct mm_stack) \
-		_X = alloca(size); \
+	} \
 	_X; \
 })
 
@@ -64,17 +63,16 @@ do { \
 
 #define mm_zalloc_dispatch1(size) \
 ({ \
-	void *_X; _X = malloc(size); memset(_X, 0, size); _X; \
+	void *_X = NULL; _X = malloc(size); memset(_X, 0, size); _X; \
 })
 
 #define mm_zalloc_dispatch2(mm, size) \
 ({ \
-	void *_X; \
-	if_pointer_of(mm, struct mm_pool) \
+	void *_X = NULL; \
+	if_pointer_of(mm, struct mm_pool) { \
 		_X = mm_pool_alloc((struct mm_pool *)mm, size); \
-	if_pointer_of(mm, struct mm_stack) \
-		_X = alloca(size); \
-	memset(_X, 0, size); \
+ 		memset(_X, 0, size); \
+	} \
 	_X; \
 })
 
@@ -89,13 +87,12 @@ do { \
 
 #define mm_strdup_dispatch2(mm, str) \
 ({ \
-	void *_X; \
+	char *_X = NULL; \
 	size_t _SIZE = strlen(str); \
-	if_pointer_of(mm, struct mm_pool) \
+	if_pointer_of(mm, struct mm_pool) { \
 		_X = mm_pool_alloc((struct mm_pool *)mm, _SIZE + 1); \
-	if_pointer_of(mm, struct mm_stack) \
-		_X = alloca(_SIZE + 1); \
-	memcpy(_X, str, _SIZE + 1); \
+ 	        memcpy(_X, str, _SIZE); _X[_SIZE] = 0; \
+	}\
 	_X; \
 })
 

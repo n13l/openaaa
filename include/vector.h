@@ -22,22 +22,32 @@
  * THE SOFTWARE.
  */
 
-#ifndef __GENERIC_ITERATOR_H__
-#define __GENERIC_ITERATOR_H__
+#ifndef __GENERIC_VECTOR_H__
+#define __GENERIC_VECTOR_H__
 
-#include <list.h>
+#include <stddef.h>
 
-#define it_begin(container, type, member) NULL
-#define it_next(container, type, member) NULL
-#define it_for_each(container, type, member)
+#define DEFINE_VECTOR(name, type) \
+struct name { \
+	    size_t elements; \
+	    size_t capacity; \
+	    type *items; \
+};
 
+#define vec_for_each(vec) 
 
-/*
-#define it_for_each(it, container) \
-	for (struct attr *(it) = \
-	             __container_of( (list).head.next, struct attr , node); \
-	     (it) != __container_of(&(list).head,      struct attr, node); \
-	     (it)  = __container_of( (it)->node.next,       struct attr, node))
-*/
+#define vec_init(vec) __extension__ \
+	(typeof(vec)){ .elements = 0, .capacity = 0, .data = NULL }
 
-#endif/*__ITERATOR_FILE_LIB_H__*/
+#define vec_begin(vec)
+#define vec_end(vec)
+#define vec_size(vec)
+#define vec_capacity(vec)
+#define vec_resize(vec)
+#define vec_reserve(vec)
+#define vec_push(vec)
+#define vec_pop(vec)
+#define vec_pushback(vec)
+#define vec_popback(vec)
+
+#endif/*__VECTOR_FILE_LIB_H__*/

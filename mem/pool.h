@@ -27,11 +27,9 @@
  */
 
 struct mm_pool {
-	struct mm_pool *parent;
 	struct mm_savep save;
 	void *avail, *final;
 	unsigned int blocksize;
-	unsigned int threshold;
 	unsigned int index;
 	unsigned int flags;
 	size_t aligned;
@@ -43,34 +41,11 @@ struct mm_pool {
 #endif	
 };
 
-#ifdef ARCH_ENABLE_MEMORY_POOL
-#endif
-
 static inline void *
-__pool_alloc_threashold(struct mm_pool *pool, size_t size)
+__pool_alloc_block(struct mm_pool *pool, size_t size)
 {
 	struct mm_vblock *block;
-
-	pool->index = 0;
-	if (pool->avail) {
-		block = pool->avail;
-		pool->avail = block->node.next;
-	} else 
-		block = vm_vblock_alloc(pool->blocksize);
-
-	slist_add(pool->save.final[0], &block->node);
-
-	pool->save.final[0] = block;
-	pool->save.avail[0] = pool->blocksize - size;
-
-	return (void *)((u8*)block - pool->blocksize);
-}
-
-static inline void *
-__pool_alloc_aligned_block(struct mm_pool *pool, size_t size, size_t align)
-{
-	struct mm_vblock *block;
-	size_t aligned = align_to(size, align);
+	size_t aligned = align_to(size, CPU_ADDR_ALIGN);
 
 	block = vm_vblock_alloc(aligned);
 	slist_add((struct snode *)pool->save.final[1], &block->node);
@@ -88,42 +63,16 @@ __pool_alloc_avail(struct mm_pool *pool, size_t size, size_t avail)
 	return (u8*)pool->save.final[0] - avail;
 }
 
-#ifdef CONFIG_DEBUG_MEMPOOL
-void *
-__pool_alloc_aligned(struct mm_pool *pool, size_t size, size_t align);
-#else
-static inline void *
-__pool_alloc_aligned(struct mm_pool *pool, size_t size, size_t align)
-{                                                                               
-	size_t avail = aligned_part(pool->save.avail[0], align);
-
-	if (size <= avail)
-		return __pool_alloc_avail(pool, size, avail);
-	if (size <= pool->threshold)
-		return __pool_alloc_threashold(pool, size);
-	/* This is minimum align size supported right now */
-	return __pool_alloc_aligned_block(pool, size, CPU_ADDR_ALIGN);
-}
-#endif
-
-static inline void *
-mm_pool_alloc_aligned(struct mm_pool *pool, size_t size, size_t align)
-{                                                                               
-	return __pool_alloc_aligned(pool, size, align);
-}
-
 static inline void *
 mm_pool_alloc(struct mm_pool *pool, size_t size)
 {
+	debug("size=%d avail=%d ", (int)size, (int)pool->save.avail[0]);
 	if (size <= pool->save.avail[0]) {
 		void *p = (u8 *)pool->save.final[0] - pool->save.avail[0];
 		pool->save.avail[0] -= size;
 		return p;
 	} 
-
-	if (size <= pool->threshold)
-		return __pool_alloc_threashold(pool, size);
-	return __pool_alloc_aligned_block(pool, size, CPU_ADDR_ALIGN);
+	return __pool_alloc_block(pool, size);
 }
 
 static inline void
@@ -143,7 +92,6 @@ mm_pool_destroy(struct mm_pool *pool)
 	block = pool->save.final[0];
 	slist_for_each_delsafe(block, node, it)
 		vm_vblock_free(block);
-
 }
 
 static inline void
@@ -173,23 +121,10 @@ mm_pool_flush(struct mm_pool *pool)
 }
 
 static inline struct mm_pool *
-mm_pool_create(struct mm_pool *object, size_t blocksize, int flags)
+mm_pool_create(size_t blocksize, int flags)
 {
 	struct mm_vblock *block;
-
-	/*
-	 * Support CPU_PAGE_ALIGN for variable memory blocks.
-	 * Support CPU_ADDR_ALIGN for allocated memory buffers.
-	 *
-	 * TODO:
-	 *
-	 * MM_ADDR_ALIGN
-	 * MM_FAST_ALIGN
-	 * MM_LOCK_ALIGN
-	 * MM_PAGE_ALIGN
-	*/
-
-	size_t size, aligned = align_simd(sizeof(*block));
+	size_t size, aligned = align_addr(sizeof(*block));
 
 	size = max(blocksize, CPU_CACHE_LINE + aligned);
 	size = align_to(size, CPU_PAGE_SIZE) - aligned;
@@ -206,10 +141,8 @@ mm_pool_create(struct mm_pool *object, size_t blocksize, int flags)
 	pool->final = &pool->final;
 	pool->total_bytes  = block->size + aligned;
 	pool->blocksize = size; 
-	pool->threshold = size >> 1;
-	pool->parent = object;
 
-	mm_savep_dump(&pool->save);
+//	mm_savep_dump(&pool->save);
 
 	return pool;
 }
@@ -252,12 +185,11 @@ mm_pool_end(struct mm_pool *mp, void *end)
 static inline void *
 mm_pool_grow(struct mm_pool *mp, size_t size)
 {
-	if (size <= mm_pool_avail(mp))
+	size_t avail = mm_pool_avail(mp);
+	if (size <= avail)
 		return mm_pool_addr(mp);
 
-	size_t avail = mm_pool_avail(mp);
 	void *ptr = mm_pool_addr(mp);
-
 	if (mp->index) {
 		size_t amortized = avail * 2;
 		amortized = max(amortized, size);
@@ -268,11 +200,11 @@ mm_pool_grow(struct mm_pool *mp, size_t size)
 
 		mp->total_bytes = mp->total_bytes - chunk->size + amortized;
 
-		size_t aligned = align_simd(sizeof(*chunk)) + amortized;
+		size_t aligned = align_addr(sizeof(*chunk)) + amortized;
 
 		debug("realloc ptr=%p aligned=%d", ptr, (int)aligned);
 
-		ptr = realloc(ptr, aligned);
+		//ptr = realloc(ptr, aligned);
 		chunk = ptr + amortized;
 
 		chunk->node.next = (struct snode *)next;

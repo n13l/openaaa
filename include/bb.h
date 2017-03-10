@@ -22,22 +22,20 @@
  * THE SOFTWARE.
  */
 
-#ifndef __GENERIC_ITERATOR_H__
-#define __GENERIC_ITERATOR_H__
+#ifndef __GENERIC_BYTEBUFFER_H__
+#define __GENERIC_BYTEBUFFER_H__
 
-#include <list.h>
+#include <stddef.h>
 
-#define it_begin(container, type, member) NULL
-#define it_next(container, type, member) NULL
-#define it_for_each(container, type, member)
+struct bb {
+	byte *addr;
+	size_t len;
+};
 
+struct gbuf {
+	byte *addr;
+	size_t len;
+	size_t cap;
+};
 
-/*
-#define it_for_each(it, container) \
-	for (struct attr *(it) = \
-	             __container_of( (list).head.next, struct attr , node); \
-	     (it) != __container_of(&(list).head,      struct attr, node); \
-	     (it)  = __container_of( (it)->node.next,       struct attr, node))
-*/
-
-#endif/*__ITERATOR_FILE_LIB_H__*/
+#endif/*__BYTEBUFFER_FILE_LIB_H__*/

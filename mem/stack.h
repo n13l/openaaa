@@ -29,7 +29,6 @@
 #include <mem/alloc.h>
 #include <mem/safe.h>
 #include <mem/debug.h>
-#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -55,19 +54,13 @@ struct mm_stack {
 	unsigned int size;
 };
 
-/* call conforming function prototype and alloc stack memory */
-#define evala(fn, ...) \
-({\
- 	void *_X; \
- 	_X; \
-})
-
 #ifndef zalloca
-#define zalloca(size) ({ void *_X = alloca(size); memset(_X, 0, size); _X; })
+#define zalloca(size) __extension__ \
+	({ void *_X = alloca(size); memset(_X, 0, size); _X; })
 #endif
 
 #ifndef strdupa
-#define strdupa(string) \
+#define strdupa(string) __extension__ \
 ({\
 	unsigned ____size = strlen(string) + 1; \
 	char *_X = alloca(____size); memcpy(_X, string, ____size); _X; \
@@ -75,7 +68,7 @@ struct mm_stack {
 #endif
 
 #ifndef strndupa
-#define strndupa(string, size) \
+#define strndupa(string, size) __extension__ \
 ({\
 	const char *_S = (string); size_t _L = strnlen(_S,(size)); \
 	char *_X = alloca(_L + 1); \
@@ -84,7 +77,7 @@ struct mm_stack {
 #endif
 
 #ifndef printfa
-#define printfa(...) \
+#define printfa(...) __extension__ \
 ({\
 	char *_S = (char *)alloca(printfza((const char *)__VA_ARGS__)); \
         sprintf(_S, (const char *)__VA_ARGS__); _S; \
@@ -97,6 +90,14 @@ struct mm_stack {
 	char *_X = alloca(vprintfza(fmt,args)); vsprintf(_X, fmt, args);_X;\
 })
 #endif
+
+/* call conforming function prototype and alloc stack memory */
+#define evala(fn, source, bytes) \
+({\
+	char *_X = alloca(fn##_size); \
+ 	fn(source, bytes, _X); \
+ 	_X; \
+})
 
 /* Stack-based network layer functions */
 #define inet_ntopa(af, addr) \

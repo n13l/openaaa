@@ -159,8 +159,6 @@ put_u64_le(void *p, u64 x)
 }
 #endif
 
-
-
 static inline u64
 get_u40_le(const void *p) 
 {
@@ -200,25 +198,33 @@ put_u64(void *p, u64 x) { put_u64_be(p, x); }
 
 static inline void
 put_u40(void *p, u64 x) { put_u40_be(p, x); } 
+
 #else
 static inline uint
 get_u16(const void *p) { return get_u16_le(p); }
+
 static inline u32
 get_u32(const void *p) { return get_u32_le(p); }
+
 static inline u64
 get_u64(const void *p) { return get_u64_le(p); }
+
 static inline u64
 get_u40(const void *p) { return get_u40_le(p); }
+
 static inline void
 put_u16(void *p, uint x) { put_u16_le(p, x); }
+
 static inline void
 put_u32(void *p, u32 x) { put_u32_le(p, x); }
+
 static inline void
 put_u64(void *p, u64 x) { put_u64_le(p, x); }
+
 static inline void
 put_u40(void *p, u64 x) { put_u40_le(p, x); }
-#endif
 
+#endif
 static inline uint
 get_u8(const void *p) { return *(const byte *)p; } 
 

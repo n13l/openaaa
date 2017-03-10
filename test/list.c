@@ -14,7 +14,7 @@ struct person {
 };
 
 #define DECLARE_PERSON(name) \
-	({ .(struct person){.name = ##name,  .node = INIT_NODE}; })
+	({ (struct person) {.name = ##name,  .node = INIT_NODE}; })
 
 static void
 test0_list(void)
@@ -121,7 +121,7 @@ test2_list(void)
 int 
 main(int argc, char *argv[]) 
 {
-	test0_list();
+//	test0_list();
 	test1_list();
 	test2_list();
 	return 0;

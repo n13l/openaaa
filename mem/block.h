@@ -48,7 +48,7 @@ struct mm_vblock {
 static inline void *
 vm_vblock_alloc(size_t size)
 {
-	struct mm_vblock *b = vm_page_alloc(size + align_struct(sizeof(*b)));
+	struct mm_vblock *b = vm_page_alloc(size + align_addr(sizeof(*b)));
 	b = (struct mm_vblock *)((u8 *)b + size);
 	b->size = size;
 	snode_init(&b->node);
@@ -59,13 +59,13 @@ void
 static inline 
 vm_vblock_free(struct mm_vblock *b)
 {
-	vm_page_free((u8 *)b - b->size, b->size + align_struct(sizeof(*b)));
+	vm_page_free((u8 *)b - b->size, b->size + align_addr(sizeof(*b)));
 }
 
 static inline void *
 libc_vblock_alloc(size_t size)
 {
-	struct mm_vblock *b = malloc(size + align_struct(sizeof(*b)));
+	struct mm_vblock *b = malloc(size + align_addr(sizeof(*b)));
 	b = (struct mm_vblock *)((u8 *)b + size);
 	b->size = size;
 	snode_init(&b->node);
