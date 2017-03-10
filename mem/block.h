@@ -63,6 +63,17 @@ vm_vblock_free(struct mm_vblock *b)
 }
 
 static inline void *
+vm_vblock_extend(void *addr, size_t osize, size_t size)
+{
+	struct mm_vblock *b = vm_page_extend(addr, osize, size + align_addr(sizeof(*b)));
+	b = (struct mm_vblock *)((u8 *)b + size);
+	b->size = size;
+	snode_init(&b->node);
+	return b;
+}
+
+
+static inline void *
 libc_vblock_alloc(size_t size)
 {
 	struct mm_vblock *b = malloc(size + align_addr(sizeof(*b)));

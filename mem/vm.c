@@ -20,7 +20,7 @@ vm_page_reserve(void)
 }
 
 void *
-vm_page_alloc(u64 size)
+vm_page_alloc(size_t size)
 {
 	void *page = mmap(NULL, size, VM_PAGE_PROT, VM_PAGE_MODE, -1, 0);
 	if (page == (void*) MAP_FAILED)
@@ -30,7 +30,7 @@ vm_page_alloc(u64 size)
 }
 
 void
-vm_page_free(void *page, u64 size)
+vm_page_free(void *page, size_t size)
 {
 	munmap(page, size);
 }
@@ -42,7 +42,7 @@ vm_page_inquire(void *addr)
 }
 
 void *
-vm_page_extend(void *page, u64 olen, u64 size)
+vm_page_extend(void *page, size_t olen, size_t size)
 {
 	/* TODO: mremap() on base addr when MM_CONT_ALLOC is used */
 	void *addr = vm_page_alloc(size);

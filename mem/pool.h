@@ -33,9 +33,11 @@ struct mm_pool {
 	unsigned int index;
 	unsigned int flags;
 	size_t aligned;
-	size_t total_bytes, useful_bytes;
-	size_t exhausted_bytes, amortized_bytes;
+	size_t total_bytes;
+	size_t useful_bytes;
 #ifdef CONFIG_DEBUG_MEMPOOL
+	size_t exhausted_bytes;
+	size_t amortized_bytes;
 	size_t frag_bytes;
 	size_t frag_count;
 #endif	
@@ -66,7 +68,7 @@ __pool_alloc_avail(struct mm_pool *pool, size_t size, size_t avail)
 static inline void *
 mm_pool_alloc(struct mm_pool *pool, size_t size)
 {
-	debug("size=%d avail=%d ", (int)size, (int)pool->save.avail[0]);
+	mem_pool_dbg("size=%d avail=%d ", (int)size, (int)pool->save.avail[0]);
 	if (size <= pool->save.avail[0]) {
 		void *p = (u8 *)pool->save.final[0] - pool->save.avail[0];
 		pool->save.avail[0] -= size;
@@ -79,7 +81,7 @@ static inline void
 mm_pool_destroy(struct mm_pool *pool)
 {
 	struct mm_vblock *it, *block;
-	debug4("pool %p destroyed", pool);
+	mem_pool_dbg("pool %p destroyed", pool);
 
 	block = pool->save.final[1];
 	slist_for_each_delsafe(block, node, it)
@@ -132,8 +134,8 @@ mm_pool_create(size_t blocksize, int flags)
 	block = vm_vblock_alloc(size);
 	struct mm_pool *pool = (void *)((u8 *)block - size);
 
-	debug4("pool %p created with %" PRIuMAX " bytes", 
-	        pool, (uintmax_t)blocksize);
+	mem_pool_dbg("pool %p created with %" PRIuMAX " bytes", 
+	             pool, (uintmax_t)blocksize);
 
 	pool->save.avail[0] = size - sizeof(*pool);
 	pool->save.final[0] = block;
@@ -141,8 +143,6 @@ mm_pool_create(size_t blocksize, int flags)
 	pool->final = &pool->final;
 	pool->total_bytes  = block->size + aligned;
 	pool->blocksize = size; 
-
-//	mm_savep_dump(&pool->save);
 
 	return pool;
 }
@@ -200,11 +200,9 @@ mm_pool_grow(struct mm_pool *mp, size_t size)
 
 		mp->total_bytes = mp->total_bytes - chunk->size + amortized;
 
-		size_t aligned = align_addr(sizeof(*chunk)) + amortized;
+		_unused size_t aligned = align_addr(sizeof(*chunk)) + amortized;
 
-		debug("realloc ptr=%p aligned=%d", ptr, (int)aligned);
-
-		//ptr = realloc(ptr, aligned);
+		//ptr = vm_vblock_extend(ptr, aligned);
 		chunk = ptr + amortized;
 
 		chunk->node.next = (struct snode *)next;

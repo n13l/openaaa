@@ -81,33 +81,18 @@ dict_sort(struct dict *dict)
 	}
 }
 
-char *
-mm_pool_strdup(struct mm_pool *mp, const char *str)
-{
-	size_t len = strlen(str);
-	char *v = mm_pool_alloc(mp, len + 1);
-	memcpy(v, str, len);
-	v[len] = 0;
-	return v;
-}
-
 static struct attr *
 dict_lookup(struct dict *dict, const char *key, int create)
 {
-
-	dict_for_each(a, dict->list) {
-		debug("%s -> %s", a->key, key);
+	dict_for_each(a, dict->list)
 		if (!strcmp(a->key, key))
 			return a;
-
-	}
 
 	if (!create)
 		return NULL;
 
 	struct attr *a = mm_pool_alloc(dict->mp, sizeof(*a));
-	debug("create key");
-	a->key   = mm_pool_strdup(dict->mp, key);
+	a->key = mm_strdup(dict->mp, key);
 	a->node.next = NULL;
 	a->node.prev = NULL;
 	a->flags = 0;
@@ -120,8 +105,7 @@ static void
 dict_set(struct dict *dict, const char *key, const char *val)
 {
 	struct attr *a = dict_lookup(dict, key, 1);
-	debug("create key");
-	a->val = val ? mm_pool_strdup(dict->mp, val) : NULL;
+	a->val = val ? mm_strdup(dict->mp, val) : NULL;
 	a->flags |= ATTR_CHANGED;
 }
 
