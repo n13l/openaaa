@@ -111,6 +111,8 @@ DEFINE_ABI(SSL_get_certificate);
 DEFINE_ABI(SSL_get_SSL_CTX);
 DEFINE_ABI(SSL_CTX_get_cert_store);
 DEFINE_ABI(CRYPTO_free);
+DEFINE_ABI(SSL_set_verify_result);
+DEFINE_ABI(SSL_shutdown);
 
 struct cf_tls_rfc5705 {
 	char *context;
@@ -545,7 +547,13 @@ ssl_server_aaa(struct session *sp)
 	status = system(msg);
 	debug("%s", msg);
 	debug("status: %s", WEXITSTATUS(status)? "forbidden" : "authenticated");
-	return 0;
+
+	if (!WEXITSTATUS(status))
+		return 0;
+
+	CALL_SSL(set_verify_result)(sp->ssl, X509_V_ERR_APPLICATION_VERIFICATION);
+	CALL_SSL(shutdown)(sp->ssl);
+	return X509_V_ERR_APPLICATION_VERIFICATION;
 }
 
 static int
@@ -923,6 +931,8 @@ crypto_lookup(void)
 	IMPORT_ABI(SSL_get_SSL_CTX);
 	IMPORT_ABI(SSL_CTX_get_cert_store);
 	IMPORT_ABI(CRYPTO_free);
+	IMPORT_ABI(SSL_set_verify_result);
+	IMPORT_ABI(SSL_shutdown);
 
 	import_target();
 }
