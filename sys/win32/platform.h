@@ -16,8 +16,10 @@
 
 #define F_GETFL 4
 
-
 #if defined(__MINGW32__) || defined(__MINGW64__) 
+
+#define WIFEXITED(x) ((x) != 3)
+#define WEXITSTATUS(x) (x)
 
 #ifndef S_ISLNK
 #define S_ISLNK(X) 0
