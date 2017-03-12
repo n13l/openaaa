@@ -144,6 +144,8 @@ struct ssl_aaa {
 	char *authority;
 	char *protocol;
 	char *handler;
+	char *group;
+	char *role;
 	int verbose;
 };
 
@@ -180,22 +182,6 @@ ssl_version(void)
 	debug("openssl version=%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
 }
 
-static void
-ssl_session(SSL *ssl)
-{
-/*	
-	BIO *bio = BIO_new(BIO_s_mem());
-	SSL_SESSION *sess = SSL_get_session(ssl);
-
-	int len = BIO_pending(bio);
-	char *buf = alloca(len + 1);
-	BIO_read(bio, buf, len);
-	buf[len] = 0;
-
-	BIO_free(bio);
-*/	
-}
-
 static inline int
 export_keying_material(struct session *sp)
 {
@@ -223,11 +209,16 @@ ssl_exportkeys(struct session *sp)
 	if (!a->binding_key.len || !a->binding_id.len)
 		return;
 
+	SSL_SESSION *sess = CALL_ABI(SSL_get_session)(sp->ssl);
+	unsigned int len;
+	const byte *id = CALL_ABI(SSL_SESSION_get_id)(sess, &len);
+	
 	key = evala(memhex, a->binding_key.addr, a->binding_key.len);
 	debug("tls_binding_key=%s", key);
-
 	key = evala(memhex, a->binding_id.addr, a->binding_id.len);
 	debug("tls_binding_id=%s", key);
+	key = evala(memhex, (char *)id, len);
+	debug("tls_session_id=%s", key);
 }
 
 static int
@@ -256,20 +247,7 @@ ssl_derive_keys(struct session *sp)
 static inline int
 ssl_attr_value(struct session *sp, int type, char *str)
 {
-	switch (type) {
-	case AAA_ATTR_AUTHORITY:
-		dict_set(&sp->recved, "aaa.authority", str);
-		break;
-	case AAA_ATTR_PROTOCOL:
-		dict_set(&sp->posted, "aaa.protocol",  str);
-		break;
-	case AAA_ATTR_VERSION:
-		dict_set(&sp->recved, "aaa.version", str);
-		break;
-	default:
-		return -EINVAL;
-	}
-
+	dict_set(&sp->recved, aaa_attr_names[type], str);
 	debug3("%s: %s", aaa_attr_names[type], str);
 	return 0;
 }
@@ -350,8 +328,7 @@ ssl_extensions(SSL *ssl, int c, int type, byte *data, int len, void *arg)
 	debug("extension name=%s type=%d, len=%d endpoint=%d", 
 	       tls_strext(type), type, len, sp->endpoint);
 
-	if (ssl_cb.cb_ext)
-		ssl_cb.cb_ext(ssl, c, type, data, len, arg);
+	!ssl_cb.cb_ext ? :ssl_cb.cb_ext(ssl, c, type, data, len, arg);
 }
 
 static int
@@ -538,38 +515,60 @@ ssl_handshake0(const SSL *ssl)
 static int
 ssl_server_aaa(struct session *sp)
 {
-	if (!aaa.handler)
+	struct aaa_keys *a = &sp->keys;
+	char *key = evala(memhex, a->binding_key.addr, a->binding_key.len);
+	char *id  = evala(memhex, a->binding_id.addr, a->binding_id.len);
+
+	if (!aaa.handler || !key || !id || !aaa.authority)
 		return -EINVAL;
 
+	char *host = aaa.authority;
+	char *msg;
+	if (aaa.group && aaa.role)
+		msg = printfa("%s -pri -a%s -i%s -k%s -g%s -r%s", 
+		         aaa.handler, host, id, key, aaa.group, aaa.role);
+	else
+		msg = printfa("%s -pri -a%s -i%s -k%s ", 
+		              aaa.handler, host, id, key);
+	
+	int status = system(msg);
+	debug("%s", msg);
+	debug("status: %s", WEXITSTATUS(status)? "failed" : "processing");
+
+	if (aaa.group && aaa.role)
+		msg = printfa("%s -pr4 -a%s -i%s -k%s -g%s -r%s", 
+		         aaa.handler, host, id, key, aaa.group, aaa.role);
+	else
+		msg = printfa("%s -pr4 -a%s -i%s -k%s ", 
+		              aaa.handler, host, id, key);
+	
+	status = system(msg);
+	debug("%s", msg);
+	debug("status: %s", WEXITSTATUS(status)? "forbidden" : "authenticated");
 	return 0;
 }
 
 static int
 ssl_client_aaa(struct session *sp)
 {
-	if (!aaa.handler)
-		return -EINVAL;
-
 	const char *authority = dict_get(&sp->recved, "aaa.authority");
 
 	struct aaa_keys *a = &sp->keys;
 	char *key = evala(memhex, a->binding_key.addr, a->binding_key.len);
 	char *id  = evala(memhex, a->binding_id.addr, a->binding_id.len);
 
-	const char *msg = printfa("%s -k%s -i%s -prx -a%s", 
-	                          aaa.handler, key, id, authority);
-	int status = system(msg);
-	debug("%s:%d", msg, WEXITSTATUS(status));
+	if (!aaa.handler || !key || !id || !authority)
+		return -EINVAL;
 
 #ifdef CONFIG_WINDOWS
-	if (WEXITSTATUS(status) == 0) {
-		msg = printfa("START /B %s -k%s -i%s -prx -a%s", 
-                              aaa.handler, key, id, authority);
-		status = system(msg);
-		debug("[%.4d] %s", WEXITSTATUS(status), msg);
-		return 0;
-	}
-#endif	
+	const char *pre = "START /B", *end = "";
+#else
+	const char *pre = "", *end = "&";
+#endif
+	const char *msg = printfa("%s %s -k%s -i%s -prx -a%s %s", 
+	                          pre, aaa.handler, key, id, authority, end);
+	int status = system(msg);
+	debug("%s:%d", msg, WEXITSTATUS(status));
 
 	return 0;
 }
@@ -603,7 +602,6 @@ ssl_handshake1(const SSL *ssl)
 	debug("checking for issuer:  %s", issuer);
 
 	ssl_derive_keys(sp);
-	ssl_session((SSL *)ssl);
 
 	if (sp->endpoint == TLS_EP_SERVER) 
 		ssl_server_aaa(sp);
@@ -859,15 +857,22 @@ init_aaa_env(void)
 	aaa.protocol = protocol ? protocol : NULL;
 	char *handler = getenv("OPENAAA_HANDLER");
 	aaa.handler = handler ? handler : NULL;
+	char *group = getenv("OPENAAA_GROUP");
+	aaa.group = group ? group: NULL;
+	char *role = getenv("OPENAAA_ROLE");
+	aaa.role = role ? role : NULL;
 
 	debug("checking for aaa environment");
-
 	if (aaa.authority)
 		debug2("env aaa.authority=%s",aaa.authority);
 	if (aaa.protocol)
 		debug2("env aaa.protocol=%s",aaa.protocol);
 	if (aaa.handler)
 		debug2("env aaa.handler=%s",aaa.handler);
+	if (aaa.group)
+		debug2("env aaa.group=%s",aaa.group);
+	if (aaa.role)
+		debug2("env aaa.role=%s",aaa.role);
 }
 
 void
