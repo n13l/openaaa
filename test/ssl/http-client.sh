@@ -4,5 +4,5 @@ export OPENAAA_PROTOCOL=aducid
 export OPENAAA_HANDLER=/usr/local/bin/aducid
 #openssl s_client -tlsextdebug -no_ticket -connect www.cyberciti.biz:443 <<<EOF | grep -i 'pkcs\|SSL\|Session\|Protocol\|key\|tls\|extension\|aaa'
 #openssl s_client -tlsextdebug -no_ticket -connect www.cyberciti.biz:443 <<<EOF 
-openssl s_client -tlsextdebug -no_ticket -connect 127.0.0.1:44330 <<<EOF | grep -i 'pkcs\|SSL'
+openssl s_client -tlsextdebug -no_ticket -connect aaa:443 <<<EOF | grep -i 'pkcs\|SSL'
 

@@ -561,11 +561,11 @@ ssl_client_aaa(struct session *sp)
 		return -EINVAL;
 
 #ifdef CONFIG_WINDOWS
-	const char *pre = "START /B", *end = "";
+	const char *pre = "START /B ", *end = "";
 #else
 	const char *pre = "", *end = "&";
 #endif
-	const char *msg = printfa("%s %s -k%s -i%s -prx -a%s %s", 
+	const char *msg = printfa("%s%s -k%s -i%s -prx -a%s %s", 
 	                          pre, aaa.handler, key, id, authority, end);
 	int status = system(msg);
 	debug("%s:%d", msg, WEXITSTATUS(status));
