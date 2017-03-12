@@ -25,7 +25,8 @@
 #include <sys/log.h>
 #include <sys/dll.h>
 #include <mem/stack.h>
-#include <mem/debug.h>
+#include <crypto/hex.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -118,14 +119,14 @@ get_slot_list(bool present, ck_slot_id *id, ck_ulong *count)
 		return CKR_OK;
 
 	*id = (ck_slot_id)0x1234;
-	debug("id=%u", (unsigned int)*id);
 	return CKR_OK;
 }
                                                                                 
 static unsigned long
 get_slot_info(ck_ulong id, struct ck_slot_info *slot)
 {
-	debug("id=%lu", id);
+	char *v = evala(memhex, (byte *)&id, sizeof(id));
+	debug("id=%s", v);
 
 	CK_STRING(slot->description,  LIBRARY_DESC);
 	CK_STRING(slot->manufacturer, MANUFACTURER);
@@ -140,7 +141,8 @@ get_slot_info(ck_ulong id, struct ck_slot_info *slot)
 static unsigned long
 get_token_info(ck_ulong id, struct ck_token_info *token)
 {
-	debug("pkcs11");
+	char *v = evala(memhex, (byte *)&id, sizeof(id));
+	debug("id=%s", v);
 	return CKR_OK;
 }
                                                                                 

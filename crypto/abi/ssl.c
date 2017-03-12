@@ -142,9 +142,7 @@ struct ssl_cb {
 
 struct ssl_aaa {
 	char *authority;
-	char *authority_attr;
 	char *protocol;
-	char *protocol_attr;
 	char *handler;
 	int verbose;
 };
@@ -166,9 +164,6 @@ struct session {
 	X509 *cert;
 	char *tls_binding_key;
 	char *aaa_binding_key;
-	char *aaa_authority;
-	char *aaa_protocol;
-	char *aaa_version;
 	enum ssl_endpoint_type endpoint;
 };
 
@@ -261,17 +256,15 @@ ssl_derive_keys(struct session *sp)
 static inline int
 ssl_attr_value(struct session *sp, int type, char *str)
 {
-	struct mm_pool *mp = sp->mp;
-
 	switch (type) {
 	case AAA_ATTR_AUTHORITY:
-		sp->aaa_authority = mm_strdup(mp, str);
+		dict_set(&sp->recved, "aaa.authority", str);
 		break;
 	case AAA_ATTR_PROTOCOL:
-		sp->aaa_protocol = mm_strdup(mp, str);
+		dict_set(&sp->posted, "aaa.protocol",  str);
 		break;
 	case AAA_ATTR_VERSION:
-		sp->aaa_version = mm_strdup(mp, str);
+		dict_set(&sp->recved, "aaa.version", str);
 		break;
 	default:
 		return -EINVAL;
@@ -520,23 +513,7 @@ cleanup:
 	sym_EVP_PKEY_free(key);
 }
 */
-/*
-static inline int
-export_keying_material(SSL *s)
-{
-	struct session *sp = SSL_SESS_GET(s);
 
-	char *lab = cf_tls_rfc5705.label;
-	size_t len = strlen(lab);
-	size_t sz = cf_tls_rfc5705.length;
-
-	char *key = s->keys.tls_binding_key = mm_zalloc(s->mp, sz + 1);
-
-        if (!CALL_SSL(export_keying_material)(s, key, sz, lab, len, NULL,0,0))
-		return 1;
-	return 0;
-}
-*/
 /* TLS Handshake phaze 0 */
 static void
 ssl_handshake0(const SSL *ssl)
@@ -558,6 +535,45 @@ ssl_handshake0(const SSL *ssl)
 	debug("ssl=%p session=%p", ssl, sp);
 }
 
+static int
+ssl_server_aaa(struct session *sp)
+{
+	if (!aaa.handler)
+		return -EINVAL;
+
+	return 0;
+}
+
+static int
+ssl_client_aaa(struct session *sp)
+{
+	if (!aaa.handler)
+		return -EINVAL;
+
+	const char *authority = dict_get(&sp->recved, "aaa.authority");
+
+	struct aaa_keys *a = &sp->keys;
+	char *key = evala(memhex, a->binding_key.addr, a->binding_key.len);
+	char *id  = evala(memhex, a->binding_id.addr, a->binding_id.len);
+
+	const char *msg = printfa("%s -k%s -i%s -prx -a%s", 
+	                          aaa.handler, key, id, authority);
+	int status = system(msg);
+	debug("%s:%d", msg, WEXITSTATUS(status));
+
+#ifdef CONFIG_WINDOWS
+	if (WEXITSTATUS(status) == 0) {
+		msg = printfa("START /B %s -k%s -i%s -prx -a%s", 
+                              aaa.handler, key, id, authority);
+		status = system(msg);
+		debug("[%.4d] %s", WEXITSTATUS(status), msg);
+		return 0;
+	}
+#endif	
+
+	return 0;
+}
+
 /* TLS Handshake phaze 1 */
 static void
 ssl_handshake1(const SSL *ssl)
@@ -565,7 +581,7 @@ ssl_handshake1(const SSL *ssl)
 	struct session *sp = SSL_SESS_GET(ssl);
 	const char *endpoint = ssl_endpoint_str(sp->endpoint);
 	X509_NAME *x_subject, *x_issuer;
-	char *subject, *issuer;
+	char *subject = NULL, *issuer = NULL;
 
 	if (sp->endpoint == TLS_EP_SERVER) 
 		sp->cert = CALL_SSL(get_certificate)((SSL *)ssl);
@@ -589,9 +605,17 @@ ssl_handshake1(const SSL *ssl)
 	ssl_derive_keys(sp);
 	ssl_session((SSL *)ssl);
 
+	if (sp->endpoint == TLS_EP_SERVER) 
+		ssl_server_aaa(sp);
+	else if (sp->endpoint == TLS_EP_CLIENT)
+		ssl_client_aaa(sp);
+
 cleanup:
-	OPENSSL_free(subject);
-	OPENSSL_free(issuer);
+	if (subject)
+		CALL_ABI(CRYPTO_free)(subject);
+	if (issuer)
+		CALL_ABI(CRYPTO_free)(issuer);
+
 	mm_pool_destroy(sp->mp);
 }
 
