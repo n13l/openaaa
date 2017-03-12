@@ -183,7 +183,7 @@ mm_pool_end(struct mm_pool *mp, void *end)
 }
 
 static inline void *
-mm_pool_grow(struct mm_pool *mp, size_t size)
+mm_pool_extend(struct mm_pool *mp, size_t size)
 {
 	size_t avail = mm_pool_avail(mp);
 	if (size <= avail)
@@ -195,20 +195,19 @@ mm_pool_grow(struct mm_pool *mp, size_t size)
 		amortized = max(amortized, size);
 		amortized = align_to(amortized, CPU_ADDR_ALIGN);
 
-		struct mm_vblock *chunk = (struct mm_vblock *)mp->save.final[1];
-	        struct mm_vblock *next  = (struct mm_vblock *)chunk->node.next;
+		struct mm_vblock *block = (struct mm_vblock *)mp->save.final[1];
+	        struct mm_vblock *next  = (struct mm_vblock *)block->node.next;
 
-		mp->total_bytes = mp->total_bytes - chunk->size + amortized;
+		mp->total_bytes = mp->total_bytes - block->size + amortized;
 
-		_unused size_t aligned = align_addr(sizeof(*chunk)) + amortized;
-
+		//size_t aligned = align_addr(sizeof(*block)) + amortized;
 		//ptr = vm_vblock_extend(ptr, aligned);
-		chunk = ptr + amortized;
+		block = ptr + amortized;
 
-		chunk->node.next = (struct snode *)next;
-		chunk->size = amortized;
+		block->node.next = (struct snode *)next;
+		block->size = amortized;
 
-		mp->save.final[1] = chunk;
+		mp->save.final[1] = block;
 		mp->save.avail[1] = amortized;
 		mp->final = ptr;
 		return ptr;
@@ -221,28 +220,28 @@ mm_pool_grow(struct mm_pool *mp, size_t size)
 }
 
 static inline void *
-mm_pool_expand(struct mm_pool *mp)
+mm_pool_extend0(struct mm_pool *mp)
 {
-	return mm_pool_grow(mp, mm_pool_avail(mp) + 1);
+	return mm_pool_extend(mp, mm_pool_avail(mp) + 1);
 }
 
 static char *
 mm_pool_vprintf_at(struct mm_pool *mp, size_t ofs, const char *fmt, va_list args)
 {
-	char *ret = mm_pool_grow(mp, ofs + 1) + ofs;
+	char *ret = mm_pool_extend(mp, ofs + 1) + ofs;
 	va_list args2;
 	va_copy(args2, args);
 	int cnt = vsnprintf(ret, mm_pool_avail(mp) - ofs, fmt, args2);
 	va_end(args2);
 	if (cnt < 0) {
 		do {
-			ret = mm_pool_expand(mp) + ofs;
+			ret = mm_pool_extend0(mp) + ofs;
 			va_copy(args2, args);
 			cnt = vsnprintf(ret, mm_pool_avail(mp) - ofs, fmt, args2);
 			va_end(args2);
 		} while (cnt < 0);
 	} else if ((uint)cnt >= mm_pool_avail(mp) - ofs) {
-		ret = mm_pool_grow(mp, ofs + cnt + 1) + ofs;
+		ret = mm_pool_extend(mp, ofs + cnt + 1) + ofs;
 		va_copy(args2, args);
 		vsnprintf(ret, cnt + 1, fmt, args2);
 		va_end(args2);

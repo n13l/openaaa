@@ -54,14 +54,14 @@ struct dict {
 	struct mm_pool *mp;
 };
 
-static void
+static inline void
 dict_init(struct dict *dict, struct mm_pool *mp)
 {
 	dict->mp = mp;
 	list_init(&dict->list);
 }
 
-static void
+static inline void
 dict_sort(struct dict *dict)
 {
 	struct node *x, *y, *z;
@@ -81,7 +81,7 @@ dict_sort(struct dict *dict)
 	}
 }
 
-static struct attr *
+static inline struct attr *
 dict_lookup(struct dict *dict, const char *key, int create)
 {
 	dict_for_each(a, dict->list)
@@ -101,7 +101,7 @@ dict_lookup(struct dict *dict, const char *key, int create)
 	return a;
 }
 
-static void
+static inline void
 dict_set(struct dict *dict, const char *key, const char *val)
 {
 	struct attr *a = dict_lookup(dict, key, 1);
@@ -109,7 +109,7 @@ dict_set(struct dict *dict, const char *key, const char *val)
 	a->flags |= ATTR_CHANGED;
 }
 
-static const char *
+static inline const char *
 dict_get(struct dict *dict, const char *key)
 {
 	struct attr *a = dict_lookup(dict, key, 0);

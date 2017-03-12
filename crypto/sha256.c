@@ -18,13 +18,6 @@
 #define SIG0(x) (ROTRIGHT(x,7) ^ ROTRIGHT(x,18) ^ ((x) >> 3))
 #define SIG1(x) (ROTRIGHT(x,17) ^ ROTRIGHT(x,19) ^ ((x) >> 10))
 
-struct sha256 {
-	byte data[SHA256_BLOCK_SIZE];
-	unsigned int len;
-	unsigned int bitlen[2];
-	unsigned int state[8];
-};
-
 static u32 sha256_k[SHA256_BLOCK_SIZE] = {
 	0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,
 	0x923f82a4,0xab1c5ed5,
@@ -43,7 +36,6 @@ static u32 sha256_k[SHA256_BLOCK_SIZE] = {
 	0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,
 	0xbef9a3f7,0xc67178f2
 };
-
 
 void
 sha256_transform(struct sha256 *sha256, byte data[])

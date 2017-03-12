@@ -40,7 +40,7 @@ memhex(char *src, size_t bytes, char *dst)
 {
 	char *_ds = dst;
 	const byte *in = (const byte*)src;
-	for (unsigned int i = 0; i < bytes; i++) {
+	for (unsigned i = 0; i < bytes; i++) {
 		*_ds++ = hextab[in[i] >> 4];
 		*_ds++ = hextab[in[i] & 0xf];
 	} 

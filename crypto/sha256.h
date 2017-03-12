@@ -8,7 +8,12 @@
 #define SHA256_HEX_SIZE   65
 #define SHA256_BLOCK_SIZE 64
 
-struct sha256;
+struct sha256 {
+	byte data[SHA256_BLOCK_SIZE];
+	unsigned int len;
+	unsigned int bitlen[2];
+	unsigned int state[8];
+};
 
 void
 sha256_init(struct sha256 *sha256);

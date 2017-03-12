@@ -48,6 +48,7 @@
 
 /* We dont't link agaist openssl but using important signatures */
 #include <crypto/abi/openssl/ssl.h>
+#include <crypto/abi/openssl/crypto.h>
 #include <crypto/abi/openssl/bio.h>
 #include <crypto/abi/openssl/tls1.h>
 #include <crypto/abi/openssl/x509.h>
@@ -109,6 +110,7 @@ DEFINE_ABI(SSL_get_peer_certificate);
 DEFINE_ABI(SSL_get_certificate);
 DEFINE_ABI(SSL_get_SSL_CTX);
 DEFINE_ABI(SSL_CTX_get_cert_store);
+DEFINE_ABI(CRYPTO_free);
 
 struct cf_tls_rfc5705 {
 	char *context;
@@ -150,14 +152,14 @@ struct ssl_aaa {
 struct ssl_aaa aaa;
 
 struct aaa_keys {
-	struct bb tls_binding_key;
-	struct bb tls_binding_id;
-	struct bb aaa_binding_key;
+	struct bb binding_key;
+	struct bb binding_id;
 };
 
 struct session {
 	struct mm_pool *mp;
-	struct dict dict;
+	struct dict recved;
+	struct dict posted;
 	struct aaa_keys keys;
 	SSL_CTX *ctx;
 	SSL *ssl;
@@ -188,16 +190,13 @@ ssl_session(SSL *ssl)
 {
 /*	
 	BIO *bio = BIO_new(BIO_s_mem());
-
 	SSL_SESSION *sess = SSL_get_session(ssl);
-	SSL_SESSION_print(bio, sess);
 
 	int len = BIO_pending(bio);
 	char *buf = alloca(len + 1);
 	BIO_read(bio, buf, len);
 	buf[len] = 0;
 
-	debug4("session id=%s", buf);
 	BIO_free(bio);
 */	
 }
@@ -211,53 +210,51 @@ export_keying_material(struct session *sp)
 	size_t len = strlen(lab);
 	size_t sz = cf_tls_rfc5705.length;
 
-	char *key = sp->keys.tls_binding_key.addr = mm_zalloc(sp->mp, sz + 1);
+	sp->keys.binding_key.len = 0;
+	char *key = sp->keys.binding_key.addr = mm_zalloc(sp->mp, sz + 1);
         if (!CALL_SSL(export_keying_material)(s, key, sz, lab, len, NULL,0,0))
 		return 1;
+
+	sp->keys.binding_key.len = sz;
 	return 0;
 }
 
 static void
-print_keys(struct session *sp)
+ssl_exportkeys(struct session *sp)
 {
+	char *key;
 	struct aaa_keys *a = &sp->keys;
-/*
-	char *key = evala(memhex, a->tls_binding_key.addr, a->tls_binding_key.len);
+
+	if (!a->binding_key.len || !a->binding_id.len)
+		return;
+
+	key = evala(memhex, a->binding_key.addr, a->binding_key.len);
 	debug("tls_binding_key=%s", key);
-*/	
+
+	key = evala(memhex, a->binding_id.addr, a->binding_id.len);
+	debug("tls_binding_id=%s", key);
 }
 
 static int
 ssl_derive_keys(struct session *sp)
 {
+	char *key;
+	struct aaa_keys *a = &sp->keys;
+
 	if (export_keying_material(sp))
 		return -EINVAL;
 
-	/*
-char *key = stk_mem_to_hex(tls->key, tls->key_size);
+	struct sha1 sha1;
 
-byte enkey[(tls->key_size * 3) + 1];
-memset(enkey, 0, sizeof(enkey));
-b64_enc(enkey, (byte *)tls->key, tls->key_size);
+	sha1_init(&sha1);
+	sha1_update(&sha1, a->binding_key.addr, a->binding_key.len);
+	key = sha1_final(&sha1);
 
-sha1_init(&sha1);
-sha1_update(&sha1, (byte *)key, strlen(key));
-hash = sha1_final(&sha1);
+	a->binding_id.addr = mm_alloc(sp->mp, SHA1_SIZE);
+	memcpy(a->binding_id.addr, key, SHA1_SIZE / 2);
+	a->binding_id.len  = SHA1_SIZE / 2;
 
-char *id = stk_mem_to_hex((char *)hash, SHA1_SIZE / 2);
-byte enid[(tls->key_size * 3) + 1];
-memset(enid, 0, sizeof(enid));
-b64_enc(enid, (byte *)hash, SHA1_SIZE / 2);
-
-sha1_init(&sha1);
-sha1_update(&sha1, (byte *)hash, SHA1_SIZE / 2);
-hash = sha1_final(&sha1);
-byte entype[(tls->key_size * 3) + 1];
-memset(entype, 0, sizeof(entype));
-b64_enc(entype, (byte *)hash, SHA1_SIZE / 2);
-*/
-
-	print_keys(sp);
+	ssl_exportkeys(sp);
 	return 0;
 }
 
@@ -372,20 +369,20 @@ ssl_server_add(SSL *s, uint type, const byte **out, size_t *len, int *al, void *
 
 	sp->endpoint = TLS_EP_SERVER;
 
-	dict_set(&sp->dict, "aaa.authority", aaa.authority);
-	dict_set(&sp->dict, "aaa.protocol",  aaa.protocol);
-	dict_set(&sp->dict, "aaa.version",   "1.0");
+	dict_set(&sp->posted, "aaa.authority", aaa.authority);
+	dict_set(&sp->posted, "aaa.protocol",  aaa.protocol);
+	dict_set(&sp->posted, "aaa.version",   "1.0");
 
 	char bb[8192];
 	unsigned int sz = 0;
-	dict_for_each(attr, sp->dict.list) {
+	dict_for_each(attr, sp->posted.list) {
 		sz += snprintf(bb, sizeof(bb) - sz - 1, "%s=%s\n",attr->key, attr->val);
 	}
 
 	char *b = mm_alloc(mp, sz + 1);
 	*len = sz + 1;
 	sz = 0;
-	dict_for_each(attr, sp->dict.list) {
+	dict_for_each(attr, sp->posted.list) {
 		debug("extension %s=%s", attr->key, attr->val);
 		sz += snprintf(b + sz, *len, "%s=%s\n",attr->key, attr->val);
 	}
@@ -422,19 +419,19 @@ ssl_client_add(SSL *s, uint type, const byte **out, size_t *len, int *al, void *
 
 	sp->endpoint = TLS_EP_CLIENT;
 
-	dict_set(&sp->dict, "aaa.protocol", aaa.protocol);
-	dict_set(&sp->dict, "aaa.version",  "1.0");
+	dict_set(&sp->recved, "aaa.protocol", aaa.protocol);
+	dict_set(&sp->recved, "aaa.version",  "1.0");
 
 	char bb[8192];
 	unsigned int sz = 0;
-	dict_for_each(a, sp->dict.list) {
+	dict_for_each(a, sp->recved.list) {
 		sz += snprintf(bb + sz, sizeof(bb) - sz, "%s=%s\n",a->key, a->val);
 	}
 
 	char *b = mm_alloc(mp, sz + 1);
 	*len = sz + 1;
 	sz = 0;
-	dict_for_each(attr, sp->dict.list) {
+	dict_for_each(attr, sp->recved.list) {
 		debug("extension %s=%s", attr->key, attr->val);
 		sz += snprintf(b + sz, *len, "%s=%s\n",attr->key, attr->val);
 	}
@@ -550,7 +547,9 @@ ssl_handshake0(const SSL *ssl)
 	sp->mp = mp;
 	sp->ssl = (SSL *)ssl;
 
-	dict_init(&sp->dict, mp);
+	dict_init(&sp->recved, mp);
+	dict_init(&sp->posted, mp);
+
 	SSL_SESS_SET((SSL *)ssl, sp);
 
 	void (*fn)(void) = (void (*)(void))ssl_extensions;
@@ -568,16 +567,10 @@ ssl_handshake1(const SSL *ssl)
 	X509_NAME *x_subject, *x_issuer;
 	char *subject, *issuer;
 
-	switch (sp->endpoint) {
-	case TLS_EP_SERVER:
+	if (sp->endpoint == TLS_EP_SERVER) 
 		sp->cert = CALL_SSL(get_certificate)((SSL *)ssl);
-		break;
-	case TLS_EP_CLIENT:
+	else if (sp->endpoint == TLS_EP_CLIENT)
 		sp->cert = CALL_SSL(get_peer_certificate)((SSL *)ssl);
-		break;
-	case TLS_EP_PEER:
-		break;
-	}
 
 	debug("%s checking for server certificate: %s", 
 	      endpoint, sp->cert ? "Yes" : "No");
@@ -596,12 +589,9 @@ ssl_handshake1(const SSL *ssl)
 	ssl_derive_keys(sp);
 	ssl_session((SSL *)ssl);
 
-/*
-	export_keying_material((SSL *)ssl);
-	debug("tls_binding_key=%s", sp->tls_binding_key);
-*/
-
 cleanup:
+	OPENSSL_free(subject);
+	OPENSSL_free(issuer);
 	mm_pool_destroy(sp->mp);
 }
 
@@ -903,6 +893,7 @@ crypto_lookup(void)
 	IMPORT_ABI(SSL_get_certificate);
 	IMPORT_ABI(SSL_get_SSL_CTX);
 	IMPORT_ABI(SSL_CTX_get_cert_store);
+	IMPORT_ABI(CRYPTO_free);
 
 	import_target();
 }

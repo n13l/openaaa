@@ -76,6 +76,15 @@ struct mm_stack {
 })
 #endif
 
+#ifndef strmema
+#define strmema(string, size) __extension__ \
+({\
+	char *_X = alloca(size + 1); \
+	memcpy(_X, string, size); _X[size] = 0; _X; \
+})
+#endif
+
+
 #ifndef printfa
 #define printfa(...) __extension__ \
 ({\
@@ -94,9 +103,7 @@ struct mm_stack {
 /* call conforming function prototype and alloc stack memory */
 #define evala(fn, source, bytes) \
 ({\
-	char *_X = alloca(fn##_size); \
- 	fn(source, bytes, _X); \
- 	_X; \
+	char *_X = alloca(fn##_size(bytes)); fn(source, bytes, _X); _X; \
 })
 
 /* Stack-based network layer functions */
@@ -156,7 +163,6 @@ stack_avail:
 	va_end(args);
 	return size + 1;
 }
-
 
 _unused _noinline static unsigned int 
 vprintfza(const char *fmt, va_list args)

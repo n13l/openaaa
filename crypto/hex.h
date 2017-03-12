@@ -35,10 +35,10 @@
 #define __CRYPTO_HEX_H__
 
 static inline size_t 
-memhex_size(size_t bytes) { return (bytes << 1) + 1; }
+memhex_size(size_t bytes) { return (bytes * 2) + 1; }
 
 static inline size_t 
-hexmem_size(size_t bytes) { return (bytes << 1) + 1; }
+hexmem_size(size_t bytes) { return (bytes * 2) + 1; }
 
 char *
 memhex(char *src, size_t bytes, char *dst);
