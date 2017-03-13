@@ -330,7 +330,7 @@ ssl_extensions(SSL *ssl, int c, int type, byte *data, int len, void *arg)
 	debug("extension name=%s type=%d, len=%d endpoint=%d", 
 	       tls_strext(type), type, len, sp->endpoint);
 
-	!ssl_cb.cb_ext ? :ssl_cb.cb_ext(ssl, c, type, data, len, arg);
+	ssl_cb.cb_ext ? ssl_cb.cb_ext(ssl, c, type, data, len, arg):({});
 }
 
 static int

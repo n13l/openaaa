@@ -16,7 +16,7 @@ struct person {
 #define DECLARE_PERSON(name) \
 	({ (struct person) {.name = ##name,  .node = INIT_NODE}; })
 
-static void
+_unused static void
 test0_list(void)
 {
 	DECLARE_LIST(list);
