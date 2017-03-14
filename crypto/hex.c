@@ -1,5 +1,5 @@
 /*
- * The MIT License (MIT)                         (PRF) A Pseudo-Random Function 
+ * The MIT License (MIT)                                  (HEX) Base16 RFC-4648 
  *                               Copyright (c) 2015 Daniel Kubec <niel@rtfm.cz> 
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy 
@@ -30,8 +30,7 @@ static const char hextab[] = "0123456789abcdef";\
 static unsigned int 
 hexp(unsigned int c)
 {
-	c = toupper(c);
-	c -= '0';
+	c = toupper(c); c -= '0';
 	return (c < 10) ? c : (c - 7);
 }
 
@@ -52,11 +51,9 @@ char *
 hexmem(char *src, size_t bytes, char *dst)
 {
 	size_t len = bytes;
-	char *dest = dst;
-	while (bytes--) { 
+	for (char *dest = dst; bytes--; src += 2)
 		*dest++ = (hexp(src[0]) << 4) | hexp(src[1]);
-		src += 2;
-       	} 
+       	
 	dst[(len * 2) +1] = 0; 
 	return dst;
 }

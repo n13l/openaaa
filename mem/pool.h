@@ -32,7 +32,7 @@ struct mm_pool {
 	unsigned int blocksize;
 	unsigned int index;
 	unsigned int flags;
-	size_t aligned;
+	unsigned int aligned;
 	size_t total_bytes;
 	size_t useful_bytes;
 #ifdef CONFIG_DEBUG_MEMPOOL
@@ -40,6 +40,9 @@ struct mm_pool {
 	size_t amortized_bytes;
 	size_t frag_bytes;
 	size_t frag_count;
+	size_t blocks_total;
+	size_t blocks_used;
+	size_t blocks_free;
 #endif	
 };
 
@@ -213,42 +216,44 @@ mm_pool_extend(struct mm_pool *mp, size_t size)
 		return ptr;
 	} 
 
-	void *p = mm_pool_alloc(mp, size);
+	void *addr = mm_pool_alloc(mp, size);
 	mp->save.avail[mp->index] += size;
-	memcpy(p, ptr, avail);
-	return p;
+	memcpy(addr, ptr, avail);
+	return addr;
 }
 
 static inline void *
-mm_pool_extend0(struct mm_pool *mp)
+mm_pool_extend_one(struct mm_pool *mp)
 {
 	return mm_pool_extend(mp, mm_pool_avail(mp) + 1);
 }
 
 static char *
-mm_pool_vprintf_at(struct mm_pool *mp, size_t ofs, const char *fmt, va_list args)
+mm_pool_vprintf_at(struct mm_pool *mp, size_t of, const char *fmt, va_list args)
 {
-	char *ret = mm_pool_extend(mp, ofs + 1) + ofs;
+	char *b = mm_pool_extend(mp, of + 1) + of;
+
 	va_list args2;
 	va_copy(args2, args);
-	int cnt = vsnprintf(ret, mm_pool_avail(mp) - ofs, fmt, args2);
+	int len = vsnprintf(b, mm_pool_avail(mp) - of, fmt, args2);
 	va_end(args2);
-	if (cnt < 0) {
+
+	if (len < 0) {
 		do {
-			ret = mm_pool_extend0(mp) + ofs;
+			b = mm_pool_extend_one(mp) + of;
 			va_copy(args2, args);
-			cnt = vsnprintf(ret, mm_pool_avail(mp) - ofs, fmt, args2);
+			len = vsnprintf(b, mm_pool_avail(mp) - of, fmt, args2);
 			va_end(args2);
-		} while (cnt < 0);
-	} else if ((uint)cnt >= mm_pool_avail(mp) - ofs) {
-		ret = mm_pool_extend(mp, ofs + cnt + 1) + ofs;
+		} while (len < 0);
+	} else if ((unsigned int)len >= mm_pool_avail(mp) - of) {
+		b = mm_pool_extend(mp, of + len + 1) + of;
 		va_copy(args2, args);
-		vsnprintf(ret, cnt + 1, fmt, args2);
+		vsnprintf(b, len + 1, fmt, args2);
 		va_end(args2);
 	}
 
-	mm_pool_end(mp, ret + cnt + 1);
-	return ret - ofs;
+	mm_pool_end(mp, b + len + 1);
+	return b - of;
 }
 
 _unused static char *
