@@ -35,7 +35,6 @@
 #define __ABI_SSL_PLATFORM_H__
 
 #include <sys/compiler.h>
-#include <sys/abi.h>
 
 #define AAA_ATTR_AUTHORITY 1
 #define AAA_ATTR_PROTOCOL  2
@@ -75,12 +74,6 @@ struct symbol {
 #define UPDATE_ABI(fn) \
 	plt_##fn.abi_##fn = (typeof(plt_##fn.abi_##fn))abi_##fn; \
 	plthook_replace(plt, stringify(fn), abi_##fn, (void**)&plt_##fn.plt_##fn)
-
-struct abi_crypto_openssl {
-	struct abi_version version;
-};
-
-extern struct abi_crypto_openssl abi_crypto_openssl;
 
 void
 crypto_lookup(void);

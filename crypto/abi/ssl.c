@@ -22,7 +22,6 @@
  */
 
 #include <sys/compiler.h>
-#include <sys/abi.h>
 #include <sys/log.h>
 
 #include <bb.h>
@@ -77,6 +76,8 @@ DEFINE_ABI(SSL_CTX_add_client_custom_ext);
 DEFINE_ABI(SSL_CTX_add_server_custom_ext);
 DEFINE_ABI(SSL_new);
 DEFINE_ABI(SSL_free);
+DEFINE_ABI(SSL_get_info_callback);
+/* void (*SSL_get_info_callback(const SSL *ssl))(); */
 DEFINE_ABI(SSL_get_rfd);
 DEFINE_ABI(SSL_get_wfd);
 DEFINE_ABI(SSL_callback_ctrl);
@@ -171,6 +172,12 @@ struct session {
 	enum ssl_endpoint_type endpoint;
 };
 
+void
+ssl_info(const SSL *s, int where, int ret);
+
+static void
+ssl_handshake0(const SSL *ssl);
+
 static void
 ssl_version(void)
 {
@@ -183,6 +190,81 @@ ssl_version(void)
 
 	debug("openssl version=%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
 }
+
+static inline const char *
+ssl_endpoint_str(int type)
+{
+	return type == TLS_EP_CLIENT ? "client":
+	       type == TLS_EP_SERVER ? "server": "undefined";
+}
+
+static void
+ssl_extensions(SSL *ssl, int c, int type, byte *data, int len, void *arg)
+{ 
+	struct session *sp = SSL_SESS_GET(ssl);
+	sp->endpoint = c ? TLS_EP_CLIENT : TLS_EP_SERVER;
+
+	debug("extension name=%s type=%d, len=%d endpoint=%d", 
+	       tls_strext(type), type, len, sp->endpoint);
+
+	ssl_cb.cb_ext ? ssl_cb.cb_ext(ssl, c, type, data, len, arg):({});
+}
+
+void
+ssl_callbacks(const SSL *ssl)
+{
+	void (*fn)(void) = (void (*)(void))SSL_get_info_callback(ssl);
+	debug2("info app:fn=%p lib:fn=%p", fn, ssl_info);
+	
+	if (!fn)
+		return;
+
+	if (fn != (void (*)(void))ssl_info)
+		ssl_cb.cb_info = (void (*)(const SSL *, int, int))fn;
+	else
+		return;
+
+	fn = (void (*)(void))ssl_extensions;
+	CALL_SSL(set_info_callback)((SSL *)ssl, ssl_info);
+}
+
+static struct session *
+session_init(const SSL *ssl)
+{
+	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
+	struct session *sp = mm_zalloc(mp, sizeof(*sp));
+
+	sp->mp = mp;
+	sp->ssl = (SSL *)ssl;
+
+	ssl_callbacks(ssl);
+
+	dict_init(&sp->recved, mp);
+	dict_init(&sp->posted, mp);
+
+	SSL_SESS_SET((SSL *)ssl, sp);
+/*
+	void (*fn)(void) = (void (*)(void))ssl_extensions;
+	CALL_SSL(callback_ctrl)((SSL *)ssl, SSL_CTRL_SET_TLSEXT_DEBUG_CB, fn);
+*/
+	return sp;
+}
+
+static void
+session_fini(struct session *sp)
+{
+	SSL *ssl = sp->ssl;
+	SSL_SESS_SET(ssl, NULL);
+	mm_pool_destroy(sp->mp);
+}
+
+static struct session *
+session_get0(const SSL *ssl)
+{
+	struct session *sp = SSL_SESS_GET((SSL *)ssl);
+	return sp ? sp : session_init((SSL *)ssl);
+}
+
 
 static inline int
 export_keying_material(struct session *sp)
@@ -220,7 +302,10 @@ ssl_exportkeys(struct session *sp)
 	key = evala(memhex, a->binding_id.addr, a->binding_id.len);
 	debug("tls_binding_id=%s", key);
 	key = evala(memhex, (char *)id, len);
-	debug("tls_session_id=%s", key);
+
+	/* tls_session_id is empty for tls tickets for client */
+	if (key && *key)
+		debug("tls_session_id=%s", key);
 }
 
 static int
@@ -314,30 +399,11 @@ ssl_parse_attrs(struct session *sp, char *line, size_t size)
 	return 0;
 }
 
-static inline const char *
-ssl_endpoint_str(int type)
-{
-	return type == TLS_EP_CLIENT ? "client":
-	       type == TLS_EP_SERVER ? "server": "undefined";
-}
-
-static void
-ssl_extensions(SSL *ssl, int c, int type, byte *data, int len, void *arg)
-{ 
-	struct session *sp = SSL_SESS_GET(ssl);
-	sp->endpoint = c ? TLS_EP_CLIENT : TLS_EP_SERVER;
-
-	debug("extension name=%s type=%d, len=%d endpoint=%d", 
-	       tls_strext(type), type, len, sp->endpoint);
-
-	ssl_cb.cb_ext ? ssl_cb.cb_ext(ssl, c, type, data, len, arg):({});
-}
-
 static int
 ssl_server_add(SSL *s, uint type, const byte **out, size_t *len, int *al, void *arg)
 {
-	struct session *sp = SSL_SESS_GET(s);
-	struct mm_pool *mp = sp->mp;
+	struct session *sp = session_get0(s);
+	struct mm_pool *mp = sp ? sp->mp : NULL;
 
 	sp->endpoint = TLS_EP_SERVER;
 
@@ -368,7 +434,7 @@ ssl_server_add(SSL *s, uint type, const byte **out, size_t *len, int *al, void *
 int
 ssl_server_get(SSL *s, uint type, const byte*in, size_t len, int *l, void *a)
 {
-	struct session *sp = SSL_SESS_GET(s);
+	struct session *sp = session_get0(s);
 	debug("extension name=%s type=%d recv",tls_strext(type), type);
 
 	if (!len)
@@ -384,10 +450,11 @@ ssl_server_get(SSL *s, uint type, const byte*in, size_t len, int *l, void *a)
 }
 
 int
-ssl_client_add(SSL *s, uint type, const byte **out, size_t *len, int *al, void *arg)
+ssl_client_add(SSL *s, unsigned int type, const byte **out, size_t *len, 
+               int *al, void *arg)
 {
-	struct session *sp = SSL_SESS_GET(s);
-	struct mm_pool *mp = sp->mp;
+	struct session *sp = session_get0(s);
+	struct mm_pool *mp = sp ? sp->mp : NULL;
 
 	sp->endpoint = TLS_EP_CLIENT;
 
@@ -419,7 +486,7 @@ int
 ssl_client_get(SSL *ssl, unsigned int type, const byte *in, size_t len, 
                  int *al, void *arg)
 {
-	struct session *sp = SSL_SESS_GET(ssl);
+	struct session *sp = session_get0(ssl);
 	debug("extension name=%s type=%d recv", tls_strext(type), type);
 
 	if (!len)
@@ -497,21 +564,6 @@ cleanup:
 static void
 ssl_handshake0(const SSL *ssl)
 {
-	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
-	struct session *sp = mm_zalloc(mp, sizeof(*sp));
-
-	sp->mp = mp;
-	sp->ssl = (SSL *)ssl;
-
-	dict_init(&sp->recved, mp);
-	dict_init(&sp->posted, mp);
-
-	SSL_SESS_SET((SSL *)ssl, sp);
-
-	void (*fn)(void) = (void (*)(void))ssl_extensions;
-	CALL_SSL(callback_ctrl)((SSL *)ssl, SSL_CTRL_SET_TLSEXT_DEBUG_CB, fn);
-
-	debug("ssl=%p session=%p", ssl, sp);
 }
 
 static int
@@ -602,9 +654,8 @@ ssl_handshake1(const SSL *ssl)
 
 	x_subject = CALL_ABI(X509_get_subject_name)(sp->cert);
 	x_issuer  = CALL_ABI(X509_get_issuer_name)(sp->cert);
-
-	subject = CALL_ABI(X509_NAME_oneline)(x_subject, NULL, 0);
-	issuer  = CALL_ABI(X509_NAME_oneline)(x_issuer,  NULL, 0);
+	subject   = CALL_ABI(X509_NAME_oneline)(x_subject, NULL, 0);
+	issuer    = CALL_ABI(X509_NAME_oneline)(x_issuer,  NULL, 0);
 
 	debug("checking for subject: %s", subject);
 	debug("checking for issuer:  %s", issuer);
@@ -622,7 +673,7 @@ cleanup:
 	if (issuer)
 		CALL_ABI(CRYPTO_free)(issuer);
 
-	mm_pool_destroy(sp->mp);
+	session_fini(sp);
 }
 
 const char *
@@ -669,14 +720,14 @@ ssl_info_default(const SSL *s, const char *str, int rv)
 static void
 ssl_info_error(const SSL *s, const char *str, int rv)
 {
-	debug("error code=%d", rv);
 	switch(CALL_ABI(SSL_get_error)(s, rv)) {
 	case SSL_ERROR_WANT_READ:
+		break;
 	case SSL_ERROR_WANT_WRITE:
-	break;
+		break;
 	default:
 		ssl_info_default(s, str, rv);
-	break;
+		break;
 	}
 }
 
@@ -694,6 +745,8 @@ ssl_state_str(int w)
 void
 ssl_info(const SSL *s, int where, int ret)
 {
+	struct session *sp = session_get0(s);
+
         int w = where & ~SSL_ST_MASK, rv = ret;
 	const char *str = ssl_state_str(w);
 
@@ -701,9 +754,6 @@ ssl_info(const SSL *s, int where, int ret)
 		ssl_info_state(s, str);
 	}
         if (where & SSL_CB_LOOP) {
-		if (w & SSL_ST_BEFORE)
-			ssl_handshake0(s);
-
 		ssl_info_state(s, str);
 	} else if (where & SSL_CB_ALERT) {
 		ssl_info_alert(where, rv);
@@ -714,7 +764,7 @@ ssl_info(const SSL *s, int where, int ret)
 			ssl_info_error(s, str, rv);
 	}
 
-	if (where & SSL_CB_HANDSHAKE_START)
+	if ((where & SSL_CB_HANDSHAKE_START) && sp)
 		ssl_handshake0(s);
 	if (where & SSL_CB_HANDSHAKE_DONE)
 		ssl_handshake1(s);
@@ -811,7 +861,8 @@ DEFINE_CTX_CALL(new)(const SSL_METHOD *method)
 	                                ssl_client_get, NULL);
 	CALL_CTX(add_server_custom_ext)(ctx, 1000, ssl_server_add, NULL, NULL, 
 	                                ssl_server_get, NULL);
-	
+
+	debug4("ctx=%p", ctx);	
 	return ctx;
 }
 
@@ -824,6 +875,7 @@ DEFINE_SSL_CALL(new)(SSL_CTX *ctx)
 	CALL_SSL(set_info_callback)(ssl, ssl_info);
 	CALL_SSL(callback_ctrl)(ssl, SSL_CTRL_SET_TLSEXT_DEBUG_CB, fn);
 
+	debug3("ssl=%p", ssl);
 	return ssl;
 }
 
@@ -899,6 +951,7 @@ crypto_lookup(void)
 	IMPORT_ABI(SSL_CTX_add_client_custom_ext);
 	IMPORT_ABI(SSL_CTX_add_server_custom_ext);
 	IMPORT_ABI(SSL_new);
+	IMPORT_ABI(SSL_get_info_callback);
 	IMPORT_ABI(SSL_callback_ctrl);
 	IMPORT_ABI(SSL_set_ex_data);
 	IMPORT_ABI(SSL_get_ex_data);

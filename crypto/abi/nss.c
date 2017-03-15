@@ -22,4 +22,4 @@
  */
 
 #include <sys/compiler.h>
-#include <sys/abi.h>
+#include <sys/log.h>

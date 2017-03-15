@@ -6,14 +6,21 @@
 #include <sys/dll.h>
 #include <mem/pool.h>
 
+#include <sys/log.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
+#include <crypto/abi/lib.h>
+
 #include <modules/openvpn/plugin.h>
 
 #define OVPN_MASK OPENVPN_PLUGIN_MASK
+
+#undef KBUILD_MODNAME
+#define KBUILD_MODNAME "vpn"
 
 enum ovpn_endpoint { VPN_CLIENT, VPN_SERVER };
 
@@ -21,7 +28,6 @@ struct ovpn_ctxt {
 	struct mm_pool *mp;
 	struct mm_pool *mp_api;
 	enum ovpn_endpoint type;
-	plugin_log_t log;
 	int mask;
 };
 
@@ -30,12 +36,14 @@ struct ovpn_sess {
 	struct mm_pool *mp_api;
 };
 
-/*
-static void
-openplugin_sys_log(void *usr, unsigned level, const char *msg)
+plugin_log_t ovpn_log = NULL;
+
+static void 
+ovpn_log_write(struct log_ctx *ctx, const char *msg, int len)
 {
+	if (ovpn_log)
+		ovpn_log(PLOG_NOTE, "aaa", msg);
 }
-*/
 
 static const char *
 envp_get(const char *name, const char *envp[])
@@ -52,17 +60,12 @@ envp_get(const char *name, const char *envp[])
 	return NULL;
 }
 
-/*
 static void
 envp_dbg(const char *envp[])
 {
-	for (int i = 0; envp[i]; ++i) {
-		const char *cp = envp[i] + strlen(envp[i]);
-		sys_dbg("envp: %s", envp[i]);
-	}
-	
+	for (int i = 0; envp[i]; ++i)
+		debug4("%s", envp[i]);
 }
-*/
 
 EXPORT(int) 
 openvpn_plugin_select_initialization_point_v1(void)
@@ -79,7 +82,7 @@ openvpn_plugin_min_version_required_v1(void)
 EXPORT(void)
 openvpn_plugin_close_v1(openvpn_plugin_handle_t handle)
 {
-	sys_dbg("plugin close");
+	debug4("plugin close");
 }
 
 EXPORT(int)
@@ -90,31 +93,36 @@ openvpn_plugin_open_v3(const int version,
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
 	struct ovpn_ctxt *ovpn = mm_alloc(mp, sizeof(*ovpn));
 
+	log_custom_set(ovpn_log_write);
+
+	envp_dbg(args->envp);
+
 	ovpn->mp_api = mm_pool_create(CPU_PAGE_SIZE, 0);
 
 	ovpn->mp = mp;
-	ovpn->log = args->callbacks->plugin_log;
+	ovpn_log = args->callbacks->plugin_log;
 	ovpn->type = envp_get("remote_1", args->envp) ? VPN_CLIENT : VPN_SERVER;
 
 	switch(ovpn->type) {
 	case VPN_SERVER:
-		sys_dbg("setting up tls server");
+		debug1("setting up tls server");
 		ovpn->mask |= OVPN_MASK(OPENVPN_PLUGIN_TLS_FINAL);
 		ovpn->mask |= OVPN_MASK(OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY);
 		break;
 	case VPN_CLIENT:
-		sys_dbg("setting up tls client");
+		debug1("setting up tls client");
 		ovpn->mask |= OVPN_MASK(OPENVPN_PLUGIN_CLIENT_CONNECT);
 		ovpn->mask |= OVPN_MASK(OPENVPN_PLUGIN_CLIENT_DISCONNECT);
 		ovpn->mask |= OVPN_MASK(OPENVPN_PLUGIN_ROUTE_UP);
 		break;
 	default:
-		sys_err("endpoint detection type failed");
+		error("endpoint detection type failed");
 		break;
 	}
 
 	ret->type_mask = ovpn->mask;
 	ret->handle = (void *)ovpn;
+	crypto_lookup();
 	return OPENVPN_PLUGIN_FUNC_SUCCESS;
 }
 
@@ -129,7 +137,7 @@ openvpn_plugin_client_constructor_v1(openvpn_plugin_handle_t handle)
 
 	sess->mp = mp;
         sess->mp_api = mm_pool_create(CPU_PAGE_SIZE, 0);
-	sys_dbg("client constructor");
+	debug1("client constructor");
 	return (void *)sess;
 }
 
@@ -141,7 +149,7 @@ openvpn_plugin_client_destructor_v1(openvpn_plugin_handle_t handle, void *ctx)
 
 	mm_pool_destroy(sess->mp_api);
 	mm_pool_destroy(sess->mp);
-	sys_dbg("client destructor");
+	debug1("client destructor");
 }
 
 static inline void
@@ -152,7 +160,7 @@ openvpn_auth_user_verify(const int version,
 	//const char *user = envp_get("username", args->envp);
 	//const char *pass = envp_get("password", args->envp);
 
-	//sys_dbg("auth user=%s pass=%s", user, pass);
+	//debug1("auth user=%s pass=%s", user, pass);
 }
 
 EXPORT(int)
@@ -165,26 +173,26 @@ openvpn_plugin_func_v3(const int version,
 
 	switch(args->type) {
 	case OPENVPN_PLUGIN_ENABLE_PF:
-		sys_dbg("enable pf");
+		debug1("enable pf");
 		return OPENVPN_PLUGIN_FUNC_SUCCESS;
 	case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
-		sys_dbg("auth user_pass");
+		debug1("auth user_pass");
 		openvpn_auth_user_verify(version, args, ret);
 		return OPENVPN_PLUGIN_FUNC_SUCCESS;
 	case OPENVPN_PLUGIN_ROUTE_UP:
-		sys_dbg("route up");
+		debug1("route up");
 		return OPENVPN_PLUGIN_FUNC_SUCCESS;
 	case OPENVPN_PLUGIN_CLIENT_CONNECT:
-		sys_dbg("connect");
+		debug1("connect");
 		return OPENVPN_PLUGIN_FUNC_SUCCESS;
 	case OPENVPN_PLUGIN_CLIENT_DISCONNECT:
-		sys_dbg("disconnect");
+		debug1("disconnect");
 		return OPENVPN_PLUGIN_FUNC_SUCCESS;
 	case OPENVPN_PLUGIN_TLS_VERIFY:
-		sys_dbg("tls verify");
+		debug1("tls verify");
 		return OPENVPN_PLUGIN_FUNC_SUCCESS;
 	case OPENVPN_PLUGIN_TLS_FINAL:
-		sys_dbg("aaa tls server authentication");
+		debug1("aaa tls server authentication");
 		return OPENVPN_PLUGIN_FUNC_SUCCESS;
 	default:
 		goto failed;

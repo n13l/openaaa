@@ -630,11 +630,10 @@ endif # $(dot-config)
 -include include/config/package.config
 export BUILD_DIRS
 
-objs-y += arch/$(SRCARCH) sys/$(PLATFORM) sys/unix sys/exec sys/plt mem test sys/tools \
-          $(BUILD_DIRS)
+objs-y += arch/$(SRCARCH) sys mem test sys/tools $(BUILD_DIRS)
 
-include arch/$(SRCARCH)/Makefile                                                
--include modules/Makefile                                                        
+include arch/$(SRCARCH)/Makefile
+-include modules/Makefile
 
 package-dirs  := $(objs-y) $(libs-y) $(objs-m) 
 package-objs  := $(patsubst %,%/built-in.o, $(objs-y))
@@ -644,7 +643,7 @@ package-all   := $(package-objs) $(package-libs)
 package: $(package-all)
 $(sort $(package-all)): $(package-dirs) ;
 
-PHONY += $(package-dirs)                                                        
+PHONY += $(package-dirs)
 $(package-dirs): scripts_basic
 	$(Q)$(MAKE) $(build)=$@
 

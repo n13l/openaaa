@@ -1,2 +1,1 @@
-obj-y += file.o exit.o timespec.o units.o irq.o
-obj-$(CONFIG_DEBUG_LIST) += list.o
+obj-y += file.o timespec.o irq.o

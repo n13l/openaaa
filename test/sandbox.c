@@ -1,6 +1,6 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
-#include <sys/abi.h>
+#include <sys/log.h>
 #include <mem/alloc.h>
 #include <list.h>
 #include <version.h>

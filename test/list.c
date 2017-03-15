@@ -39,11 +39,11 @@ test0_list(void)
 
 	struct person *p;
 	for (p = it_begin(list, p, node); p; p = it_next(list, p, node)) {
-		printf("person=%p name=%s\n", p, p->name);
+		debug("person=%p name=%s", p, p->name);
 	}
 
 	it_for_each(list, p, node) {
-		printf("person=%p name=%s\n", p, p->name);
+		debug("person=%p name=%s", p, p->name);
 	}
 }
 
@@ -67,7 +67,7 @@ test1_list(void)
 	/* iterate over all objects */
 	list_for_each(n, list) {
 		struct person *p = __container_of(n, struct person, node);
-		printf("node=%p person=%p name=%s\n", n, p, p->name);
+		debug("node=%p person=%p name=%s", n, p, p->name);
 	}
 
 	/* iterate and unlink adam */
@@ -75,7 +75,7 @@ test1_list(void)
 		struct person *p = __container_of(n, struct person, node);
 		if (!strcmp(p->name, "Adam"))
 			list_del(&p->node);
-		printf("node=%p person=%p name=%s\n", n, p, p->name);
+		debug("node=%p person=%p name=%s", n, p, p->name);
 	}
 
 	struct node *cursor = &daniela.node;

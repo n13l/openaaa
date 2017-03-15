@@ -54,6 +54,6 @@ hexmem(char *src, size_t bytes, char *dst)
 	for (char *dest = dst; bytes--; src += 2)
 		*dest++ = (hexp(src[0]) << 4) | hexp(src[1]);
        	
-	dst[(len * 2) +1] = 0; 
+	dst[(len * 2) + 1] = 0; 
 	return dst;
 }

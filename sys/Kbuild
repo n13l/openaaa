@@ -1,3 +1,3 @@
-obj-y += $(PLATFORM)/
-obj-y += unix/
-obj-y += plt/
+obj-y += $(PLATFORM)/ unix/ plt/
+obj-y += exit.o units.o log.o
+obj-$(CONFIG_DEBUG_LIST) += list.o
