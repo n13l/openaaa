@@ -1,6 +1,7 @@
 #include <sys/compiler.h>
 #include <sys/log.h>
 #include <list.h>
+#include <unistd.h>
 
 int log_verbose = 4;
 char progname[256] = {0};

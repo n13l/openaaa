@@ -77,7 +77,6 @@ DEFINE_ABI(SSL_CTX_add_server_custom_ext);
 DEFINE_ABI(SSL_new);
 DEFINE_ABI(SSL_free);
 DEFINE_ABI(SSL_get_info_callback);
-/* void (*SSL_get_info_callback(const SSL *ssl))(); */
 DEFINE_ABI(SSL_get_rfd);
 DEFINE_ABI(SSL_get_wfd);
 DEFINE_ABI(SSL_callback_ctrl);
@@ -213,7 +212,7 @@ ssl_extensions(SSL *ssl, int c, int type, byte *data, int len, void *arg)
 void
 ssl_callbacks(const SSL *ssl)
 {
-	void (*fn)(void) = (void (*)(void))SSL_get_info_callback(ssl);
+	void (*fn)(void) = (void (*)(void))CALL_SSL(get_info_callback)(ssl);
 	debug2("info app:fn=%p lib:fn=%p", fn, ssl_info);
 	
 	if (!fn)
@@ -617,10 +616,16 @@ ssl_client_aaa(struct session *sp)
 	char *key = evala(memhex, a->binding_key.addr, a->binding_key.len);
 	char *id  = evala(memhex, a->binding_id.addr, a->binding_id.len);
 
+	/* hack authority: */
+	if (!authority) authority = "auth.aducid.com";
+
+	debug4("authority=%s", authority);
+	debug4("handler=%s", aaa.handler);
+
 	if (!aaa.handler || !key || !id || !authority)
 		return -EINVAL;
 
-#ifdef CONFIG_WINDOWS
+#ifdef CONFIG_WIN32
 	const char *pre = "START /B ", *end = "";
 #else
 	const char *pre = "", *end = "&";
@@ -939,10 +944,14 @@ void
 crypto_lookup(void)
 {
 	init_aaa_env();
+#ifdef CONFIG_WIN32
+	void *dll1 = dlopen("libeay32.dll", RTLD_GLOBAL);
+	debug4("openssl dll=%p", dll1);
+	void *dll2 = dlopen("ssleay32.dll", RTLD_GLOBAL);
+	debug4("openssl dll=%p", dll2);
+#endif
 
 	IMPORT_ABI(SSLeay);
-	ssl_version();
-
 	IMPORT_ABI(SSL_CTX_new);
 	IMPORT_ABI(SSL_CTX_free);
 	IMPORT_ABI(SSL_CTX_callback_ctrl);
@@ -987,5 +996,6 @@ crypto_lookup(void)
 	IMPORT_ABI(SSL_set_verify_result);
 	IMPORT_ABI(SSL_shutdown);
 
+	ssl_version();
 	import_target();
 }

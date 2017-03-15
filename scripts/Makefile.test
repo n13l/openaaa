@@ -31,7 +31,7 @@ testc_flags = -Wp,-MD,$(depfile) $(KBUILD_CFLAGS) $(KBUILD_CPPFLAGS) \
 
 testld_flags = 
 testld_builtin = arch/$(SRCARCH)/built-in.o sys/built-in.o mem/built-in.o
-testld_libs = $(KBUILD_LIBS) -ldl
+testld_libs = $(KBUILD_LIBS)
 
 # test-csingle -> executable
 quiet_cmd_test-csingle = CC      $@

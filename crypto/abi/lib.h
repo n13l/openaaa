@@ -66,6 +66,8 @@ struct symbol {
 
 #define IMPORT_ABI(fn) \
         plt_##fn.plt_##fn = dlsym(RTLD_DEFAULT, stringify(fn)); \
+	if (!plt_##fn.plt_##fn) \
+		error("symbol addr=%p name=%s", plt_##fn.plt_##fn, stringify(fn)); \
 	list_add_tail(&openssl_symtab, &plt_##fn.node);
 
 #define EXISTS_ABI(fn) \

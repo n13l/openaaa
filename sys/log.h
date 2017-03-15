@@ -104,8 +104,8 @@ do { \
 extern int log_verbose;
 
 struct log_ctx {
-	char *module;
-	char *fn;
+	const char *module;
+	const char *fn;
 	char *file;
 	int   line;
 	int   level;
@@ -118,21 +118,21 @@ struct log_ctx {
 #define debug(fmt, ...) \
 do { \
   if (log_verbose < 0) break; \
-  struct log_ctx log_ctx; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
 #define debug1(fmt, ...) \
 do { \
   if (log_verbose < 1) break; \
-  struct log_ctx log_ctx; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
 #define debug2(fmt, ...) \
 do { \
   if (log_verbose < 2) break; \
-  struct log_ctx log_ctx; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
   log_printf(&log_ctx, fmt, ## __VA_ARGS__); \
 } while(0)
 
@@ -141,32 +141,32 @@ do { \
 #define debug3(fmt, ...) \
 do { \
   if (log_verbose < 3) break; \
-  struct log_ctx log_ctx; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
 #define debug4(fmt, ...) \
 do { \
   if (log_verbose < 4) break; \
-  struct log_ctx log_ctx; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
 #define info(fmt, ...) \
 do { \
-  struct log_ctx log_ctx; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
 #define error(fmt, ...) \
 do { \
-  struct log_ctx log_ctx; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
 #define warning(fmt, ...) \
 do { \
-  struct log_ctx log_ctx; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 

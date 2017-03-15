@@ -41,8 +41,10 @@ plugin_log_t ovpn_log = NULL;
 static void 
 ovpn_log_write(struct log_ctx *ctx, const char *msg, int len)
 {
+	char buf[4096] = {0};
+	snprintf(buf, sizeof(buf) - 1, "%s:%s %s", ctx->module, ctx->fn, msg);
 	if (ovpn_log)
-		ovpn_log(PLOG_NOTE, "aaa", msg);
+		ovpn_log(PLOG_NOTE, "aaa", buf);
 }
 
 static const char *
