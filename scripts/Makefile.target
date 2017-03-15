@@ -52,7 +52,7 @@ EXEC_EX=
 endif
 
 ifeq ($(PLATFORM),linux)
-KBUILD_LIBS += -lrt -lm
+KBUILD_LIBS += -lrt -lm -ldl
 endif
 
 ifeq ($(ARCH),s390)
