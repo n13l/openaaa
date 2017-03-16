@@ -32,6 +32,7 @@
 #include <mem/stack.h>
 
 #include <dlfcn.h>
+#include <unistd.h>
 #include <sys/plt/plthook.h>
 #include <net/tls/ext.h>
 
