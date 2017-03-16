@@ -213,8 +213,6 @@ void
 ssl_callbacks(const SSL *ssl)
 {
 	void (*fn)(void) = (void (*)(void))CALL_SSL(get_info_callback)(ssl);
-	debug2("info app:fn=%p lib:fn=%p", fn, ssl_info);
-	
 	if (!fn)
 		return;
 
@@ -233,19 +231,14 @@ session_init(const SSL *ssl)
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
 	struct session *sp = mm_zalloc(mp, sizeof(*sp));
 
-	sp->mp = mp;
-	sp->ssl = (SSL *)ssl;
-
-	ssl_callbacks(ssl);
-
 	dict_init(&sp->recved, mp);
 	dict_init(&sp->posted, mp);
 
+	sp->mp = mp;
+	sp->ssl = (SSL *)ssl;
+	ssl_callbacks(ssl);
+
 	SSL_SESS_SET((SSL *)ssl, sp);
-/*
-	void (*fn)(void) = (void (*)(void))ssl_extensions;
-	CALL_SSL(callback_ctrl)((SSL *)ssl, SSL_CTRL_SET_TLSEXT_DEBUG_CB, fn);
-*/
 	return sp;
 }
 
@@ -263,7 +256,6 @@ session_get0(const SSL *ssl)
 	struct session *sp = SSL_SESS_GET((SSL *)ssl);
 	return sp ? sp : session_init((SSL *)ssl);
 }
-
 
 static inline int
 export_keying_material(struct session *sp)
@@ -317,9 +309,15 @@ ssl_derive_keys(struct session *sp)
 		return -EINVAL;
 
 	struct sha1 sha1;
-
 	sha1_init(&sha1);
+
+#define OPENAAA_COMPAT 1
+#ifdef  OPENAAA_COMPAT
+	key = evala(memhex, a->binding_key.addr, a->binding_key.len);
+	sha1_update(&sha1, key, strlen(key));
+#else
 	sha1_update(&sha1, a->binding_key.addr, a->binding_key.len);
+#endif
 	key = sha1_final(&sha1);
 
 	a->binding_id.addr = mm_alloc(sp->mp, SHA1_SIZE);
@@ -425,7 +423,7 @@ ssl_server_add(SSL *s, uint type, const byte **out, size_t *len, int *al, void *
 	}
 
 	b[sz] = 0;
-	debug("extension name=%s type=%d send ",tls_strext(type), type);
+	debug("extension name=%s type=%d send",tls_strext(type), type);
 	*out = b;
 	return 1;
 }
@@ -434,16 +432,10 @@ int
 ssl_server_get(SSL *s, uint type, const byte*in, size_t len, int *l, void *a)
 {
 	struct session *sp = session_get0(s);
-	debug("extension name=%s type=%d recv",tls_strext(type), type);
+	debug("extension name=%s type=%d recv", tls_strext(type), type);
 
-	if (!len)
-		return 1;
-
-	switch (type) {
-	case TLS_EXT_SUPPLEMENTAL_DATA:
+	if (len && (type == TLS_EXT_SUPPLEMENTAL_DATA))
 		ssl_parse_attrs(sp, (char *)in, len);
-		break;
-	}
 
 	return 1;
 }
@@ -488,14 +480,8 @@ ssl_client_get(SSL *ssl, unsigned int type, const byte *in, size_t len,
 	struct session *sp = session_get0(ssl);
 	debug("extension name=%s type=%d recv", tls_strext(type), type);
 
-	if (!len)
-		return 1;
-
-	switch (type) {
-	case TLS_EXT_SUPPLEMENTAL_DATA:
+	if (len && (type == TLS_EXT_SUPPLEMENTAL_DATA))
 		ssl_parse_attrs(sp, (char *)in, len);
-		break;
-	}
 
 	return 1;
 }
@@ -614,11 +600,9 @@ ssl_client_aaa(struct session *sp)
 
 	struct aaa_keys *a = &sp->keys;
 	char *key = evala(memhex, a->binding_key.addr, a->binding_key.len);
-	char *id  = evala(memhex, a->binding_id.addr, a->binding_id.len);
+	char *id  = evala(memhex, a->binding_id.addr,  a->binding_id.len);
 
-	/* hack authority: */
-	if (!authority) authority = "auth.aducid.com";
-
+	authority = authority ? authority : aaa.authority;
 	debug4("authority=%s", authority);
 	debug4("handler=%s", aaa.handler);
 
@@ -632,6 +616,7 @@ ssl_client_aaa(struct session *sp)
 #endif
 	const char *msg = printfa("%s%s -k%s -i%s -prx -a%s %s", 
 	                          pre, aaa.handler, key, id, authority, end);
+	sleep(2);
 	int status = system(msg);
 	debug("%s:%d", msg, WEXITSTATUS(status));
 
@@ -945,10 +930,8 @@ crypto_lookup(void)
 {
 	init_aaa_env();
 #ifdef CONFIG_WIN32
-	void *dll1 = dlopen("libeay32.dll", RTLD_GLOBAL);
-	debug4("openssl dll=%p", dll1);
-	void *dll2 = dlopen("ssleay32.dll", RTLD_GLOBAL);
-	debug4("openssl dll=%p", dll2);
+	_unused void *dll1 = dlopen("libeay32.dll", RTLD_GLOBAL);
+	_unused void *dll2 = dlopen("ssleay32.dll", RTLD_GLOBAL);
 #endif
 
 	IMPORT_ABI(SSLeay);

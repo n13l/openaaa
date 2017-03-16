@@ -94,15 +94,25 @@ openvpn_plugin_open_v3(const int version,
 {
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
 	struct ovpn_ctxt *ovpn = mm_alloc(mp, sizeof(*ovpn));
+	ovpn_log = args->callbacks->plugin_log;
 
 	log_custom_set(ovpn_log_write);
 
 	envp_dbg(args->envp);
 
-	ovpn->mp_api = mm_pool_create(CPU_PAGE_SIZE, 0);
+	const char *protocol  = envp_get("openaaa_protocol", args->envp);
+	const char *handler   = envp_get("openaaa_handler", args->envp);
+	const char *authority = envp_get("openaaa_authority", args->envp);
 
+	if (protocol)
+		setenv("OPENAAA_PROTOCOL", protocol, 1);
+	if (handler)
+		setenv("OPENAAA_HANDLER", handler, 1);
+	if (authority)
+		setenv("OPENAAA_AUTHORITY", authority, 1);
+
+	ovpn->mp_api = mm_pool_create(CPU_PAGE_SIZE, 0);
 	ovpn->mp = mp;
-	ovpn_log = args->callbacks->plugin_log;
 	ovpn->type = envp_get("remote_1", args->envp) ? VPN_CLIENT : VPN_SERVER;
 
 	switch(ovpn->type) {

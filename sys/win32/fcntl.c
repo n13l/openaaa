@@ -23,6 +23,29 @@
 #include <sys/compiler.h>
 #include <windows.h>
 #include <io.h>
+#include <stdlib.h>  
+#include <stdio.h>  
+
+#ifdef __MINGW32__
+/* MINGW defines _wgetenv_s(), but not getenv_s */
+/* however, it *is* in the runtime .dll, so if we just add it here we're good */
+/* MINGW wants you to use getenv(), I suppose, but getenv() makes */
+errno_t
+getenv_s(size_t *val, char *buf, size_t elements, const char *varname);
+#endif
+
+int
+setenv(const char *name, const char *value, int overwrite)
+{
+	int errcode = 0;
+	if(!overwrite) {
+		size_t envsize = 0;
+		errcode = getenv_s(&envsize, NULL, 0, name);
+		if(errcode || envsize) 
+			return errcode;
+	}
+	return _putenv_s(name, value);
+}
 
 int
 fcntl(int fd, int cmd, ... /* arg */ )

@@ -49,6 +49,11 @@ fcntl(int fd, int cmd, ... /* arg */ );
 #endif
 */
 
+#define sleep(a) Sleep(a * 1000)
+
+int
+setenv(const char *name, const char *value, int overwrite);
+
 struct tm *
 gmtime_r(const time_t *timep, struct tm *result);
 
