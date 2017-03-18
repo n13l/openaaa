@@ -8,8 +8,6 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <time.h>
-//#include <syslog.h>
-#include <unix/timespec.h>
 
 #ifndef LOG_ERROR
 #define LOG_ERROR 1
@@ -31,37 +29,8 @@
 #define CLOCK_REALTIME 1
 #endif
 
-#ifndef KBUILD_BASENAME
-#define KBUILD_BASENAME "test"
-#endif
-
 #ifndef KBUILD_MODNAME
-#define KBUILD_MODNAME "test"
-#endif
-
-#ifdef CONFIG_LOGGING
-# ifdef CONFIG_LOGGING_TIME
-#  define log_timespec \
-	char __tss[100]; _unused struct tm __tm; struct timespec ts; \
-	time_t __tmt = time(NULL); \
-	gmtime_r(&__tmt, &__tm); \
-	posix_clock_gettime(CLOCK_REALTIME, &ts); \
-	strftime(__tss, sizeof(__tss) - 1, "%m/%d/%Y %H:%M:%S", &__tm);
-#  define log_time_fmt "%s.%09ld %s:%s: "
-#  define log_time_arg __tss, ts.tv_nsec, KBUILD_MODNAME , __func__
-# endif
-#endif
-
-#ifndef log_time_fmt
-#define log_time_fmt "%s"
-#endif
-
-#ifndef log_time_arg
-#define log_time_arg ""
-#endif
-
-#ifndef log_timespec
-#define log_timespec do {} while(0);
+#define KBUILD_MODNAME ""
 #endif
 
 #define __syscall_error(fn, args)                                             \
@@ -84,22 +53,6 @@ static inline bool syscall_lint (long int arg){ return arg >= 0 ? false: true;}
 		{ __syscall_error(#fn, #args); exit(errno);} \
 	__v; \
 })
-/*
-#define sys_dbg(fmt, ...) \
-	printf(fmt "\n", ## __VA_ARGS__)
-#define sys_info(fmt, ...) \
-	printf(fmt "\n", ## __VA_ARGS__)
-#define sys_msg(fmt, ...) \
-	printf(fmt "\n", ## __VA_ARGS__)
-#define sys_err(fmt, ...) \
-	printf(fmt "\n", ## __VA_ARGS__)
-*/
-/*
-do { \
-	log_timespec \
-	printf(fmt, ## __VA_ARGS__); \
-} while(0)
-*/
 
 extern int log_verbose;
 
