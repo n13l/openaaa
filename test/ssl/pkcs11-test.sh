@@ -1,2 +1,3 @@
 #!/bin/sh
-/opt/aaa/bin/openssl engine pkcs11 -t
+export OPENSSL_CONF=./etc/pkcs11-linux.cfg
+openssl engine pkcs11 -t
