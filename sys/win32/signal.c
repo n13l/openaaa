@@ -1,5 +1,11 @@
 #include <windows.h>
 
+char *
+strsignal(int sig)
+{
+	return "";
+}
+
 int
 sigsetmask(int __mask)
 {

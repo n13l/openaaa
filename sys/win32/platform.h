@@ -62,6 +62,9 @@ gmtime_r(const time_t *timep, struct tm *result);
 
 struct timespec;
 
+char *
+strsignal(int sig);
+
 int
 posix_clock_gettime(int id, struct timespec *tv);
 
