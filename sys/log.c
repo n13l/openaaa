@@ -2,6 +2,7 @@
 #include <sys/log.h>
 #include <list.h>
 #include <unistd.h>
+#include <string.h>
 
 int log_verbose = 4;
 char progname[256] = {0};
@@ -41,9 +42,10 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 	if (log_write_cb) {
 		log_write_cb(ctx, msg, len);
 	} else {
-		msg[len] = '\n';
-		msg[len + 1] = 0;
-		write(0, msg, len + 1);
+		byte amsg[512];
+		snprintf(amsg, sizeof(amsg) - 1, "%s:%s %s\n", 
+		         ctx->module, ctx->fn, msg);
+		write(0, amsg, strlen(amsg));
 	}
 }
 

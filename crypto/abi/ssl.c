@@ -912,7 +912,7 @@ lookup_module(struct dl_phdr_info *info, size_t size, void *ctx)
 	if (!sym)
 		return 0;
 
-	char *v = ssl ? "framework" : "crypto";
+	char *v = ssl ? "framework" : "cryptolib";
 
 	debug("module type=%-9s name=%s", v, info->dlpi_name);
 
@@ -934,7 +934,6 @@ lookup_module(struct dl_phdr_info *info, size_t size, void *ctx)
 static void
 find_module(char *ssl_module)
 {
-	debug("module crypto lookup");
 	dl_iterate_phdr(lookup_module, ssl_module);
 }
 

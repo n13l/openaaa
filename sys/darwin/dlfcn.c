@@ -28,7 +28,6 @@
 #include <mem/alloc.h>
 #include <mem/pool.h>
 #include <list.h>
-#include <link.h>
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <string.h>
