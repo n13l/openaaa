@@ -29,4 +29,18 @@ struct timespec;
 int
 posix_clock_gettime(int clock_id, struct timespec *ts);
 
+struct mach_header;
+
+struct dl_phdr_info {
+	void *dlpi_addr;
+	const char *dlpi_name;
+	const struct mach_header *dlpi_phdr;
+	u64 dlpi_phnum;
+};
+
+int
+dl_iterate_phdr(int (*cb) (struct dl_phdr_info *info, 
+                size_t size, void *data), void *data);
+
+
 #endif
