@@ -1,2 +1,2 @@
 subdir-y := crypto/ perf/ mem/
-testprogs-y += sandbox hash list dict
+testprogs-y += array sandbox hash list dict mpm

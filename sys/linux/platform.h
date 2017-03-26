@@ -23,4 +23,15 @@
 const char *
 get_process_file(void);
 
+#include <sys/syscall.h>
+#ifdef SYS_gettid
+static inline pid_t gettid(void)
+{
+	return syscall(SYS_gettid);
+}
+#else
+#error "SYS_gettid unavailable on this system"
+#endif
+
+
 #endif

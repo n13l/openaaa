@@ -27,7 +27,7 @@ OpenAAA PKCS#11 Bridge
 %setup -q
 
 %build
-make defconfig DEBUG=1 -j1
+make defconfig -j1
 make -j1
 
 %install

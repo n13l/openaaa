@@ -1,6 +1,4 @@
 /*
- * Generic iterator
- *
  * The MIT License (MIT)         Copyright (c) 2017 Daniel Kubec <niel@rtfm.cz> 
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy 
@@ -22,12 +20,13 @@
  * THE SOFTWARE.
  */
 
-#ifndef __GENERIC_BYTEBUFFER_H__
-#define __GENERIC_BYTEBUFFER_H__
+#ifndef __GENERIC_BYTEBUFFERS_H__
+#define __GENERIC_BYTEBUFFERS_H__
 
+#include <sys/compiler.h>
 #include <stddef.h>
 
-struct bb {
+struct bbuf {
 	byte *addr;
 	size_t len;
 };

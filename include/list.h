@@ -43,6 +43,12 @@ struct slist { struct snode *head; };
 struct hlist { struct hnode *head; };
 
 static inline void
+node_init(struct node *node)
+{
+	node->next = node->prev = NULL;
+}
+
+static inline void
 list_init(struct list *list)
 {
 	struct node *head = &list->head;
