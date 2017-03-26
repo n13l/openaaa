@@ -1,6 +1,8 @@
 #ifndef __SYS_PLATFORM_H__
 #define __SYS_PLATFORM_H__
 
+#include <sys/compiler.h>
+
 #define SHLIB_EX           "dylib"
 
 #define HAVE_STRING_H
