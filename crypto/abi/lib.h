@@ -65,9 +65,16 @@ struct symbol {
 #define CALL_CTX(fn) plt_SSL_CTX_##fn.plt_SSL_CTX_##fn
 
 #define IMPORT_ABI(fn) \
-        plt_##fn.plt_##fn = dlsym(RTLD_DEFAULT, stringify(fn)); \
+	list_for_each(n, ssl_module_list) { \
+		struct ssl_module *ssl_module = __container_of(n, struct ssl_module, node); \
+		plt_##fn.plt_##fn = dlsym(ssl_module->dll, stringify(fn)); \
+		if (plt_##fn.plt_##fn) break; \
+        	plt_##fn.plt_##fn = dlsym(RTLD_DEFAULT, stringify(fn)); \
+		if (plt_##fn.plt_##fn) break; \
+		debug4("symbol dll=%p addr=%p name=%s", dll, plt_##fn.plt_##fn, stringify(fn)); \
+	} \
 	if (!plt_##fn.plt_##fn) \
-		error("symbol addr=%p name=%s", plt_##fn.plt_##fn, stringify(fn)); \
+		die("symbol addr=%p name=%s", plt_##fn.plt_##fn, stringify(fn)); \
 	list_add_tail(&openssl_symtab, &plt_##fn.node);
 
 #define EXISTS_ABI(fn) \

@@ -46,6 +46,10 @@
 #include <wincrypt.h>
 #endif
 
+#ifdef CONFIG_LINUX
+#include <link.h>
+#endif
+
 /* We dont't link agaist openssl but using important signatures */
 #include <crypto/abi/openssl/ssl.h>
 #include <crypto/abi/openssl/crypto.h>
@@ -142,6 +146,14 @@ struct ssl_cb {
 	ssl_cb_info cb_info;
 	ssl_cb_ext cb_ext;
 } ssl_cb;
+
+struct list ssl_module_list;
+
+struct ssl_module {
+	struct node node;
+	char *file;
+	void *dll;
+};
 
 struct ssl_aaa {
 	char *authority;
@@ -876,24 +888,74 @@ symbol_print(void)
 	list_for_each(n, openssl_symtab) {
 		struct symbol *p = container_of(n, struct symbol, node);
 		debug("name=%s abi=%p plt=%p", p->name, p->abi, p->plt);
+		if (!p->abi)
+			die("required symbol not found");
 	}
 }
 
-static void
-import_target(void)
+int
+lookup_module(struct dl_phdr_info *info, size_t size, void *ctx)
 {
+	if (!info->dlpi_name || !*info->dlpi_name)
+		return 0;
+
+	int ssl = 0;
+	if (strstr(info->dlpi_name, "tcnative"))
+		ssl = 1;
+	if (strstr(info->dlpi_name, "mod_ssl"))
+		ssl = 1;
+
+	void *dll = dlopen(info->dlpi_name, RTLD_LAZY);
+	void *sym = dll ? dlsym(dll, "SSL_CTX_new") : NULL;
+	sym = (dll && !sym) ? dlsym(dll, "SSLeay") : sym;
+
+	if (!sym)
+		return 0;
+
+	debug("module name=%s %s", info->dlpi_name, ssl ? "framework" : "");
+
+	struct ssl_module *ssl_module = malloc(sizeof(*ssl_module));
+	ssl_module->dll = dll;
+	ssl_module->file = strdup(info->dlpi_name);
+	
+	list_add(&ssl_module_list, &ssl_module->node);
+	if (!ssl)
+		return 0;
+
+#ifdef CONFIG_WIN32
+	dll = dlopen(info->dlpi_name, RTLD_GLOBAL);
+#endif
+	snprintf(ctx, 254, "%s", info->dlpi_name);
+	return 0;
+}
+
+static void
+find_module(char *ssl_module)
+{
+	debug("module crypto lookup");
+	dl_iterate_phdr(lookup_module, ssl_module);
+}
+
+static void
+import_target(void *dll)
+{
+	debug4("module target=%p", dll);
 	plthook_t *plt;
-	plthook_open(&plt, NULL);
+
+	if (!dll) 
+		plthook_open(&plt, NULL);
+	else
+		plthook_open_by_handle(&plt, dll);
 	if (!plt)
 		return;
 
+	debug4("module imported");
 	UPDATE_ABI(SSL_CTX_callback_ctrl);
 	UPDATE_ABI(SSL_CTX_set_info_callback);
 	UPDATE_ABI(SSL_CTX_new);
 	UPDATE_ABI(SSL_callback_ctrl);
 	UPDATE_ABI(SSL_set_info_callback);
 	UPDATE_ABI(SSL_new);
-
 	plthook_close(plt);
 }
 
@@ -929,11 +991,11 @@ init_aaa_env(void)
 void
 crypto_lookup(void)
 {
-	init_aaa_env();
-#ifdef CONFIG_WIN32
-	_unused void *dll1 = dlopen("libeay32.dll", RTLD_GLOBAL);
-	_unused void *dll2 = dlopen("ssleay32.dll", RTLD_GLOBAL);
-#endif
+	list_init(&ssl_module_list);
+
+	char ssl_module[255] = {0};
+	find_module(ssl_module);
+	void *dll = *ssl_module ? dlopen(ssl_module, RTLD_LAZY) : NULL;
 
 	IMPORT_ABI(SSLeay);
 	IMPORT_ABI(SSL_CTX_new);
@@ -980,6 +1042,8 @@ crypto_lookup(void)
 	IMPORT_ABI(SSL_set_verify_result);
 	IMPORT_ABI(SSL_shutdown);
 
+	import_target(dll);
+
 	ssl_version();
-	import_target();
+	init_aaa_env();
 }
