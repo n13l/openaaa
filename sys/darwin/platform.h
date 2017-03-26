@@ -22,6 +22,10 @@ mremap(void *addr, int size , int , int);
 
 struct timespec;
 
+#ifndef gettid
+#define gettid(...) (int)1
+#endif
+
 int
 posix_clock_gettime(int clock_id, struct timespec *ts);
 

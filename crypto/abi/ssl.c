@@ -912,7 +912,9 @@ lookup_module(struct dl_phdr_info *info, size_t size, void *ctx)
 	if (!sym)
 		return 0;
 
-	debug("module name=%s %s", info->dlpi_name, ssl ? "framework" : "");
+	char *v = ssl ? "framework" : "crypto";
+
+	debug("module type=%-9s name=%s", v, info->dlpi_name);
 
 	struct ssl_module *ssl_module = malloc(sizeof(*ssl_module));
 	ssl_module->dll = dll;
@@ -939,9 +941,7 @@ find_module(char *ssl_module)
 static void
 import_target(void *dll)
 {
-	debug4("module target=%p", dll);
 	plthook_t *plt;
-
 	if (!dll) 
 		plthook_open(&plt, NULL);
 	else

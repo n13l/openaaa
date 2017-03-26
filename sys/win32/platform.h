@@ -48,7 +48,9 @@ fcntl(int fd, int cmd, ... /* arg */ );
 #define gmtime_r(a,b) gmtime_s(b,a)
 #endif
 */
-static inline int gettid(void) { return GetCurrentThreadId(); }
+#ifndef gettid
+#define gettid(...) (int)GetCurrentThreadId()
+#endif
 
 #define sleep(a) Sleep(a * 1000)
 
