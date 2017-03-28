@@ -917,7 +917,7 @@ lookup_module(struct dl_phdr_info *info, size_t size, void *ctx)
 	debug("module type=%-9s name=%s", v, info->dlpi_name);
 
 	struct ssl_module *ssl_module = malloc(sizeof(*ssl_module));
-	ssl_module->dll = NULL;
+	ssl_module->dll = dll;
 	ssl_module->file = strdup(info->dlpi_name);
 	
 	list_add(&ssl_module_list, &ssl_module->node);
@@ -927,7 +927,6 @@ lookup_module(struct dl_phdr_info *info, size_t size, void *ctx)
 #ifdef CONFIG_WIN32
 	dll = dlopen(info->dlpi_name, RTLD_GLOBAL);
 #endif
-	ssl_module->dll = dll;
 	snprintf(ctx, 254, "%s", info->dlpi_name);
 	return 0;
 }

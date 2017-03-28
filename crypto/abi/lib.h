@@ -67,13 +67,12 @@ struct symbol {
 #define IMPORT_ABI(fn) \
 	list_for_each(n, ssl_module_list) { \
 		struct ssl_module *ssl_module = __container_of(n, struct ssl_module, node); \
-		plt_##fn.plt_##fn = dlsym(RTLD_DEFAULT, stringify(fn)); \
-		if (plt_##fn.plt_##fn) break; \
-		if (ssl_module->dll) { \
+		if (!ssl_module->dll) continue; \
 		plt_##fn.plt_##fn = dlsym(ssl_module->dll, stringify(fn)); \
 		if (plt_##fn.plt_##fn) break; \
-		} \
 	} \
+	if (!plt_##fn.plt_##fn) \
+		plt_##fn.plt_##fn = dlsym(RTLD_DEFAULT, stringify(fn)); \
 	if (!plt_##fn.plt_##fn) \
 		die("symbol addr=%p name=%s", plt_##fn.plt_##fn, stringify(fn)); \
 	list_add_tail(&openssl_symtab, &plt_##fn.node);
@@ -83,10 +82,8 @@ struct symbol {
 
 #define UPDATE_ABI(fn) do {\
 	plt_##fn.abi_##fn = (typeof(plt_##fn.abi_##fn))abi_##fn; \
-	void *addr = dlsym(RTLD_DEFAULT, stringify(fn)); \
-	debug4("abi=%p addr=%p name=%s", abi_##fn, addr, stringify(fn)); \
 	if (plthook_replace(plt, stringify(fn), abi_##fn, (void**)&plt_##fn.plt_##fn)) \
-	  die("%s", plthook_error()); \
+	  error("%s", plthook_error()); \
 	} while(0)
 
 void
