@@ -421,10 +421,10 @@ export CONFIG_$(PLAT)=y
 
 # -Werror-implicit-function-declaration \
 
-KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes \
-		   -fno-strict-aliasing \
-		   -Wno-format-security \
-                   -std=gnu1x
+KBUILD_CFLAGS   := -Wall -Wstrict-prototypes -Wno-bitwise-op-parentheses \
+		   -fno-strict-aliasing -Wno-extern-initializer \
+		   -Wno-format-security -Wunused-function -Wno-comment \
+                   -std=gnu1x -Wno-unneeded-internal-declaration
 
 -include scripts/Makefile.shared
 
@@ -756,9 +756,10 @@ endif
 
 #KBUILD_CFLAGS   += $(call cc-option, -fno-var-tracking-assignments)
 
-#ifdef CONFIG_DEBUG
-#KBUILD_CFLAGS += -O0
-#endif
+ifdef CONFIG_DEBUG
+KBUILD_CFLAGS += -O0
+#else
+endif
 
 ifdef CONFIG_DEBUG_INFO
 ifdef CONFIG_DEBUG_INFO_SPLIT

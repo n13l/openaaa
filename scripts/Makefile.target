@@ -54,6 +54,7 @@ endif
 
 ifeq ($(PLATFORM),linux)
 KBUILD_LIBS += -lrt -lm -ldl
+KBUILD_CFLAGS += -Wundef
 endif
 
 ifeq ($(ARCH),s390)
@@ -73,5 +74,4 @@ endif
 
 export PLATFORM PLATFORM_U
 export ARCH HOST TARGET SO LD
-export SHLIB_EX KBUILD_CFLAGS EXE_LDFLAGS KBUILD_LIBS
-#
+export SHLIB_EX KBUILD_CFLAGS EXE_LDFLAGS KBUILD_LIBS KBUILD_CFLAGS

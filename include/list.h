@@ -150,6 +150,15 @@ list_del(struct node *node)
 #define __list_walk_first_delsafe(N) (N)
 #define __list_walk_next_delsafe(N) (N)
 
+#define list_item(type, node, ...) \
+({ type __o = (type) { .node = INIT_NODE ,## __VA_ARGS__ }; &__o.node; })
+
+#define list_node(item, node) &(item.node)
+
+#define list_for_first(list) (list).head.next
+#define list_for_head(list) &(list).head
+#define list_for_last(list, node) &(it->node) != &(list).head
+
 #define list_walk(start, n, list) \
 	for (struct node *(n) = (start); (n) != &list.head; (n) = (n)->next)
 
@@ -163,6 +172,13 @@ list_del(struct node *node)
 #define list_for_each_delsafe(n, list) \
 	for (struct node *it, *(n) = (list).head.next; \
 		(it) = (n)->next, (n) != &(list).head; (n) = it)
+
+/* struct person *p = __container_of(n, struct person, node); */
+
+#define list_for_each_type(it, node, list) \
+	for ((it) = __container_of(list_for_first(list), typeof(*it), node); \
+	     &(it->node) != &(list).head; \
+	     (it) = __container_of(it->node.next, typeof(*it), node))
 
 static inline void
 snode_init(struct snode *snode)

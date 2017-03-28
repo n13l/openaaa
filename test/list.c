@@ -13,9 +13,6 @@ struct person {
 	struct node node;
 };
 
-#define DECLARE_PERSON(name) \
-	({ (struct person) {.name = ##name,  .node = INIT_NODE}; })
-
 _unused static void
 test0_list(void)
 {
@@ -107,22 +104,42 @@ test2_list(void)
 	struct person eve     = {.name = "Eve",     .node = INIT_NODE};
 	struct person robot   = {.name = "Robot",   .node = INIT_NODE};
 
-	list_add_tail(&list, &daniel.node);
-	list_add_tail(&list, &daniela.node);
-	list_add_tail(&list, &adam.node);
-	list_add_tail(&list, &eve.node);
-	list_add_tail(&list, &robot.node);
+	list_add_tail(&list, list_node(daniel, node));
+	list_add_tail(&list, list_node(daniela, node));
+	list_add_tail(&list, list_node(adam, node));
+	list_add_tail(&list, list_node(eve, node));
+	list_add_tail(&list, list_node(robot, node));
 
 	list_for_each_delsafe(n, list)
 		list_del(n);
+}
 
+struct user {
+	char *name;
+	int id;
+	struct node n;
+};
+
+static void
+test3_list(void)
+{
+	DECLARE_LIST(list);
+
+	list_add(&list, list_item(struct user, n));
+	list_add(&list, list_item(struct user, n, .name = "Daniel"));
+	list_add(&list, list_item(struct user, n, .name = "Adam", .id = 1));
+
+	struct user *user;
+	list_for_each_type(user, n, list) {
+		debug("user name=%s", user->name);
+	};
 }
 
 int 
 main(int argc, char *argv[]) 
 {
-//	test0_list();
 	test1_list();
 	test2_list();
+	test3_list();
 	return 0;
 }

@@ -2,7 +2,7 @@
 #include <sys/log.h>
 #include <array.h>
 
-static const int const array_int[] = {
+static const int array_int[] = {
 	1, 2, 3, 4, 5, 6
 };
 	

@@ -35,10 +35,26 @@
 #define EV_PERIODIC_ENABLE 0
 #define EV_STAT_ENABLE 0
 #define EV_FORK_ENABLE 1
+#define EV_USE_IOCP 0
+#define EV_SELECT_IS_WINSOCKET 0
+#define EV_GENWRAP 0
+#define ECB_MEMORY_FENCE_NEEDS_PTHREADS 0
+#define EV_AVOID_STDIO 0
+#define EV_NO_THREADS 0
+#define EV_NO_SMP 0
+#define _MSC_VER 0
+
 #include <sys/ev/ev.c>
 
+enum task_type_e {
+	TASK_TYPE_NONE      = 0,
+	TASK_TYPE_DISP,          /* dispatcher for system events / signals */
+	TASK_TYPE_PROC,          /* process */
+	TASK_TYPE_TH,            /* thread */
+};
+
 int
-task_dispatcher(void)
+task_type(void)
 {
 	return getpid() == gettid();
 }
@@ -72,12 +88,14 @@ task_init(struct task *task)
 
 	task->ev_loop = ev_default_loop(0);
 	/* setup signal handlers */
+/*	
 	ev_signal_init(&task->sigint_watcher,  task_signal_cb, SIGINT);
 	ev_signal_init(&task->sigterm_watcher, task_signal_cb, SIGTERM);
 	ev_signal_init(&task->sighup_watcher,  task_signal_cb, SIGHUP);
 	ev_signal_start(task->ev_loop, &task->sigint_watcher);
 	ev_signal_start(task->ev_loop, &task->sigterm_watcher);
 	ev_signal_start(task->ev_loop, &task->sighup_watcher);
+*/	
 }
 
 void
@@ -88,20 +106,33 @@ task_fini(struct task *task)
 int
 task_wait(struct task *task)
 {
-	debug("dispatcher=%s", task_dispatcher() ? "yes" : "no");
+	debug("dispatcher=%s", task_type() ? "yes" : "no");
 	ev_loop(task->ev_loop, 0);
 	return 0;
+}
+
+struct task self;
+
+void
+sched_init(void)
+{
+	debug("started");
+}
+
+void
+sched_fini(void)
+{
+	debug("stopped");
 }
 
 int 
 main(int argc, char *argv[]) 
 {
-	debug("mpm started");
-	debug("sizeof ev_signal=%d", (int) sizeof(struct ev_signal));
+	sched_init();
 
-	struct task self;
 	task_init(&self);
 	task_wait(&self);
 
+	sched_fini();
 	return 0;
 }
