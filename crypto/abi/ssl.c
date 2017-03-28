@@ -917,7 +917,7 @@ lookup_module(struct dl_phdr_info *info, size_t size, void *ctx)
 	debug("module type=%-9s name=%s", v, info->dlpi_name);
 
 	struct ssl_module *ssl_module = malloc(sizeof(*ssl_module));
-	ssl_module->dll = dll;
+	ssl_module->dll = NULL;
 	ssl_module->file = strdup(info->dlpi_name);
 	
 	list_add(&ssl_module_list, &ssl_module->node);
@@ -927,6 +927,7 @@ lookup_module(struct dl_phdr_info *info, size_t size, void *ctx)
 #ifdef CONFIG_WIN32
 	dll = dlopen(info->dlpi_name, RTLD_GLOBAL);
 #endif
+	ssl_module->dll = dll;
 	snprintf(ctx, 254, "%s", info->dlpi_name);
 	return 0;
 }
@@ -940,15 +941,18 @@ find_module(char *ssl_module)
 static void
 import_target(void *dll)
 {
-	plthook_t *plt;
-	if (!dll) 
-		plthook_open(&plt, NULL);
+	int rv;
+	plthook_t *plt = NULL;
+	if (!dll)
+		rv = plthook_open(&plt, NULL);
 	else
-		plthook_open_by_handle(&plt, dll);
+		rv = plthook_open_by_handle(&plt, dll);
+
+	debug4("open status=%d", rv);
 	if (!plt)
 		return;
 
-	debug4("module imported");
+	debug4("module imported %s", dll ? "framework" : "target");
 	UPDATE_ABI(SSL_CTX_callback_ctrl);
 	UPDATE_ABI(SSL_CTX_set_info_callback);
 	UPDATE_ABI(SSL_CTX_new);
@@ -994,6 +998,8 @@ crypto_lookup(void)
 
 	char ssl_module[255] = {0};
 	find_module(ssl_module);
+
+	debug3("module %s", *ssl_module ? "framework" : "target");
 	void *dll = *ssl_module ? dlopen(ssl_module, RTLD_LAZY) : NULL;
 
 	IMPORT_ABI(SSLeay);

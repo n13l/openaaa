@@ -42,7 +42,7 @@ PLATFORM ?= $(shell $(src)/scripts/host_from_sys.sh $(TARGET))
 PLAT:=$(shell echo "$(PLATFORM)" | tr '[:lower:]' '[:upper:]')
 
 ifeq ($(PLATFOWM),win32)
-# KBUILD_CFLAGS += -D__USE_MINGW_ANSI_STDIO=1
+KBUILD_CFLAGS += -D__USE_MINGW_ANSI_STDIO=1
 SHLIB_EX=dll
 EXEC_EX=exe
 endif
@@ -54,7 +54,6 @@ endif
 
 ifeq ($(PLATFORM),linux)
 KBUILD_LIBS += -lrt -lm -ldl
-KBUILD_CFLAGS += -Wundef
 endif
 
 ifeq ($(ARCH),s390)

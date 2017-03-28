@@ -421,9 +421,9 @@ export CONFIG_$(PLAT)=y
 
 # -Werror-implicit-function-declaration \
 
-KBUILD_CFLAGS   := -Wall -Wstrict-prototypes -Wno-bitwise-op-parentheses \
-		   -fno-strict-aliasing -Wno-extern-initializer \
-		   -Wno-format-security -Wunused-function -Wno-comment \
+KBUILD_CFLAGS   := -Wall -Wstrict-prototypes \
+		   -fno-strict-aliasing \
+		   -Wno-format-security \
                    -std=gnu1x -Wno-unneeded-internal-declaration
 
 -include scripts/Makefile.shared

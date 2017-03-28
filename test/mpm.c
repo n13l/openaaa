@@ -35,14 +35,9 @@
 #define EV_PERIODIC_ENABLE 0
 #define EV_STAT_ENABLE 0
 #define EV_FORK_ENABLE 1
-#define EV_USE_IOCP 0
-#define EV_SELECT_IS_WINSOCKET 0
 #define EV_GENWRAP 0
-#define ECB_MEMORY_FENCE_NEEDS_PTHREADS 0
 #define EV_AVOID_STDIO 0
 #define EV_NO_THREADS 0
-#define EV_NO_SMP 0
-#define _MSC_VER 0
 
 #include <sys/ev/ev.c>
 
