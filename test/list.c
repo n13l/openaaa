@@ -125,9 +125,9 @@ test3_list(void)
 {
 	DECLARE_LIST(list);
 
-	list_add(&list, DECLARE_LIST_ITEM(struct user, n));
-	list_add(&list, DECLARE_LIST_ITEM(struct user, n, .name = "Daniel"));
-	list_add(&list, DECLARE_LIST_ITEM(struct user, n, .name = "Adam", .id = 1));
+	list_add(&list, DECLARE_ITEM(struct user, n));
+	list_add(&list, DECLARE_ITEM(struct user, n, .name = "Daniel"));
+	list_add(&list, DECLARE_ITEM(struct user, n, .name = "Adam", .id = 1));
 
 	struct user *user;
 	list_for_each_type(user, n, list) {
