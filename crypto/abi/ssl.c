@@ -947,7 +947,7 @@ import_target(void *dll)
 	else
 		rv = plthook_open_by_handle(&plt, dll);
 
-	if (!plt)
+	if (!plt || rv)
 		return;
 
 	debug4("module imported %s", dll ? "framework" : "target");
