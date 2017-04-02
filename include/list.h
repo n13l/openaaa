@@ -27,16 +27,12 @@
 #ifndef __GENERIC_LIST_H__
 #define __GENERIC_LIST_H__
 
-#define DEFINE_LIST(name)    struct list name;
-#define DEFINE_NODE(name)    struct node name;
 #define DECLARE_LIST(name)   struct list name = INIT_LIST(name)
 #define DECLARE_NODE(name)   struct node name = INIT_NODE
-
-#define DECLARE_LIST_ITEM(type, node,...) ({ type __o = (type) \
-                             {.node = INIT_NODE ,## __VA_ARGS__ }; &__o.node;})
+#define DECLARE_LIST_ITEM(type, node,...) \
+        ({ type __o = (type) {.node = INIT_NODE ,## __VA_ARGS__ }; &__o.node;})
 
 #define LIST_ITEM(item, node) &(item.node)
-
 #define INIT_NODE            { .next = NULL, .prev = NULL } 
 #define INIT_LIST(name)      {{(struct node *)&(name), (struct node *)&(name)}}
 

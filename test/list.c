@@ -95,7 +95,7 @@ test1_list(void)
 static void
 test2_list(void)
 {
-	DEFINE_LIST(list);
+	struct list list;
 	list_init(&list);
 
 	struct person daniel  = {.name = "Daniel",  .node = INIT_NODE};
