@@ -947,7 +947,6 @@ import_target(void *dll)
 	else
 		rv = plthook_open_by_handle(&plt, dll);
 
-	debug4("open status=%d", rv);
 	if (!plt)
 		return;
 
@@ -999,7 +998,7 @@ crypto_lookup(void)
 	find_module(ssl_module);
 
 	debug3("module %s", *ssl_module ? "framework" : "target");
-	void *dll = *ssl_module ? dlopen(ssl_module, RTLD_LAZY) : NULL;
+	void *dll = *ssl_module ? dlopen(ssl_module, RTLD_LAZY | RTLD_NOLOAD): NULL;
 
 	IMPORT_ABI(SSLeay);
 	IMPORT_ABI(SSL_CTX_new);

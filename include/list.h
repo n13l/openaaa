@@ -32,6 +32,11 @@
 #define DECLARE_LIST(name)   struct list name = INIT_LIST(name)
 #define DECLARE_NODE(name)   struct node name = INIT_NODE
 
+#define DECLARE_LIST_ITEM(type, node,...) ({ type __o = (type) \
+                             {.node = INIT_NODE ,## __VA_ARGS__ }; &__o.node;})
+
+#define LIST_ITEM(item, node) &(item.node)
+
 #define INIT_NODE            { .next = NULL, .prev = NULL } 
 #define INIT_LIST(name)      {{(struct node *)&(name), (struct node *)&(name)}}
 
@@ -149,11 +154,6 @@ list_del(struct node *node)
 #define __list_walk_next(N) (N)
 #define __list_walk_first_delsafe(N) (N)
 #define __list_walk_next_delsafe(N) (N)
-
-#define list_item(type, node, ...) \
-({ type __o = (type) { .node = INIT_NODE ,## __VA_ARGS__ }; &__o.node; })
-
-#define list_node(item, node) &(item.node)
 
 #define list_for_first(list) (list).head.next
 #define list_for_head(list) &(list).head

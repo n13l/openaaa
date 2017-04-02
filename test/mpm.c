@@ -43,9 +43,9 @@
 
 enum task_type_e {
 	TASK_TYPE_NONE      = 0,
-	TASK_TYPE_DISP,          /* dispatcher for system events / signals */
-	TASK_TYPE_PROC,          /* process */
-	TASK_TYPE_TH,            /* thread */
+	TASK_TYPE_DISP,          /* dispatcher */
+	TASK_TYPE_PROC,          /* process    */
+	TASK_TYPE_TH,            /* thread     */
 };
 
 int
@@ -73,7 +73,7 @@ struct task {
 	unsigned int id;
 	struct list list;
 	struct node node;
-};
+} task;
 
 void
 task_init(struct task *task)
@@ -83,14 +83,14 @@ task_init(struct task *task)
 
 	task->ev_loop = ev_default_loop(0);
 	/* setup signal handlers */
-/*	
+
 	ev_signal_init(&task->sigint_watcher,  task_signal_cb, SIGINT);
 	ev_signal_init(&task->sigterm_watcher, task_signal_cb, SIGTERM);
 	ev_signal_init(&task->sighup_watcher,  task_signal_cb, SIGHUP);
 	ev_signal_start(task->ev_loop, &task->sigint_watcher);
 	ev_signal_start(task->ev_loop, &task->sigterm_watcher);
 	ev_signal_start(task->ev_loop, &task->sighup_watcher);
-*/	
+
 }
 
 void
@@ -106,28 +106,31 @@ task_wait(struct task *task)
 	return 0;
 }
 
-struct task self;
-
 void
 sched_init(void)
 {
+	task_init(&task);
 	debug("started");
+}
+
+void
+sched_wait(void)
+{
+	task_wait(&task);
 }
 
 void
 sched_fini(void)
 {
 	debug("stopped");
+	task_fini(&task);
 }
 
 int 
 main(int argc, char *argv[]) 
 {
 	sched_init();
-
-	task_init(&self);
-	task_wait(&self);
-
+	sched_wait();
 	sched_fini();
 	return 0;
 }

@@ -104,11 +104,11 @@ test2_list(void)
 	struct person eve     = {.name = "Eve",     .node = INIT_NODE};
 	struct person robot   = {.name = "Robot",   .node = INIT_NODE};
 
-	list_add_tail(&list, list_node(daniel, node));
-	list_add_tail(&list, list_node(daniela, node));
-	list_add_tail(&list, list_node(adam, node));
-	list_add_tail(&list, list_node(eve, node));
-	list_add_tail(&list, list_node(robot, node));
+	list_add(&list, LIST_ITEM(daniel, node));
+	list_add(&list, LIST_ITEM(daniela, node));
+	list_add(&list, LIST_ITEM(adam, node));
+	list_add(&list, LIST_ITEM(eve, node));
+	list_add(&list, LIST_ITEM(robot, node));
 
 	list_for_each_delsafe(n, list)
 		list_del(n);
@@ -125,9 +125,9 @@ test3_list(void)
 {
 	DECLARE_LIST(list);
 
-	list_add(&list, list_item(struct user, n));
-	list_add(&list, list_item(struct user, n, .name = "Daniel"));
-	list_add(&list, list_item(struct user, n, .name = "Adam", .id = 1));
+	list_add(&list, DECLARE_LIST_ITEM(struct user, n));
+	list_add(&list, DECLARE_LIST_ITEM(struct user, n, .name = "Daniel"));
+	list_add(&list, DECLARE_LIST_ITEM(struct user, n, .name = "Adam", .id = 1));
 
 	struct user *user;
 	list_for_each_type(user, n, list) {
