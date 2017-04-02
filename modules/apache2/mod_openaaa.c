@@ -40,6 +40,9 @@
 #include "http_protocol.h"
 #include "http_core.h"
 
+#include "mod_ssl.h"
+#include "mod_ssl_openssl.h"
+
 #include "mod_openaaa.h"
 #include "private.h"
 #include "optional.h"
