@@ -35,10 +35,6 @@
 #include <unistd.h>
 #include <getopt.h>
 
-/*
-#undef KBUILD_MODNAME
-#define KBUILD_MODNAME KBUILD_STR(sys)
-*/
 #ifdef KBUILD_STR
 #undef KBUILD_STR
 #endif

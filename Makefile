@@ -630,7 +630,7 @@ endif # $(dot-config)
 -include include/config/package.config
 export BUILD_DIRS
 
-objs-y += arch/$(SRCARCH) sys mem test sys/tools $(BUILD_DIRS)
+objs-y += arch/$(SRCARCH) sys mem test tools $(BUILD_DIRS)
 
 include arch/$(SRCARCH)/Makefile
 -include modules/Makefile
@@ -933,7 +933,7 @@ export mod_sign_cmd
 ifeq ($(KBUILD_EXTMOD),)
 # used by scripts/pacmage/Makefile
 export KBUILD_ALLDIRS := $(sort $(filter-out arch/%,$(package-dirs)) \
-                         arch sys/$(PLATFORM) sys/unix mem test sys/tools \
+                         arch sys/$(PLATFORM) sys/unix mem test tools \
 			 scripts modules $(BUILD_DIRS))
 
 ifdef CONFIG_HEADERS_CHECK
