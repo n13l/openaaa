@@ -29,6 +29,15 @@
 
 #define DECLARE_LIST(name)   struct list name = INIT_LIST(name)
 #define DECLARE_NODE(name)   struct node name = INIT_NODE
+
+/*
+	struct user { char *name; int age; struct node n; };
+
+	DECLARE_LIST(list);
+	struct node *node = DECLARE_ITEM(struct user, n, .name = "", .age = 9);
+	list_add(&list, node);
+*/
+	
 #define DECLARE_ITEM(type, node,...) \
         ({ type __o = (type) {.node = INIT_NODE ,## __VA_ARGS__ }; &__o.node;})
 
