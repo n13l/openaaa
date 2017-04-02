@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include <time.h>
 
+#ifndef RTLD_NOLOAD
+#define RTLD_NOLOAD 0
+#endif
+
 #define SHLIB_EX           "dll"
 
 #define HAVE_STRING_H
