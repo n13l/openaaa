@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#undef HAVE_STRING_H
+#undef PACKAGE_NAME
+#undef PACKAGE_VERSION
 
 #include "httpd.h"
 #include "http_config.h"
@@ -22,20 +25,12 @@
 #include "ap_socache.h"
 #include "ap_mpm.h"
 #include "http_log.h"
-#include "mod_tls_aaa.h"
+#include "mod_openaaa.h"
 #include "private.h"
 
-#ifdef PACKAGE_VERSION
-#undef PACKAGE_VERSION
-#endif
-
-#include <ctypes/lib.h>
-#include <ctypes/utils.h>
-#include <ctypes/string.h>
 #include <mem/stack.h>
-
+#include <crypto/hex.h>
 #include <aaa/lib.h>
-
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
@@ -87,19 +82,19 @@ sc_store(ap_socache_instance_t *ctx, server_rec *s,
         struct aaa *aaa = srv->aaa;
 
 	char key[(len * 2) + 1];
-	mem_to_hex(key, (char *)id, len, 0);
+	//memhex(key, (char *)id, len, 0);
 	key[len * 2] = 0;
 
 	s_info(s, "sess.id: %s", key);
 
         char val[(dlen * 2) + 1];
-        mem_to_hex(val, (char *)d, dlen, 0);
+        //memhex(val, (char *)d, dlen, 0);
 	val[dlen * 2] = 0;
 	if (aaa_bind(aaa, AAA_BIND_SESSION_ID, key))
 		APR_EINVAL;
 
 	aaa_attr_set(aaa, "sess.i2d", val);
-	aaa_attr_set(aaa, "sess.expires", stk_printf("%d", 300));
+	aaa_attr_set(aaa, "sess.expires", printfa("%d", 300));
 
 	return APR_SUCCESS;
 }
@@ -115,7 +110,7 @@ sc_retrieve(ap_socache_instance_t *ctx, server_rec *s,
 	struct aaa *aaa = srv->aaa;
 
 	char key[(len * 2) + 1];
-	mem_to_hex(key, (char *)id, len, 0);
+	///memhex(key, (char *)id, len, 0);
 	key[len * 2] = 0;
 	s_info(s, "sess.id: %s", key);
 
@@ -133,7 +128,7 @@ sc_retrieve(ap_socache_instance_t *ctx, server_rec *s,
 		return APR_NOTFOUND ;
 
 	*dlen = size / 2;
-	hex_to_mem((byte *)d, (const char *)v, size / 2, 0);
+	///hexmem((byte *)d, (const char *)v, size / 2, 0);
 
 	return APR_SUCCESS;
 }

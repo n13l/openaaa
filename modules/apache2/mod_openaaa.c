@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#undef HAVE_STRING_H
+#undef PACKAGE_NAME
+#undef PACKAGE_VERSION
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <ap_config.h>
@@ -36,23 +40,15 @@
 #include "http_protocol.h"
 #include "http_core.h"
 
-#include "mod_tls_aaa.h"
+#include "mod_openaaa.h"
 #include "private.h"
 #include "optional.h"
 
-#ifdef PACKAGE_VERSION
-#undef PACKAGE_VERSION
-#endif
-
 /* AAA abstraction */
-#include <ctypes/lib.h>
-#include <ctypes/utils.h>
-#include <ctypes/string.h>
 #include <mem/stack.h>
 #include <aaa/lib.h>
-#include <aaa/net/tls/lib.h>
-
 #include <crypto/sha1.h>
+#include <crypto/hex.h>
 
 /* mod_ssl interface */
 APR_OPTIONAL_FN_TYPE(ssl_is_https)               *ssl_is_https;
@@ -90,9 +86,9 @@ child_init(apr_pool_t *p, server_rec *s)
 {
 	aps_trace_call(s);
 
-	struct aaa *a = aaa_new();
-	aaa_set_opt(a, AAA_OPT_USERDATA, (const char *)s);
-	aaa_set_opt(a, AAA_OPT_CUSTOMLOG, (char *)custom_log);
+	struct aaa *a = aaa_new(0);
+	//aaa_set_opt(a, AAA_OPT_USERDATA, (const char *)s);
+	//aaa_set_opt(a, AAA_OPT_CUSTOMLOG, (char *)custom_log);
 
 	for (; s; s = s->next) {
 		struct srv *srv;
@@ -259,7 +255,7 @@ export_keying_material(request_rec *r)
 	ssl_keying_material(r->connection, sec, len, lab, lsize, NULL, 0, 0);
 
         char *k = apr_pcalloc(r->pool, (len * 2) + 1);
-        mem_to_hex(k, (const char *)sec, len, 0);
+        //memhex(k, (const char *)sec, len);
 	k[len * 2] = 0;
 	return k;
 }
@@ -295,7 +291,7 @@ iterate_func(void *req, const char *key, const char *value)
 			    
 	return 1;
 }
-/*
+
 static inline void
 str_collapse(char *str)
 {
@@ -303,7 +299,6 @@ str_collapse(char *str)
 	do while (*b == ' ') b++;
 		while ((*a++ = *b++));
 }
-*/
 
 static inline void
 rm_newline_char(const char *str)
@@ -364,6 +359,7 @@ external_aaa(request_rec *r)
         const char *sid = aaa_attr_get(aaa, "sess.key");
         const char *key = sid;
 
+	/*
 	const char *authority = "orange.alucid.eu";
 
         byte *enkey = alloca(512);
@@ -394,8 +390,6 @@ external_aaa(request_rec *r)
 	char *uri_unix = stk_printf("alucid://callback?authId=%s\\&r3Url=%s\\&bindingId=%s\\&bindingKey=%s",
 	                             uri_id, r3, bind_id, uri_key);
 
-	r_info(r, "uri: %s", uri_unix);
-
         pid_t fk = fork();
         if (!fk) {
 
@@ -410,13 +404,12 @@ external_aaa(request_rec *r)
 		const char *file = stk_printf("/tmp/aaa-%s", id);
 		r_info(r, "authentized session file=%s", file);
 		parse_session(r, file);
-
-		//execl("/usr/local/bin/aducidr3", uri_unix);
 		_exit(127);
 	}
 
         free(uri_id);
-        free(uri_key);	
+        free(uri_key);
+*/	
 	return DECLINED;
 }
 
@@ -501,7 +494,7 @@ post_read_request(request_rec *r)
         apr_table_setn(t, "AAA_SESS_SEC",  aaa_attr_get(aaa, "sess.sec"));
 
 	if (sec) {
-		const char *file = stk_printf("/tmp/aaa-%s", sec);
+		const char *file = printfa("/tmp/aaa-%s", sec);
 		r_info(r, "authentized session file=%s", file);
 		parse_session(r, file);
 	}

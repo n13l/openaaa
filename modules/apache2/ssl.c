@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#undef HAVE_STRING_H
+#undef PACKAGE_NAME
+#undef PACKAGE_VERSION
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <ap_config.h>
@@ -46,16 +50,13 @@
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
-#include <ctypes/lib.h>
 #include <mem/map.h>
 #include <mem/page.h>
 #include <mem/stack.h>
-#include <ctypes/utils.h>
-#include <ctypes/string.h>
 #include <crypto/sha1.h>
 #include <aaa/lib.h>
 
-#include "mod_tls_aaa.h"
+#include "mod_openaaa.h"
 #include "private.h"
 #include "optional.h"
 
@@ -64,8 +65,6 @@
 #define SHA1_SIZE 20 /** Size of the SHA1 hash in its binary representation **/
 #define SHA1_HEX_SIZE 41 /** Buffer length for a string containing SHA1 in hexadecimal format. **/
 #define SHA1_BLOCK_SIZE 64 /** SHA1 splits input to blocks of this size. **/
-
-/*FIXME: parse public key without openssl*/
 
 #include <stdlib.h>
 #include <openssl/bn.h>
@@ -180,10 +179,9 @@ cleanup:
 }
 
 char *
-ap_keying_material_pubkey_derivate(apr_pool_t *p, 
-                                   const char *key, const char *pub)
+ap_keying_material_pubkey_derivate(apr_pool_t *p, const char *key, const char *pub)
 {
-	sha1_context sha1;
+	struct sha1 sha1;
 	sha1_init(&sha1);
 
 	sha1_update(&sha1, (byte *)key, strlen(key));
@@ -191,6 +189,6 @@ ap_keying_material_pubkey_derivate(apr_pool_t *p,
 
 	char *hash = (char *)sha1_final(&sha1);
 	char *sec  = apr_palloc(p, SHA1_HEX_SIZE);
-	mem_to_hex(sec, hash, SHA1_SIZE, 0);
+	//mem_to_hex(sec, hash, SHA1_SIZE, 0);
 	return sec;
 }

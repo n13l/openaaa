@@ -44,6 +44,8 @@ enum aaa_endpoint {
 	ENDPOINT_SERVER = 2
 };
 
+#define AAA_BIND_SESSION_ID 0x1
+
 /* public api functions */
 
 /*
