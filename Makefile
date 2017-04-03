@@ -424,7 +424,7 @@ export CONFIG_$(PLAT)=y
 KBUILD_CFLAGS   := -Wall -Wstrict-prototypes \
 		   -fno-strict-aliasing \
 		   -Wno-format-security \
-                   -std=gnu1x -Wno-unneeded-internal-declaration
+                   -std=gnu1x 
 
 -include scripts/Makefile.shared
 
