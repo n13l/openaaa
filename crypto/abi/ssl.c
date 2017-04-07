@@ -947,6 +947,9 @@ import_target(void *dll)
 	else
 		rv = plthook_open_by_handle(&plt, dll);
 
+	if (rv)
+		error("%s", plthook_error());
+
 	if (!plt || rv)
 		return;
 
