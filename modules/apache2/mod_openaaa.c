@@ -1,17 +1,5 @@
 /*
- * $id: mod_tls_aaa.c                               Daniel Kubec <niel@rtfm.cz>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * $id: mod_openaaa.c                               Daniel Kubec <niel@rtfm.cz>
  */
 
 #undef HAVE_STRING_H
@@ -45,20 +33,32 @@
 
 #include "mod_openaaa.h"
 #include "private.h"
-#include "optional.h"
 
 /* AAA abstraction */
 #include <mem/stack.h>
 #include <aaa/lib.h>
 #include <crypto/sha1.h>
 #include <crypto/hex.h>
+#include <crypto/abi/ssl.h>
 
-/* mod_ssl interface */
-APR_OPTIONAL_FN_TYPE(ssl_is_https)               *ssl_is_https;
-APR_OPTIONAL_FN_TYPE(ssl_var_lookup)             *ssl_var_lookup;
-APR_OPTIONAL_FN_TYPE(ssl_export_keying_material) *ssl_keying_material;
-APR_OPTIONAL_FN_TYPE(ssl_renegotiation)          *ssl_renegotiation;
-APR_OPTIONAL_FN_TYPE(modssl_register_npn)        *modssl_register_npn;
+APR_OPTIONAL_FN_TYPE(ssl_is_https)         *ssl_is_https;
+APR_OPTIONAL_FN_TYPE(ssl_var_lookup)       *ssl_var_lookup;
+/*
+APR_OPTIONAL_FN_TYPE(init_server)          *ssl_init_server;
+APR_OPTIONAL_FN_TYPE(pre_handshake)        *ssl_pre_handshake;
+APR_OPTIONAL_FN_TYPE(proxy_post_handshake) *ssl_proxy_post_handshake;
+*/
+
+/*
+APR_DECLARE_EXTERNAL_HOOK(ssl, SSL, int, init_server,
+                          (server_rec *s, apr_pool_t *p, int is_proxy, SSL_CTX *ctx))
+
+APR_DECLARE_EXTERNAL_HOOK(ssl, SSL, int, pre_handshake,
+                          (conn_rec *c, SSL *ssl, int is_proxy))
+
+APR_DECLARE_EXTERNAL_HOOK(ssl, SSL, int, proxy_post_handshake,
+                          (conn_rec *c, SSL *ssl))
+*/
 
 static const char *aaa_id;
 
@@ -87,9 +87,10 @@ custom_log(server_rec *s, unsigned level, const char *msg);
 static void
 child_init(apr_pool_t *p, server_rec *s)
 {
-	aps_trace_call(s);
+	ssl_init();
 
 	struct aaa *a = aaa_new(0);
+
 	//aaa_set_opt(a, AAA_OPT_USERDATA, (const char *)s);
 	//aaa_set_opt(a, AAA_OPT_CUSTOMLOG, (char *)custom_log);
 
@@ -118,45 +119,6 @@ child_fini(void *ctx)
 }
 
 /*
- * The npn_advertise_protos callback allows another modules to add
- * entries to the list of protocol names advertised by the server
- * during the Next Protocol Negotiation (NPN) portion of the SSL
- * handshake.  The callback is given the connection and an APR array;
- * it should push one or more char*'s pointing to NUL-terminated
- * strings (such as "http/1.1" or "spdy/2") onto the array and return
- * OK.  To prevent further processing of (other modules') callbacks,
- * return DONE. 
- */
-
-int
-npn_advertise_protos(conn_rec *c, apr_array_header_t *protos)
-{
-	void **item = apr_array_push(protos);
-	*item = (void *)"tls-aaa";
-
-	return DECLINED;
-}
-
-/* 
- * The npn_proto_negotiated callback allows other modules to discover
- * the name of the protocol that was chosen during the Next Protocol
- * Negotiation (NPN) portion of the SSL handshake.  Note that this may
- * be the empty string (in which case modules should probably assume
- * HTTP), or it may be a protocol that was never even advertised by
- * the server.  The callback is given the connection, a
- * non-NUL-terminated string containing the protocol name, and the
- * length of the string; it should do something appropriate
- * (i.e. insert or remove filters) and return OK.  To prevent further
- * processing of (other modules') callbacks, return DONE. 
- */
-
-static int 
-npn_proto_negotiated(conn_rec *c, const char *name, apr_size_t len)
-{
-	return DECLINED;
-}
-
-/*
  * Run the post_config function for each module
  * @param pconf The config pool
  * @param plog The logging streams pool
@@ -169,7 +131,7 @@ static int
 post_config(apr_pool_t *p, apr_pool_t *l, apr_pool_t *t, server_rec *s)
 {
 	struct srv *srv = ap_get_module_config(s->module_config, &MODULE_ENTRY);
-	ap_add_version_component(p, APACHE2_TLS_AAA_MODULE_VERSION);
+	ap_add_version_component(p, MODULE_VERSION);
 	return OK;
 }
 
@@ -178,11 +140,6 @@ optional_fn_retrieve(void)
 {
 	ssl_is_https        = APR_RETRIEVE_OPTIONAL_FN(ssl_is_https);
 	ssl_var_lookup      = APR_RETRIEVE_OPTIONAL_FN(ssl_var_lookup);
-	ssl_keying_material = APR_RETRIEVE_OPTIONAL_FN(ssl_export_keying_material);
-/*	
-	ssl_renegotiation   = APR_RETRIEVE_OPTIONAL_FN(ssl_renegotiation);
-	modssl_register_npn = APR_RETRIEVE_OPTIONAL_FN(modssl_register_npn);
-*/	
 }
 
 /*
@@ -243,8 +200,7 @@ export_public_key(request_rec *r)
 static const char *
 export_keying_material(request_rec *r)
 {
-	if (!ssl_keying_material)
-		return NULL;
+	return NULL;
 
 	struct srv *srv = ap_srv_config_get(r);
 
@@ -255,7 +211,7 @@ export_keying_material(request_rec *r)
 	lab = "EXPORTER_AAA";
 	unsigned int lsize = strlen(lab);
 
-	ssl_keying_material(r->connection, sec, len, lab, lsize, NULL, 0, 0);
+//	ssl_keying_material(r->connection, sec, len, lab, lsize, NULL, 0, 0);
 
         char *k = apr_pcalloc(r->pool, (len * 2) + 1);
         //memhex(k, (const char *)sec, len);
@@ -427,7 +383,7 @@ http_authentication_signal(request_rec *r)
 	if (r->method_number != M_POST)
 		return DECLINED;
 
-	r_info(r, "http authentication signal: AAA_NEGOTIATE");
+	r_info(r, "http authentication signal");
 
 	return external_aaa(r);
 }
@@ -461,6 +417,8 @@ pre_connection(conn_rec *c, void *csd)
 static int
 post_read_request(request_rec *r)
 {
+	return DECLINED;
+
 	if (!ap_is_initial_req(r))
 		return DECLINED;
 
@@ -541,6 +499,8 @@ post_read_request(request_rec *r)
 static int
 check_authn(request_rec *r)
 {
+	return DECLINED;
+
 	ap_module_trace_rcall(r);
 
 	/*
@@ -580,6 +540,8 @@ access_checker(request_rec *r)
 	 * We decline when we are in a subrequest.  The Authorization header
 	 * would already be present if it was added in the main request.
 	 */
+
+	return DECLINED;
 
 	if (!ap_is_initial_req(r))
 		return DECLINED;
@@ -686,9 +648,6 @@ auth_checker(request_rec *r)
 static int
 fixups(request_rec *r)
 {
-	ap_module_trace_rcall(r);
-	//r_info(r, "uri: %s", r->uri);
-
 	struct srv *srv = ap_srv_config_get(r);
 	struct aaa *a = srv->aaa;
 
@@ -794,6 +753,49 @@ static const command_rec cmds[] = {
 	              "Export len bytes of keying material (default 20)"),	
 	{NULL},
 };
+/**
+ * init_server hook -- allow SSL_CTX-specific initialization to be performed by
+ * a module for each SSL-enabled server (one at a time)
+ * @param s SSL-enabled [virtual] server
+ * @param p pconf pool
+ * @param is_proxy 1 if this server supports backend connections
+ * over SSL/TLS, 0 if it supports client connections over SSL/TLS
+ * @param ctx OpenSSL SSL Context for the server
+ */
+	
+static int
+init_server(server_rec *s, apr_pool_t *p, int is_proxy, SSL_CTX *ctx)
+{
+	ssl_init_ctxt(ctx);	
+	return 0;
+}
+
+/**
+ * pre_handshake hook
+ * @param c conn_rec for new connection from client or to backend server
+ * @param ssl OpenSSL SSL Connection for the client or backend server
+ * @param is_proxy 1 if this handshake is for a backend connection, 0 otherwise
+ */
+
+static int
+pre_handshake(conn_rec *c, SSL *ssl, int is_proxy)
+{
+	ap_log_cerror(APLOG_MARK, APLOG_DEBUG, 0, c, "stream(%ld-%d): ", 0,0);
+	return 0;
+}
+
+/**
+ * proxy_post_handshake hook -- allow module to abort after successful
+ * handshake with backend server and subsequent peer checks
+ * @param c conn_rec for connection to backend server
+ * @param ssl OpenSSL SSL Connection for the client or backend server
+ */
+
+static int
+proxy_post_handshake(conn_rec *c, SSL *ssl)
+{
+	return 0;
+}
 
 static void
 register_hooks(apr_pool_t *p)
@@ -813,8 +815,13 @@ register_hooks(apr_pool_t *p)
 	ap_hook_auth_checker(auth_checker, NULL, NULL, APR_HOOK_MIDDLE);
 	ap_hook_fixups(fixups, NULL, NULL, APR_HOOK_LAST);
 
-	ap_register_provider(p, AP_SOCACHE_PROVIDER_GROUP, "tls-aaa",
+	APR_OPTIONAL_HOOK(ssl, init_server, init_server, NULL, NULL, APR_HOOK_MIDDLE);
+	APR_OPTIONAL_HOOK(ssl, pre_handshake, pre_handshake, NULL, NULL, APR_HOOK_MIDDLE);
+	APR_OPTIONAL_HOOK(ssl, proxy_post_handshake, proxy_post_handshake, NULL, NULL, APR_HOOK_MIDDLE);
+
+	ap_register_provider(p, AP_SOCACHE_PROVIDER_GROUP, "openaaa",
 	                     AP_SOCACHE_PROVIDER_VERSION, &socache_tls_aaa);
+
 };
 
 static void

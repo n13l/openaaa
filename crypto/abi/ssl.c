@@ -990,6 +990,24 @@ init_aaa_env(void)
 }
 
 void
+ssl_init(void)
+{
+	debug2("checking for openssl crypto");
+}
+
+void
+ssl_init_ctxt(SSL_CTX *ctx)
+{
+	debug2("checking for ssl context capabilities");
+}
+
+void
+ssl_init_conn(SSL *ssl)
+{
+	debug2("checking for ssl connection capabilities");
+}
+
+void
 crypto_lookup(void)
 {
 	list_init(&ssl_module_list);

@@ -26,15 +26,42 @@
 #include <sys/compiler.h>
 #include <stddef.h>
 
-struct bbuf {
+/* opaque info for memory allocation */
+struct mm;
+
+/* byte buffer */
+struct bb {
 	byte *addr;
 	size_t len;
 };
 
-struct gbuf {
+/* resizable variable length buffer */
+struct vb {
 	byte *addr;
 	size_t len;
 	size_t cap;
 };
+
+/*
+ * Concatenate a string to an bbuf buffer
+ *
+ * @param bb pointer to the bbuf struct
+ * @param str the string to append; must be at least len bytes long
+ * @param len the number of characters of *str to concatenate to the buf
+ * @note bb->len will be set to the length of the new string
+ * @note bb->buf will be null-terminated
+ */
+
+void bb_strmemcat(struct bb *bb, const char *str, size_t len);
+
+/*
+ * Concatenate a string to an bbuf buffer
+ *
+ * @param bb pointer to the bbuf struct
+ * @param str the string to append
+ * @note bb->len will be set to the length of the new string
+ */
+
+#define bb_strcat(bb, str) bb_strmemcat(bb, str, strlen(str))
 
 #endif/*__BYTEBUFFER_FILE_LIB_H__*/

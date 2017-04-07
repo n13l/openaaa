@@ -35,8 +35,8 @@
 #include <util_script.h>
 
 #define MODULE_PREFIX "aaa"
-#define APACHE2_TLS_AAA_MODULE_VERSION "mod_openaaa/1.0.0" 
-#define MODULE_ENTRY tls_aaa_module
+#define MODULE_VERSION "mod_openaaa/1.0.0" 
+#define MODULE_ENTRY openaaa_module
 
 extern module AP_MODULE_DECLARE_DATA MODULE_ENTRY;
 

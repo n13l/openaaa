@@ -53,6 +53,9 @@
 #define r_info(r, mask...) \
 	ap_log_rerror(APLOG_MARK, APLOG_NOERRNO | APLOG_INFO, 0, r, mask)
 
+#define c_debug(c, fmt...) \
+	ap_log_cdata(APLOG_MARK, APLOG_DEBUG, 0, c, fmt, NULL, 0);
+
 #define ap_module_trace_scall(s) \
 	ap_log_error(APLOG_MARK, APLOG_INFO, 0, s, "%s:%s()", MODULE_PREFIX, __func__)
 

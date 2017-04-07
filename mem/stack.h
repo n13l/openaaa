@@ -45,13 +45,14 @@
 #endif
 
 struct mm_stack {
-	struct mm_savep save;
-	void *avail, *final;
-	unsigned int blocksize;
-	unsigned int threshold;
-	unsigned int index;
-	unsigned int flags;
-	unsigned int size;
+	union {
+		void *addr; 
+		u8 *byte;
+		u32  *offset;
+	};
+	u8 *start;
+	u8 *end;
+	u8 *cur;
 };
 
 #ifndef zalloca
@@ -140,8 +141,10 @@ stack_avail:
 	return size + 1;
 }
 
+struct mm_stack_struct;
+
 _unused _noinline static unsigned int 
-printfza_safe(struct mm_stack *sp, const char *fmt, ...)
+printfza_safe(struct mm_stack_struct *sp, const char *fmt, ...)
 {
 	char *string = alloca(MM_STACK_BLOCK_SIZE);
 	unsigned int avail =  MM_STACK_BLOCK_SIZE;
@@ -188,7 +191,7 @@ stack_avail:
 
 /* Save version which check for the maximum limit for the current frame */
 _unused _noinline static unsigned int 
-vprintfza_safe(struct mm_stack *sp, const char *fmt, va_list args)
+vprintfza_safe(struct mm_stack_struct *sp, const char *fmt, va_list args)
 {
 	char *string = alloca(MM_STACK_BLOCK_SIZE);
 	unsigned int avail  = MM_STACK_BLOCK_SIZE;
