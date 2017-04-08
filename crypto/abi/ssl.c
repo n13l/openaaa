@@ -88,6 +88,7 @@ DEFINE_ABI(SSL_callback_ctrl);
 DEFINE_ABI(SSL_set_ex_data);
 DEFINE_ABI(SSL_get_ex_data);
 DEFINE_ABI(SSL_CTX_set_info_callback);
+DEFINE_ABI(SSL_CTX_get_info_callback);
 DEFINE_ABI(SSL_set_info_callback);
 DEFINE_ABI(SSL_export_keying_material);
 DEFINE_ABI(SSL_state_string);
@@ -184,6 +185,10 @@ struct session {
 	enum ssl_endpoint_type endpoint;
 };
 
+void *libssl = NULL;
+void *libcrypto = NULL;
+int server_handshake_synch = 1;
+
 void
 ssl_info(const SSL *s, int where, int ret);
 
@@ -227,13 +232,14 @@ ssl_callbacks(const SSL *ssl)
 {
 	void (*fn)(void) = (void (*)(void))CALL_SSL(get_info_callback)(ssl);
 	if (!fn)
-		return;
+		goto done;
 
 	if (fn != (void (*)(void))ssl_info)
 		ssl_cb.cb_info = (void (*)(const SSL *, int, int))fn;
 	else
 		return;
 
+done:
 	fn = (void (*)(void))ssl_extensions;
 	CALL_SSL(set_info_callback)((SSL *)ssl, ssl_info);
 }
@@ -574,10 +580,14 @@ ssl_server_aaa(struct session *sp)
 	if (!aaa.handler || !key || !id || !aaa.authority)
 		return -EINVAL;
 
+	char *synch = "";
+#ifdef CONFIG_LINUX	
+	server_handshake_synch ? "" : "&";
+#endif
 	char *host = aaa.authority;
 	char *msg;
 	if (aaa.group && aaa.role)
-		msg = printfa("%s -pri -a%s -i%s -k%s -g%s -r%s", 
+		msg = printfa("%s -pri -a%s -i%s -k%s -g%s -r%s ", 
 		         aaa.handler, host, id, key, aaa.group, aaa.role);
 	else
 		msg = printfa("%s -pri -a%s -i%s -k%s ", 
@@ -588,11 +598,11 @@ ssl_server_aaa(struct session *sp)
 	debug("status: %s", WEXITSTATUS(status)? "failed" : "processing");
 
 	if (aaa.group && aaa.role)
-		msg = printfa("%s -pr4 -a%s -i%s -k%s -g%s -r%s", 
-		         aaa.handler, host, id, key, aaa.group, aaa.role);
+		msg = printfa("%s -pr4 -a%s -i%s -k%s -g%s -r%s %s", 
+		         aaa.handler, host, id, key, aaa.group, aaa.role, synch);
 	else
-		msg = printfa("%s -pr4 -a%s -i%s -k%s ", 
-		              aaa.handler, host, id, key);
+		msg = printfa("%s -pr4 -a%s -i%s -k%s %s", 
+		              aaa.handler, host, id, key, synch);
 	
 	status = system(msg);
 	debug("%s", msg);
@@ -907,7 +917,9 @@ lookup_module(struct dl_phdr_info *info, size_t size, void *ctx)
 
 	void *dll = dlopen(info->dlpi_name, RTLD_LAZY);
 	void *sym = dll ? dlsym(dll, "SSL_CTX_new") : NULL;
+	if (sym) libssl = dll;
 	sym = (dll && !sym) ? dlsym(dll, "SSLeay") : sym;
+	if (sym) libcrypto = dll;
 
 	if (!sym)
 		return 0;
@@ -981,33 +993,95 @@ init_aaa_env(void)
 
 	debug("checking for aaa environment");
 	if (aaa.authority)
-		debug2("env aaa.authority=%s",aaa.authority);
+		debug("env aaa.authority=%s",aaa.authority);
 	if (aaa.protocol)
-		debug2("env aaa.protocol=%s",aaa.protocol);
+		debug("env aaa.protocol=%s",aaa.protocol);
 	if (aaa.handler)
-		debug2("env aaa.handler=%s",aaa.handler);
+		debug("env aaa.handler=%s",aaa.handler);
 	if (aaa.group)
-		debug2("env aaa.group=%s",aaa.group);
+		debug("env aaa.group=%s",aaa.group);
 	if (aaa.role)
-		debug2("env aaa.role=%s",aaa.role);
+		debug("env aaa.role=%s",aaa.role);
+
 }
+
+static int is_ssl_init = 0;
 
 void
 ssl_init(void)
 {
-	debug2("checking for openssl crypto");
+	if (is_ssl_init)
+		return;
+	is_ssl_init = 1;
+	server_handshake_synch = 0;
+
+	list_init(&ssl_module_list);
+
+	IMPORT_ABI(SSLeay);
+	IMPORT_ABI(SSL_CTX_new);
+	IMPORT_ABI(SSL_CTX_free);
+	IMPORT_ABI(SSL_CTX_callback_ctrl);
+	IMPORT_ABI(SSL_CTX_set_ex_data);
+	IMPORT_ABI(SSL_CTX_get_ex_data);
+	IMPORT_ABI(SSL_CTX_add_client_custom_ext);
+	IMPORT_ABI(SSL_CTX_add_server_custom_ext);
+	IMPORT_ABI(SSL_new);
+	IMPORT_ABI(SSL_get_info_callback);
+	IMPORT_ABI(SSL_callback_ctrl);
+	IMPORT_ABI(SSL_set_ex_data);
+	IMPORT_ABI(SSL_get_ex_data);
+	IMPORT_ABI(SSL_CTX_set_info_callback);
+	IMPORT_ABI(SSL_CTX_get_info_callback);
+	IMPORT_ABI(SSL_set_info_callback);
+	IMPORT_ABI(SSL_export_keying_material);
+	IMPORT_ABI(SSL_state_string);
+	IMPORT_ABI(SSL_state_string_long);
+	IMPORT_ABI(SSL_alert_type_string);
+	IMPORT_ABI(SSL_alert_type_string_long);
+	IMPORT_ABI(SSL_alert_desc_string);
+	IMPORT_ABI(SSL_alert_desc_string_long);
+	IMPORT_ABI(SSL_get_error);
+	IMPORT_ABI(SSL_get_session);
+	IMPORT_ABI(SSL_SESSION_free);
+	IMPORT_ABI(SSL_SESSION_get_id);
+	IMPORT_ABI(SSL_SESSION_print);
+	IMPORT_ABI(BIO_new);
+	IMPORT_ABI(BIO_free);
+	IMPORT_ABI(BIO_s_mem);
+	IMPORT_ABI(BIO_ctrl);
+	IMPORT_ABI(BIO_read);
+	IMPORT_ABI(X509_NAME_oneline);
+	IMPORT_ABI(X509_get_subject_name);
+	IMPORT_ABI(X509_get_issuer_name);
+	IMPORT_ABI(SSL_get_ex_data_X509_STORE_CTX_idx);
+	IMPORT_ABI(X509_STORE_CTX_get_ex_data);
+	IMPORT_ABI(SSL_get_peer_certificate);
+	IMPORT_ABI(SSL_get_certificate);
+	IMPORT_ABI(SSL_get_SSL_CTX);
+	IMPORT_ABI(SSL_CTX_get_cert_store);
+	IMPORT_ABI(CRYPTO_free);
+	IMPORT_ABI(SSL_set_verify_result);
+	IMPORT_ABI(SSL_shutdown);
+
+	init_aaa_env();
 }
 
 void
 ssl_init_ctxt(SSL_CTX *ctx)
 {
-	debug2("checking for ssl context capabilities");
+	void (*fn)(void) = (void (*)(void))ssl_extensions;
+	CALL_CTX(callback_ctrl)(ctx, SSL_CTRL_SET_TLSEXT_DEBUG_CB, fn);
+
+	CALL_CTX(add_client_custom_ext)(ctx, 1000, ssl_client_add, NULL, NULL,
+	                                ssl_client_get, NULL);
+	CALL_CTX(add_server_custom_ext)(ctx, 1000, ssl_server_add, NULL, NULL, 
+	                                ssl_server_get, NULL);
 }
 
 void
 ssl_init_conn(SSL *ssl)
 {
-	debug2("checking for ssl connection capabilities");
+	_unused struct session *sp = session_get0(ssl);
 }
 
 void
@@ -1035,6 +1109,7 @@ crypto_lookup(void)
 	IMPORT_ABI(SSL_set_ex_data);
 	IMPORT_ABI(SSL_get_ex_data);
 	IMPORT_ABI(SSL_CTX_set_info_callback);
+	IMPORT_ABI(SSL_CTX_get_info_callback);
 	IMPORT_ABI(SSL_set_info_callback);
 	IMPORT_ABI(SSL_export_keying_material);
 	IMPORT_ABI(SSL_state_string);

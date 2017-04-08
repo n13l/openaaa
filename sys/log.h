@@ -155,7 +155,7 @@ log_close(void);
 typedef void (*log_write_fn)(struct log_ctx *, const char *, int );
 
 void
-log_custom_set(log_write_fn fn);
+log_custom_set(log_write_fn fn, void *user);
 
 void
 log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args);

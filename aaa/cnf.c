@@ -12,6 +12,4 @@ void
 aaa_config_load(struct aaa *c)
 {
 	const char *file = getenv("OPENAAA_CONF");
-	debug("config file load(%s):%d", file, 0);
-
 }

@@ -35,8 +35,8 @@
 
 #define MODULE_TRACE_TYPE (APLOG_NOERRNO | APLOG_INFO)
 
-#define s_debug(s, fmt...) \
-	ap_log_error(APLOG_MARK, APLOG_INFO, 0, s, fmt)
+#define ap_debug(s, fmt, ...) \
+	ap_log_error(APLOG_MARK, APLOG_INFO, 0, s, fmt, ##__VA_ARGS__)
 
 #define s_info(s, fmt...) \
 	ap_log_error(APLOG_MARK, APLOG_INFO, 0, s, fmt)

@@ -41,26 +41,10 @@
 #include <crypto/hex.h>
 #include <crypto/abi/ssl.h>
 
+APLOG_USE_MODULE(aaa);
+
 APR_OPTIONAL_FN_TYPE(ssl_is_https)         *ssl_is_https;
 APR_OPTIONAL_FN_TYPE(ssl_var_lookup)       *ssl_var_lookup;
-/*
-APR_OPTIONAL_FN_TYPE(init_server)          *ssl_init_server;
-APR_OPTIONAL_FN_TYPE(pre_handshake)        *ssl_pre_handshake;
-APR_OPTIONAL_FN_TYPE(proxy_post_handshake) *ssl_proxy_post_handshake;
-*/
-
-/*
-APR_DECLARE_EXTERNAL_HOOK(ssl, SSL, int, init_server,
-                          (server_rec *s, apr_pool_t *p, int is_proxy, SSL_CTX *ctx))
-
-APR_DECLARE_EXTERNAL_HOOK(ssl, SSL, int, pre_handshake,
-                          (conn_rec *c, SSL *ssl, int is_proxy))
-
-APR_DECLARE_EXTERNAL_HOOK(ssl, SSL, int, proxy_post_handshake,
-                          (conn_rec *c, SSL *ssl))
-*/
-
-static const char *aaa_id;
 
 /*
  * Gives modules a chance to create their request_config entry when the
@@ -75,8 +59,16 @@ create_request(request_rec *r);
 static apr_status_t
 destroy_request(void *ctx);
 
+/*
 static void
 custom_log(server_rec *s, unsigned level, const char *msg);
+*/
+static void
+log_write(struct log_ctx *ctx, const char *msg, int len)
+{
+	server_rec *s = (server_rec *)ctx->user;
+	ap_log_error(ctx->file, ctx->line, APLOG_MODULE_INDEX, APLOG_INFO, 0, s, msg);
+}
 
 /*
  * Run the child_init functions for each module
@@ -87,7 +79,7 @@ custom_log(server_rec *s, unsigned level, const char *msg);
 static void
 child_init(apr_pool_t *p, server_rec *s)
 {
-	ssl_init();
+	log_custom_set(log_write, s);
 
 	struct aaa *a = aaa_new(0);
 
@@ -166,64 +158,6 @@ destroy_request(void *ctx)
 {
 	request_rec *r = ctx;
 	return DECLINED;
-}
-
-static inline void
-fixups_publickey(char *str, unsigned int len)
-{
-	char *p = str;
-	for (unsigned int i = 0; i < len && *p; i++, p++)
-		if (*p == '\r' || *p == ' ' || *p == '\t')
-			continue;
-		else
-			*str++ = *p;
-	*str = 0;
-}
-
-static const char *
-export_public_key(request_rec *r)
-{
-	char *cert = ssl_var_lookup(ssl_lookup_args, "SSL_SERVER_CERT");
-	char *pub = ap_x509_pubkey_from_cert(r->pool, cert, strlen(cert));
-
-	if (!pub)
-		return NULL;
-
-	apr_table_t *t = r->subprocess_env;
-	apr_table_add(t, "SERVER_PUBLIC_KEY", pub);
-
-	fixups_publickey(pub, strlen(pub));
-
-	return pub;
-}
-
-static const char *
-export_keying_material(request_rec *r)
-{
-	return NULL;
-
-	struct srv *srv = ap_srv_config_get(r);
-
-	unsigned char *sec = alloca(srv->keymat_len + 1);
-	unsigned int len = srv->keymat_len;
-
-	const char *lab = srv->keymat_label;
-	lab = "EXPORTER_AAA";
-	unsigned int lsize = strlen(lab);
-
-//	ssl_keying_material(r->connection, sec, len, lab, lsize, NULL, 0, 0);
-
-        char *k = apr_pcalloc(r->pool, (len * 2) + 1);
-        //memhex(k, (const char *)sec, len);
-	k[len * 2] = 0;
-	return k;
-}
-
-static const char *
-export_keying_derivate(request_rec *r, const char *pub, const char *key)
-{
-	return NULL;
-	return ap_keying_material_pubkey_derivate(r->pool, key, pub);
 }
 
 static int
@@ -309,85 +243,6 @@ parse_session(request_rec *r, const char *file)
 	fclose(f);
 }
 
-static int
-external_aaa(request_rec *r)
-{
-        struct srv *srv = ap_srv_config_get(r);
-        struct aaa *aaa = srv->aaa;
-
-        const char *sid = aaa_attr_get(aaa, "sess.key");
-        const char *key = sid;
-
-	/*
-	const char *authority = "orange.alucid.eu";
-
-        byte *enkey = alloca(512);
-        memset(enkey, 0, 511);
-        base64_encode(enkey, (byte *)key, strlen(key));
-
-        sha1_context sha1;
-        sha1_init(&sha1);
-        sha1_update(&sha1, (byte *)key, strlen(key));
-        char *id = stk_mem_to_hex((char *)sha1_final(&sha1), SHA1_SIZE / 2);
-
-	aaa_attr_set(aaa,"sess.sec", id);
-	aaa_commit(aaa);
-
-        byte *enid = alloca(512);
-        memset(enid, 0, 511);
-        base64_encode(enid, (byte *)id, strlen(id));
-
-        char *bind_id = "MQ%3D%3D";
-        char *uri_id  = url_encode(enid);
-        char *uri_key = url_encode(enkey);
-
-        char *r3 = stk_printf("http%%3A%%2F%%2F%s%%2FAIM%%2Fservices%%2FR3", authority);
-
-        char *uri_win32 = stk_printf("alucid://callback?authId=%s^&r3Url=%s^&bindingId=%s^&bindingKey=%s",
-	                             uri_id, r3, bind_id, uri_key);
-
-	char *uri_unix = stk_printf("alucid://callback?authId=%s\\&r3Url=%s\\&bindingId=%s\\&bindingKey=%s",
-	                             uri_id, r3, bind_id, uri_key);
-
-        pid_t fk = fork();
-        if (!fk) {
-
-		r_info(r, "external authentication uri: %s", uri_unix);
-		int status = system(stk_printf("%s %s", 
-					"/usr/local/bin/aducidr3", uri_unix));
-                int rv = WEXITSTATUS(status);
-		r_info(r, "auth status=%d", rv);
-		if (status != 0)
-			_exit(127);
-
-		const char *file = stk_printf("/tmp/aaa-%s", id);
-		r_info(r, "authentized session file=%s", file);
-		parse_session(r, file);
-		_exit(127);
-	}
-
-        free(uri_id);
-        free(uri_key);
-*/	
-	return DECLINED;
-}
-
-static int
-http_authentication_signal(request_rec *r)
-{
-	//apr_table_do(iterate_func, r, r->headers_in, NULL);
-/*
-	if (!apr_table_get(r->headers_in, "AAA-NEGOTIATE"))
-		return 0;
-*/
-	if (r->method_number != M_POST)
-		return DECLINED;
-
-	r_info(r, "http authentication signal");
-
-	return external_aaa(r);
-}
-
 /*
  * This hook gives protocol modules an opportunity to set everything up
  * before calling the protocol handler.  All pre-connection hooks are
@@ -438,7 +293,6 @@ post_read_request(request_rec *r)
 
 	r_info(r, "uri: %s", r->uri);
 
-	const char *pub = export_public_key(r);
 	const char *key = aaa_attr_get(aaa, "sess.key");
 	const char *sec = aaa_attr_get(aaa, "sess.sec");
 	const char *id = aaa_attr_get(aaa, "sess.id");
@@ -463,9 +317,6 @@ post_read_request(request_rec *r)
 
 	if (!tls_authentication_signal(r))
 		return DECLINED;
-
-	key = export_keying_material(r);
-	sec = export_keying_derivate(r, pub, key);
 
         if (key)
 		r_info(r, "sess.key: %s", key);
@@ -546,7 +397,6 @@ access_checker(request_rec *r)
 	if (!ap_is_initial_req(r))
 		return DECLINED;
 
-	ap_module_trace_rcall(r);
 	//r_info(r, "uri: %s", r->uri);
 
 	/* checking for tls authentification for this reqeust */
@@ -560,8 +410,6 @@ access_checker(request_rec *r)
 
 	user->name = aaa_attr_get(aaa, "user.name");
 	user->uuid = aaa_attr_get(aaa, "user.uuid");
-
-	http_authentication_signal(r);
 
 	/*
 	* We return HTTP_UNAUTHORIZED (401) because the client may wish
@@ -612,7 +460,6 @@ access_checker(request_rec *r)
 static int
 check_access(request_rec *r)
 {
-	ap_module_trace_rcall(r);
 	return DECLINED;
 }
 
@@ -631,7 +478,6 @@ check_access(request_rec *r)
 static int
 auth_checker(request_rec *r)
 {
-	ap_module_trace_rcall(r);
 	return DECLINED;
 }
 
@@ -648,6 +494,8 @@ auth_checker(request_rec *r)
 static int
 fixups(request_rec *r)
 {
+	return DECLINED;
+
 	struct srv *srv = ap_srv_config_get(r);
 	struct aaa *a = srv->aaa;
 
@@ -697,15 +545,6 @@ config_tls(cmd_parms *cmd, void *d, const char *v)
 	return ap_check_cmd_context(cmd, NOT_IN_DIR_LOC_FILE);
 }
 
-static const char *
-config_aaa_id(cmd_parms *cmd, void *d, const char *v)
-{
-	struct srv *s = ap_srv_config_get_cmd(cmd);
-	aaa_id = apr_pstrdup(cmd->pool, v);
-
-	return ap_check_cmd_context(cmd, NOT_IN_DIR_LOC_FILE);
-}
-
 /*
  * Labels here have the same definition as in TLS, i.e., an ASCII string
  * with no terminating NULL.  Label values beginning with "EXPERIMENTAL"
@@ -745,8 +584,6 @@ config_aaa_len(cmd_parms *cmd, void *d, const char *v)
 static const command_rec cmds[] = {
 	AP_INIT_TAKE1("TLS", config_tls, NULL, RSRC_CONF,
 	              "Configures multiple TLS options"),
-	AP_INIT_TAKE1("TLS-AAA-ID", config_aaa_id, NULL, RSRC_CONF, 
-	              "Identifies secure side channel"),
 	AP_INIT_TAKE1("TLSKeyingMaterialLabel", config_aaa_label, NULL, RSRC_CONF,
 	              "Labels here have the same definition as in TLS"),
 	AP_INIT_TAKE1("TLSKeyingMaterialLength", config_aaa_len, NULL, RSRC_CONF,
@@ -766,6 +603,7 @@ static const command_rec cmds[] = {
 static int
 init_server(server_rec *s, apr_pool_t *p, int is_proxy, SSL_CTX *ctx)
 {
+	ssl_init();
 	ssl_init_ctxt(ctx);	
 	return 0;
 }
@@ -780,6 +618,7 @@ init_server(server_rec *s, apr_pool_t *p, int is_proxy, SSL_CTX *ctx)
 static int
 pre_handshake(conn_rec *c, SSL *ssl, int is_proxy)
 {
+	ssl_init_conn(ssl);
 	ap_log_cerror(APLOG_MARK, APLOG_DEBUG, 0, c, "stream(%ld-%d): ", 0,0);
 	return 0;
 }
@@ -839,4 +678,3 @@ MODULE_ENTRY = {
 	cmds,                    /* command table */            
 	register_hooks,          /* Apache2 register hooks */           
 };
-

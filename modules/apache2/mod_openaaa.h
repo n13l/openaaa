@@ -36,7 +36,7 @@
 
 #define MODULE_PREFIX "aaa"
 #define MODULE_VERSION "mod_openaaa/1.0.0" 
-#define MODULE_ENTRY openaaa_module
+#define MODULE_ENTRY aaa_module
 
 extern module AP_MODULE_DECLARE_DATA MODULE_ENTRY;
 

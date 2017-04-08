@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 
+void *log_userdata = NULL;
 int log_verbose = 4;
 char progname[256] = {0};
 
@@ -22,9 +23,10 @@ log_close(void)
 }
 
 void
-log_custom_set(log_write_fn fn)
+log_custom_set(log_write_fn fn, void *ctx)
 {
 	log_write_cb = fn;
+	log_userdata = ctx;
 }
 
 void
@@ -35,6 +37,8 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 	va_copy(args2, args);
 	int len = vsnprintf(msg, sizeof(msg) - 2, fmt, args2);
 	va_end(args2);
+
+	ctx->user = log_userdata;
 
 	if (len < 1)
 		return;

@@ -96,7 +96,7 @@ openvpn_plugin_open_v3(const int version,
 	struct ovpn_ctxt *ovpn = mm_alloc(mp, sizeof(*ovpn));
 	ovpn_log = args->callbacks->plugin_log;
 
-	log_custom_set(ovpn_log_write);
+	log_custom_set(ovpn_log_write, NULL);
 
 	envp_dbg(args->envp);
 
