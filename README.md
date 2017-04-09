@@ -5,7 +5,7 @@
 | master     | [![Build Status](https://travis-ci.org/n13l/openaaa.png?branch=master)](https://travis-ci.org/n13l/openaaa) [![Build Status](https://snap-ci.com/n13l/openaaa/branch/master/build_image)](https://snap-ci.com/n13l/openaaa/branch/master) | [![Release](https://img.shields.io/github/release/n13l/openaaa.svg)](https://github.com/n13l/openaaa/releases/latest) | [![Release](https://img.shields.io/github/release/n13l/openaaa.svg)](https://packagecloud.io/n13l/openaaa) |
 
 
-**TLS side channel authentication and straightforward bindings of AAA information to application layer using well-defined mechanism.**
+**TLS side channel authentication**
 
 > TLS SCA specifies attributes, operations and authentication workflow for the 
 process of channel binding on top of secure channel protocols with 
