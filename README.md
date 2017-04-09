@@ -12,7 +12,7 @@
 **Accounting**
  - binding authenticated user context to encrypted session
  - session management attributes and operation tied to secure TLS session
- - no more http cookies and other state information on application layer
+ - no more cookies and other state information on application layer
  - multipple network and/or application layers access same encrypted session 
  - straightforward bindings to application layer using well-defined mechanism.
 
@@ -21,6 +21,7 @@
 
 **Interoperability**
  - no additional code on top of popular crypto libraries (openssl, nss, ...)
+ - easy SSO (single sign on)
 
 **TLS side channel authentication**
 
