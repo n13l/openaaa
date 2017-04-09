@@ -29,8 +29,9 @@
 
 **TLS side channel authentication**
 
-TLS side channel authentication and straightforward bindings of AAA information
-to application layer using well-defined mechanism.
+ - straightforward bindings to application layer using well-defined mechanism.
+ - equivalent security as hardware-tokens
+ - strong mutual authentication without trusted certificates
 
 **TLS qualities and various attack mitigations features:**
  - cipher negotiations
