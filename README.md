@@ -12,6 +12,7 @@
 **Accounting**
  - binding authenticated user context to encrypted session
  - session management attributes and operation tied to secure TLS session
+ - secure session negotiations and session resumption based on TLS
  - no more cookies and other state information on application layer
  - multipple network and/or application layers access same encrypted session 
  - straightforward bindings to application layer using well-defined mechanism.
