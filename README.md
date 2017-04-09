@@ -15,6 +15,7 @@
  - no more cookies and other state information on application layer
  - multipple network and/or application layers access same encrypted session 
  - straightforward bindings to application layer using well-defined mechanism.
+ - distributed, high performance and secured session manager daemon
 
 **Authorization**
  - unlimited aditional authorization rules based on authenticated user context
