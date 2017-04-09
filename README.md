@@ -16,14 +16,15 @@
  - no more cookies and other state information on application layer
  - multipple network and/or application layers access same encrypted session 
  - straightforward bindings to application layer using well-defined mechanism.
- - distributed, high performance and secured session manager (aaad) daemon
+ - distributed, high performance and secure session manager (aaad) daemon
 
 **Authorization**
  - unlimited aditional authorization rules based on authenticated user context
 
 **Interoperability**
  - no additional code on top of popular crypto libraries (openssl, nss, ...)
- - easy SSO (single sign on)
+ - platform and language independence
+ - (SSO) Single sign-on
 
 **TLS side channel authentication**
 
