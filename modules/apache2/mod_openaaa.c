@@ -354,6 +354,8 @@ check_authn(request_rec *r)
 
 	//debug("auth type=%s user=%s uri=%s", type, r->user, r->uri);
 
+	return r->user ? OK : HTTP_FORBIDDEN;
+
 	return OK;
 
 	if (!ap_is_initial_req(r))
