@@ -41,6 +41,8 @@
 #include <crypto/hex.h>
 #include <crypto/abi/ssl.h>
 
+#include <sys/log.h>
+
 APLOG_USE_MODULE(aaa);
 
 APR_OPTIONAL_FN_TYPE(ssl_is_https)         *ssl_is_https;
@@ -350,7 +352,20 @@ post_read_request(request_rec *r)
 static int
 check_authn(request_rec *r)
 {
-	return DECLINED;
+	const char *type = ap_auth_type(r);
+	if (!type || strcasecmp(type, "openaaa"))
+		return DECLINED;
+
+	//debug("auth type=%s user=%s uri=%s", type, r->user, r->uri);
+
+	return HTTP_FORBIDDEN;
+
+	return OK;
+
+	if (!ap_is_initial_req(r))
+		return DECLINED;
+
+	return HTTP_FORBIDDEN;
 
 	ap_module_trace_rcall(r);
 
@@ -391,6 +406,12 @@ access_checker(request_rec *r)
 	 * We decline when we are in a subrequest.  The Authorization header
 	 * would already be present if it was added in the main request.
 	 */
+
+	//r->user = apr_pstrdup(r->pool, "nobody");
+	debug("user=%s", r->user);
+	return OK;
+
+
 
 	return DECLINED;
 

@@ -35,7 +35,7 @@
 #include <util_script.h>
 
 #define MODULE_PREFIX "aaa"
-#define MODULE_VERSION "mod_openaaa/1.0.0" 
+#define MODULE_VERSION "OpenAAA/1.0.0" 
 #define MODULE_ENTRY aaa_module
 
 extern module AP_MODULE_DECLARE_DATA MODULE_ENTRY;

@@ -518,6 +518,26 @@ pubkey_fixups(char *str, unsigned int len)
 	*str = 0;
 }
 
+static void x509_fingerprint(void)
+{
+	int j;                                                          
+	unsigned int n;                                                 
+	unsigned char md[EVP_MAX_MD_SIZE];                              
+	const EVP_MD *fdig = digest;                                    
+	if (!fdig)                                                      
+	fdig = EVP_sha1();                                          
+	if (!X509_digest(x, fdig, md, &n)) {                            
+	BIO_printf(bio_err, "out of memory\n");                     
+	goto end;                                                   
+	}                                                               
+	BIO_printf(out, "%s Fingerprint=",                              
+	OBJ_nid2sn(EVP_MD_type(fdig)));                      
+	for (j = 0; j < (int)n; j++) {                                  
+		BIO_printf(out, "%02X%c", md[j], (j + 1 == (int)n)          
+		? '\n' : ':');                                   
+	}
+}
+
 static inline void
 pubkey_derive_key(struct session *sp, X509 *x)
 {
@@ -564,12 +584,6 @@ cleanup:
 }
 */
 
-/* TLS Handshake phaze 0 */
-static void
-ssl_handshake0(const SSL *ssl)
-{
-}
-
 static int
 ssl_server_aaa(struct session *sp)
 {
@@ -594,8 +608,7 @@ ssl_server_aaa(struct session *sp)
 		              aaa.handler, host, id, key);
 	
 	int status = system(msg);
-	debug("%s", msg);
-	debug("status: %s", WEXITSTATUS(status)? "failed" : "processing");
+	debug("%s", WEXITSTATUS(status)? "failed" : "channel binding");
 
 	if (aaa.group && aaa.role)
 		msg = printfa("%s -pr4 -a%s -i%s -k%s -g%s -r%s %s", 
@@ -605,10 +618,12 @@ ssl_server_aaa(struct session *sp)
 		              aaa.handler, host, id, key, synch);
 	
 	status = system(msg);
-	debug("%s", msg);
-	debug("status: %s", WEXITSTATUS(status)? "forbidden" : "authenticated");
+	debug("%s", WEXITSTATUS(status)? "forbidden" : "authenticated");
 
 	if (!WEXITSTATUS(status))
+		return 0;
+
+	if (!server_handshake_synch)
 		return 0;
 
 	CALL_SSL(set_verify_result)(sp->ssl, X509_V_ERR_APPLICATION_VERIFICATION);
@@ -639,13 +654,16 @@ ssl_client_aaa(struct session *sp)
 #endif
 	const char *msg = printfa("%s%s -k%s -i%s -prx -a%s %s", 
 	                          pre, aaa.handler, key, id, authority, end);
-	sleep(2);
-	int status = system(msg);
-	debug("%s:%d", msg, WEXITSTATUS(status));
 
-	return 0;
+	int status = system(msg);
+	return WEXITSTATUS(status);
 }
 
+static void
+ssl_handshake0(const SSL *ssl)
+{
+
+}
 /* TLS Handshake phaze 1 */
 static void
 ssl_handshake1(const SSL *ssl)
@@ -655,10 +673,13 @@ ssl_handshake1(const SSL *ssl)
 	X509_NAME *x_subject, *x_issuer;
 	char *subject = NULL, *issuer = NULL;
 
+	ssl_derive_keys(sp);
+
 	if (sp->endpoint == TLS_EP_SERVER) 
 		sp->cert = CALL_SSL(get_certificate)((SSL *)ssl);
 	else if (sp->endpoint == TLS_EP_CLIENT)
 		sp->cert = CALL_SSL(get_peer_certificate)((SSL *)ssl);
+	else goto cleanup;
 
 	debug("%s checking for server certificate: %s", 
 	      endpoint, sp->cert ? "Yes" : "No");
@@ -672,8 +693,6 @@ ssl_handshake1(const SSL *ssl)
 
 	debug("checking for subject: %s", subject);
 	debug("checking for issuer:  %s", issuer);
-
-	ssl_derive_keys(sp);
 
 	if (sp->endpoint == TLS_EP_SERVER) 
 		ssl_server_aaa(sp);
