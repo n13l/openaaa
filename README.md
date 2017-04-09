@@ -14,6 +14,7 @@
  - session management attributes and operation tied to secure TLS session
  - no more http cookies and other state information on application layer
  - multipple network and/or application layers access same encrypted session 
+ - straightforward bindings to application layer using well-defined mechanism.
 
 **Authorization**
  - unlimited aditional authorization rules based on authenticated user context
@@ -21,9 +22,6 @@
 **Interoperability**
  - no additional code on top of popular crypto libraries (openssl, nss, ...)
 
->Besides authentication and accounting on application layer is allways prone to many 
-attacks and implementation errors compared to TLS.
- 
 **TLS side channel authentication**
 
 TLS side channel authentication and straightforward bindings of AAA information
@@ -37,8 +35,10 @@ to application layer using well-defined mechanism.
  - cryptographic integrity
  - confidentiality
  - channel binding using secure channel protocols
- - binding authenticated user context to encrypted session
 
+>Besides authentication and accounting on application layer is allways prone to many 
+attacks and implementation errors compared to TLS.
+ 
 **URL References**
 
 | ID              | URI                                                       |
