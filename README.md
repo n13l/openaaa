@@ -20,6 +20,7 @@
 
 **Authorization**
  - unlimited aditional authorization rules based on authenticated user context
+ - multipple network and/or application layers access same user context
 
 **Interoperability**
  - no additional code on top of popular crypto libraries (openssl, nss, ...)
