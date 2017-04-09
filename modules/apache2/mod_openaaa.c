@@ -61,10 +61,6 @@ create_request(request_rec *r);
 static apr_status_t
 destroy_request(void *ctx);
 
-/*
-static void
-custom_log(server_rec *s, unsigned level, const char *msg);
-*/
 static void
 log_write(struct log_ctx *ctx, const char *msg, int len)
 {
@@ -358,8 +354,6 @@ check_authn(request_rec *r)
 
 	//debug("auth type=%s user=%s uri=%s", type, r->user, r->uri);
 
-	return HTTP_FORBIDDEN;
-
 	return OK;
 
 	if (!ap_is_initial_req(r))
@@ -408,7 +402,8 @@ access_checker(request_rec *r)
 	 */
 
 	//r->user = apr_pstrdup(r->pool, "nobody");
-	debug("user=%s", r->user);
+	if (r->user)
+		debug("user=%s", r->user);
 	return OK;
 
 
@@ -640,7 +635,6 @@ static int
 pre_handshake(conn_rec *c, SSL *ssl, int is_proxy)
 {
 	ssl_init_conn(ssl);
-	ap_log_cerror(APLOG_MARK, APLOG_DEBUG, 0, c, "stream(%ld-%d): ", 0,0);
 	return 0;
 }
 
@@ -683,11 +677,6 @@ register_hooks(apr_pool_t *p)
 	                     AP_SOCACHE_PROVIDER_VERSION, &socache_tls_aaa);
 
 };
-
-static void
-custom_log(server_rec *s, unsigned level, const char *msg)
-{
-}
 
 module AP_MODULE_DECLARE_DATA __attribute__((visibility("default"))) 
 MODULE_ENTRY = {
