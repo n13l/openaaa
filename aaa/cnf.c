@@ -11,5 +11,5 @@
 void
 aaa_config_load(struct aaa *c)
 {
-	const char *file = getenv("OPENAAA_CONF");
+	_unused const char *file = getenv("OPENAAA_CONF");
 }

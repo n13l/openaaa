@@ -36,7 +36,7 @@ $(obj)/$(libname).jar: $(obj)/built-jni.c
 
 quiet_cmd_$(libname).jar = JR      $@
 	cmd_$(libname).jar = $(JAR) cf $(obj)/$(libname).jar \
-	$(subst $(obj)/,-C $(obj) , $(wildcard $(obj)/com/openaaa/*.class))
+	$(subst $(obj)/com/openaaa/, -C aaa/com/openaaa , $(wildcard $(obj)/com/openaaa/*.class))
 
 $(obj)/Test.java: $(KBUILD_SRC)/$(src)/java/Test.java
 	@cp $(KBUILD_SRC)/$(src)/java/Test.java $(obj)/Test.java
