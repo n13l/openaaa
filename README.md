@@ -37,8 +37,7 @@ to application layer using well-defined mechanism.
  - confidentiality
  - channel binding using secure channel protocols
 
->Besides authentication and accounting on application layer is allways prone to many 
-attacks and implementation errors compared to TLS.
+>Besides AAA on application layer is allways prone to many and implementation errors compared to TLS.
  
 **URL References**
 
