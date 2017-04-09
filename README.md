@@ -42,7 +42,7 @@
  - confidentiality
  - channel binding using secure channel protocols
 
->Besides AAA on application layer is allways prone to many and implementation errors compared to TLS.
+>Besides AAA on application layer is allways prone to many implementation errors compared to TLS.
  
 **URL References**
 
