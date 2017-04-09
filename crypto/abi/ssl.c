@@ -596,7 +596,7 @@ ssl_server_aaa(struct session *sp)
 
 	char *synch = "";
 #ifdef CONFIG_LINUX	
-	server_handshake_synch ? "" : "&";
+	synch = server_handshake_synch ? "" : "&";
 #endif
 	char *host = aaa.authority;
 	char *msg;
