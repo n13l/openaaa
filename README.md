@@ -31,7 +31,6 @@
 
 **Interoperability**
  - no additional code on top of popular crypto libraries (openssl, nss, ...)
- - java client example: https://github.com/n13l/http2-pkcs11/blob/master/com/openaaa/tls/Test.java
  - platform and language independence
  - (SSO) Single sign-on
 
@@ -50,7 +49,14 @@
  - channel binding using secure channel protocols
 
 >Besides AAA on application layer is allways prone to many implementation errors compared to TLS.
- 
+
+**Examples** 
+ - TLS Server example: https://github.com/n13l/openaaa/blob/master/test/ssl/tls-server.sh
+ - TLS Client example: https://github.com/n13l/openaaa/blob/master/test/ssl/tls-client.sh
+ - HTTP2/TLS Client example: https://github.com/n13l/openaaa/blob/master/test/ssl/http2-client.sh
+ - Java Client example: https://github.com/n13l/http2-pkcs11/blob/master/com/openaaa/tls/Test.java
+ - Apache/2.4.25 (Unix) OpenAAA/1.0.0 OpenSSL/1.0.2k : https://aaa.rtfm.cz
+
 **URL References**
 
 | ID              | URI                                                       |
