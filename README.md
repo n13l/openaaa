@@ -5,7 +5,7 @@
 | master     | [![Build Status](https://travis-ci.org/n13l/openaaa.png?branch=master)](https://travis-ci.org/n13l/openaaa) [![Build Status](https://snap-ci.com/n13l/openaaa/branch/master/build_image)](https://snap-ci.com/n13l/openaaa/branch/master) | [![Release](https://img.shields.io/github/release/n13l/openaaa.svg)](https://github.com/n13l/openaaa/releases/latest) | [![Release](https://img.shields.io/github/release/n13l/openaaa.svg)](https://packagecloud.io/n13l/openaaa) |
 
 **Authentication**
- - strong authentication based on transport layer security
+ - strong mutual authentication using transport layer security
  - channel binding based on standard and well-defined mechanisms
  - upper layers authentication based on keying material exporters [RFC-5705]
  - anonymous authentication, no personal data transfered over channel
