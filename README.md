@@ -26,7 +26,7 @@
  - single point log off can destroys all authenticated sessions and invalidate crypto material
 
 **Authorization**
- - unlimited aditional upper layer authorization rules using single authenticated user context
+ - unlimited additional upper layer authorization rules using single authenticated user context
  - multipple network and/or application layers access and share same authenticated session
 
 **Interoperability**
