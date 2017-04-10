@@ -31,6 +31,7 @@
 
 **Interoperability**
  - no additional code on top of popular crypto libraries (openssl, nss, ...)
+ - java client example: https://github.com/n13l/http2-pkcs11/blob/master/com/openaaa/tls/Test.java
  - platform and language independence
  - (SSO) Single sign-on
 
