@@ -27,7 +27,7 @@
 
 **Authorization**
  - unlimited aditional upper layer authorization rules using single authenticated user context
- - multipple network and/or application layers access and share authenticated user context
+ - multipple network and/or application layers access and share same authenticated session
 
 **Interoperability**
  - no additional code on top of popular crypto libraries (openssl, nss, ...)
