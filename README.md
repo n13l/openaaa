@@ -9,12 +9,15 @@
  - channel binding based on standard and well-defined mechanisms
  - upper layers authentication based on keying material exporters [RFC-5705]
  - anonymous authentication, no personal data transfered over channel
+ - general extension mechanisms negotiate peers whether to use specific methods
+ - supplemental data in the handshake protocol controls auth methods [RFC-4680]
+ - TLS re/negotiation is used as signal for the re/authentication
  - no user-credential-related risks
 
 **Accounting**
  - binding authenticated user context to encrypted session
  - session management attributes and operation tied to secure TLS session
- - secure session negotiations and session resumption based on TLS
+ - secure session negotiations and session resumption are based on TLS
  - no more cookies and other state information on application layer
  - multipple network and/or application layers access same encrypted session 
  - straightforward bindings to application layer using well-defined mechanism.
@@ -39,7 +42,7 @@
 **TLS qualities and various attack mitigations features:**
  - cipher negotiations
  - session negotiations and session resumption
- - safe renegotiations 
+ - safe renegotiations [RFC-5746]
  - strong authentication
  - cryptographic integrity
  - confidentiality
