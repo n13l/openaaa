@@ -36,7 +36,7 @@
 
 **TLS side channel authentication**
  - equivalent security as hardware-tokens
- - strong mutual authentication without trusted certificates
+ - strong mutual authentication without trusted certificates and authorities
  - straightforward bindings to application layer using well-defined mechanism.
 
 **TLS qualities and various attack mitigations features:**
