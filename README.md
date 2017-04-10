@@ -10,7 +10,7 @@
  - upper layers authentication based on keying material exporters [RFC-5705]
  - anonymous authentication, no personal data transfered over channel
  - general extension mechanisms negotiate peers whether to use specific methods
- - supplemental data in the handshake protocol negotiating auth methods [RFC-4680]
+ - supplemental data in the handshake protocol negotiating AAA methods [RFC-4680]
  - TLS re/negotiation is used as signal for the re/authentication
  - no user-credential-related risks
 
