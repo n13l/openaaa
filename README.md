@@ -22,7 +22,7 @@
 
 **Authorization**
  - unlimited aditional authorization rules based on authenticated user context
- - multipple network and/or application layers access and share same user context
+ - multipple network and/or application layers access and share authenticated user context
 
 **Interoperability**
  - no additional code on top of popular crypto libraries (openssl, nss, ...)
