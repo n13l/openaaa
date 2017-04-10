@@ -21,7 +21,7 @@
  - distributed, high performance and secure session manager (aaad) daemon
 
 **Authorization**
- - unlimited aditional authorization rules based on authenticated user context
+ - unlimited aditional upper layer authorization rules using single authenticated user context
  - multipple network and/or application layers access and share authenticated user context
 
 **Interoperability**
