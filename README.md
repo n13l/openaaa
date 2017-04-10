@@ -32,9 +32,9 @@
  - (SSO) Single sign-on
 
 **TLS side channel authentication**
- - straightforward bindings to application layer using well-defined mechanism.
  - equivalent security as hardware-tokens
  - strong mutual authentication without trusted certificates
+ - straightforward bindings to application layer using well-defined mechanism.
 
 **TLS qualities and various attack mitigations features:**
  - cipher negotiations
