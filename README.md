@@ -20,7 +20,7 @@
  - straightforward bindings to application layer using well-defined mechanism.
  - distributed, high performance and secure session manager (aaad) daemon
  - easy user tracking over authenticated sessions with user context
- - single point log off can destroys authenticated sessions and invalidate crypto material
+ - single point log off can destroys all authenticated sessions and invalidate crypto material
 
 **Authorization**
  - unlimited aditional upper layer authorization rules using single authenticated user context
