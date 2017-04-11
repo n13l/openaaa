@@ -1026,11 +1026,11 @@ init_aaa_env(void)
 
 static int is_ssl_init = 0;
 
-void
+int
 ssl_init(void)
 {
 	if (is_ssl_init)
-		return;
+		return -1;
 	is_ssl_init = 1;
 	server_handshake_synch = 0;
 
@@ -1083,6 +1083,7 @@ ssl_init(void)
 	IMPORT_ABI(SSL_shutdown);
 
 	init_aaa_env();
+	return 0;
 }
 
 void
@@ -1103,7 +1104,7 @@ ssl_init_conn(SSL *ssl)
 	_unused struct session *sp = session_get0(ssl);
 }
 
-void
+int
 crypto_lookup(void)
 {
 	list_init(&ssl_module_list);
@@ -1164,4 +1165,5 @@ crypto_lookup(void)
 
 	ssl_version();
 	init_aaa_env();
+	return 0;
 }

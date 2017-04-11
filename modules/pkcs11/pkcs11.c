@@ -37,7 +37,8 @@
 #include <crypto/abi/lib.h>
 
 #define PKCS11_MAJOR 2
-#define PKCS11_MINOR 22
+#define PKCS11_MINOR 0
+/* #define PKCS11_MINOR 22 */
 
 #define CK_VERSION(X, Y) \
 	(struct ck_version) { .major = X, .minor = Y };

@@ -71,8 +71,10 @@ struct symbol {
 	} \
 	if (!plt_##fn.plt_##fn) \
 		plt_##fn.plt_##fn = dlsym(RTLD_DEFAULT, stringify(fn)); \
-	if (!plt_##fn.plt_##fn) \
-		die("symbol addr=%p name=%s", plt_##fn.plt_##fn, stringify(fn)); \
+	if (!plt_##fn.plt_##fn) {\
+		error("symbol addr=%p name=%s", plt_##fn.plt_##fn, stringify(fn)); \
+		return -1; \
+	} \
 	list_add_tail(&openssl_symtab, &plt_##fn.node);
 
 #define EXISTS_ABI(fn) \
@@ -84,7 +86,7 @@ struct symbol {
 	  error("%s", plthook_error()); \
 	} while(0)
 
-void
+int
 crypto_lookup(void);
 
 #endif/*__ABI_SSL_PLATFORM_H__*/
