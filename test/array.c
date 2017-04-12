@@ -13,8 +13,8 @@ static const char * const array_string[] = {
 int 
 main(int argc, char *argv[]) 
 {
-	info("string array size=%zu", array_size(array_string));
-	info("int    array size=%zu", array_size(array_int));
+	info("string array size=%u", (uint)array_size(array_string));
+	info("int    array size=%u", (uint)array_size(array_int));
 
 	return 0;
 }
