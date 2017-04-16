@@ -41,6 +41,8 @@
 #include <crypto/sha1.h>
 #include <crypto/abi/lib.h>
 
+#include <unix/timespec.h>
+
 #ifdef CONFIG_WIN32
 #include <windows.h>                                                            
 #include <wincrypt.h>
@@ -74,6 +76,7 @@ DECLARE_LIST(openssl_symtab);
 DEFINE_ABI(SSLeay);
 DEFINE_ABI(SSL_CTX_new);
 DEFINE_ABI(SSL_CTX_free);
+DEFINE_ABI(SSL_CTX_ctrl);
 DEFINE_ABI(SSL_CTX_callback_ctrl);
 DEFINE_ABI(SSL_CTX_set_ex_data);
 DEFINE_ABI(SSL_CTX_get_ex_data);
@@ -84,6 +87,7 @@ DEFINE_ABI(SSL_free);
 DEFINE_ABI(SSL_get_info_callback);
 DEFINE_ABI(SSL_get_rfd);
 DEFINE_ABI(SSL_get_wfd);
+DEFINE_ABI(SSL_ctrl);
 DEFINE_ABI(SSL_callback_ctrl);
 DEFINE_ABI(SSL_set_ex_data);
 DEFINE_ABI(SSL_get_ex_data);
@@ -585,12 +589,45 @@ cleanup:
 */
 
 static int
+ssl_setsession(struct session *sp)
+{
+	SSL_SESSION *sess = CALL_ABI(SSL_get_session)(sp->ssl);
+	unsigned int len;
+	const byte *id = CALL_ABI(SSL_SESSION_get_id)(sess, &len);
+	char *key = evala(memhex, (char *)id, len);
+
+	timestamp_t now = get_timestamp();
+
+	info("binding user context to encrypted session");
+	info("sess.created=%ju", (uintmax_t)now);
+	info("sess.modified=%ju", (uintmax_t)now);
+	info("sess.access=%ju", (uintmax_t)now);
+	info("sess.expires=%ju", (uintmax_t)now + 60000);
+	info("sess.id=%s", key);
+	info("user.id=123456");
+	info("user.name=n13l");
+	info("user.email=niel@rtfm.cz");
+	info("user.groups[]=example1 example2");
+	info("user.example1.roles[]=admin editor");
+
+	return 0;
+}
+
+static int
 ssl_server_aaa(struct session *sp)
 {
 	struct aaa_keys *a = &sp->keys;
 	char *key = evala(memhex, a->binding_key.addr, a->binding_key.len);
 	char *id  = evala(memhex, a->binding_id.addr, a->binding_id.len);
 
+	const char *proto_attr   = aaa_attr_names[AAA_ATTR_PROTOCOL];
+	const char *proto_client = dict_get(&sp->recved, proto_attr);
+	const char *proto_server = aaa.protocol;
+
+	if (!proto_client || !proto_server)
+		return -EINVAL;
+	if (strcmp(proto_client, proto_server))
+		return -EINVAL;
 	if (!aaa.handler || !key || !id || !aaa.authority)
 		return -EINVAL;
 
@@ -620,8 +657,10 @@ ssl_server_aaa(struct session *sp)
 	status = system(msg);
 	debug("%s", WEXITSTATUS(status)? "forbidden" : "authenticated");
 
-	if (!WEXITSTATUS(status))
+	if (!WEXITSTATUS(status)) {
+		ssl_setsession(sp);
 		return 0;
+	}
 
 	if (!server_handshake_synch)
 		return 0;
@@ -893,7 +932,9 @@ DEFINE_CTX_CALL(new)(const SSL_METHOD *method)
 	                                ssl_client_get, NULL);
 	CALL_CTX(add_server_custom_ext)(ctx, 1000, ssl_server_add, NULL, NULL, 
 	                                ssl_server_get, NULL);
-
+#ifdef SSL_OP_NO_TICKET
+	CALL_CTX(ctrl)(ctx, SSL_CTRL_OPTIONS, SSL_OP_NO_TICKET, NULL);
+#endif
 	debug4("ctx=%p", ctx);	
 	return ctx;
 }
@@ -906,7 +947,10 @@ DEFINE_SSL_CALL(new)(SSL_CTX *ctx)
 	void (*fn)(void) = (void (*)(void))ssl_extensions;
 	CALL_SSL(set_info_callback)(ssl, ssl_info);
 	CALL_SSL(callback_ctrl)(ssl, SSL_CTRL_SET_TLSEXT_DEBUG_CB, fn);
-
+#ifdef SSL_OP_NO_TICKET
+	CALL_SSL(ctrl)(ssl, SSL_CTRL_OPTIONS, SSL_OP_NO_TICKET, NULL);
+#endif
+	
 	debug3("ssl=%p", ssl);
 	return ssl;
 }
@@ -1039,12 +1083,14 @@ ssl_init(void)
 	IMPORT_ABI(SSLeay);
 	IMPORT_ABI(SSL_CTX_new);
 	IMPORT_ABI(SSL_CTX_free);
+	IMPORT_ABI(SSL_CTX_ctrl);
 	IMPORT_ABI(SSL_CTX_callback_ctrl);
 	IMPORT_ABI(SSL_CTX_set_ex_data);
 	IMPORT_ABI(SSL_CTX_get_ex_data);
 	IMPORT_ABI(SSL_CTX_add_client_custom_ext);
 	IMPORT_ABI(SSL_CTX_add_server_custom_ext);
 	IMPORT_ABI(SSL_new);
+	IMPORT_ABI(SSL_ctrl);
 	IMPORT_ABI(SSL_get_info_callback);
 	IMPORT_ABI(SSL_callback_ctrl);
 	IMPORT_ABI(SSL_set_ex_data);
@@ -1091,7 +1137,10 @@ ssl_init_ctxt(SSL_CTX *ctx)
 {
 	void (*fn)(void) = (void (*)(void))ssl_extensions;
 	CALL_CTX(callback_ctrl)(ctx, SSL_CTRL_SET_TLSEXT_DEBUG_CB, fn);
-
+#ifdef SSL_OP_NO_TICKET
+	CALL_CTX(ctrl)(ctx, SSL_CTRL_OPTIONS, SSL_OP_NO_TICKET, NULL);
+#endif
+	
 	CALL_CTX(add_client_custom_ext)(ctx, 1000, ssl_client_add, NULL, NULL,
 	                                ssl_client_get, NULL);
 	CALL_CTX(add_server_custom_ext)(ctx, 1000, ssl_server_add, NULL, NULL, 
@@ -1102,6 +1151,10 @@ void
 ssl_init_conn(SSL *ssl)
 {
 	_unused struct session *sp = session_get0(ssl);
+#ifdef SSL_OP_NO_TICKET
+	CALL_SSL(ctrl)(ssl, SSL_CTRL_OPTIONS, SSL_OP_NO_TICKET, NULL);
+#endif
+	
 }
 
 int
@@ -1118,12 +1171,14 @@ crypto_lookup(void)
 	IMPORT_ABI(SSLeay);
 	IMPORT_ABI(SSL_CTX_new);
 	IMPORT_ABI(SSL_CTX_free);
+	IMPORT_ABI(SSL_CTX_ctrl);
 	IMPORT_ABI(SSL_CTX_callback_ctrl);
 	IMPORT_ABI(SSL_CTX_set_ex_data);
 	IMPORT_ABI(SSL_CTX_get_ex_data);
 	IMPORT_ABI(SSL_CTX_add_client_custom_ext);
 	IMPORT_ABI(SSL_CTX_add_server_custom_ext);
 	IMPORT_ABI(SSL_new);
+	IMPORT_ABI(SSL_ctrl);
 	IMPORT_ABI(SSL_get_info_callback);
 	IMPORT_ABI(SSL_callback_ctrl);
 	IMPORT_ABI(SSL_set_ex_data);

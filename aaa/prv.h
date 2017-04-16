@@ -39,4 +39,7 @@ struct aaa {
 void                                                                            
 aaa_config_load(struct aaa *c);
 
+int
+aaa_server(int argc, char *argv[]);
+
 #endif
