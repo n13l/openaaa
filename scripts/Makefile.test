@@ -36,7 +36,7 @@ testld_libs = $(KBUILD_LIBS)
 # test-csingle -> executable
 quiet_cmd_test-csingle = CC      $@
       cmd_test-csingle = $(CC) $(LDFLAGS_$(*F)) $(testc_flags) -o $@ $< $(testld_builtin) \
-                               $(testld_libs) $(LIBS_$(*F))
+                               $(testld_libs) $(LIBS_$(*F)) $(KBUILD_LIBS)
 
 $(test-csingle): $(__obj_fixed)/%: $(__src_fixed)/%.c FORCE
 	$(call if_changed_dep,test-csingle)
@@ -52,7 +52,7 @@ $(test-cobjs): $(__obj_fixed)/%.o: $(__src_fixed)/%.c FORCE
 quiet_cmd_test-cmulti	= LD      $@
       cmd_test-cmulti	= $(CC) $(testld_flags) -o $@ \
 			  $(addprefix $(obj)/,$($(@F)-y)) $(testld_builtin) \
-      			  $(testld_libs) $(LIBS_$(*F))
+      			  $(testld_libs) $(LIBS_$(*F)) $(KBUILD_LIBS)
 $(test-cmulti): $(__obj_fixed)/%: $(test-cobjs) FORCE
 	$(call if_changed,test-cmulti)
 

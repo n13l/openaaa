@@ -17,7 +17,6 @@
 #define EV_GENWRAP 0
 #define EV_AVOID_STDIO 0
 #define EV_NO_THREADS 0
-#undef EV_API_DECL
 
 #include <sys/ev/ev.c>
 
@@ -106,12 +105,9 @@ sched_fini(void)
 	task_fini(&task);
 }
 
-
 int
 aaa_server(int argc, char *argv[])
 {
 	info("starting server");
 	return 0;
 }
-
-

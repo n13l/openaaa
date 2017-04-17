@@ -26,14 +26,7 @@
 #ifndef __HOTPLUG_JNU_H__
 #define __HOTPLUG_JNU_H__
 
-#include <stdlib.h>
-#include <stdarg.h>
-#include <sys/types.h>
-
 #include <sys/compiler.h>
-#include <mem/alloc.h>
-#include <mem/pool.h>
-#include <mem/page.h>
 
 void
 jnu_set_jclass(void *ctx, const char *name);

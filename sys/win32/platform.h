@@ -56,6 +56,10 @@ fcntl(int fd, int cmd, ... /* arg */ );
 #define gettid(...) (int)GetCurrentThreadId()
 #endif
 
+#ifndef getpid
+#define getpid _getpid
+#endif
+
 #define sleep(a) Sleep(a * 1000)
 
 int
