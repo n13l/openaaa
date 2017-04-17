@@ -243,7 +243,7 @@ cpu_has_cap(int capability)
 	return 0;
 }
 
-static inline 
+_unused static inline 
 unsigned long long cpu_getcycles(void)
 {
 	unsigned hi, lo;

@@ -2,11 +2,11 @@
 #include <sys/log.h>
 #include <array.h>
 
-static const int array_int[] = {
+_unused int array_int[] = {
 	1, 2, 3, 4, 5, 6
 };
 	
-static const char * const array_string[] = {
+_unused char *array_string[] = {
 	"test0", "test1", "test2"
 };
 

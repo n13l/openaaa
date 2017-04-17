@@ -1,6 +1,10 @@
 testprogs-y := aaa
 LIBS_aaa = aaa/built-in.o
 
+# lib ev warning cleanup
+CFLAGS_server.o += -Wno-unused-value -Wno-unused-function 
+CFLAGS_server.o += -Wno-comment -Wno-parentheses 
+
 lib                   := aaa
 libname               := lib$(lib)-$(PACKAGEVERSION)
 
