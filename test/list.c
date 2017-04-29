@@ -130,7 +130,7 @@ test3_list(void)
 	list_add(&list, DECLARE_ITEM(struct user, n, .name = "Adam", .id = 1));
 
 	struct user *user;
-	list_for_each_type(user, n, list) {
+	list_for_each_item(list, user, n) {
 		debug("user name=%s", user->name);
 	};
 }

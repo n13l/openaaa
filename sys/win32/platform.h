@@ -53,7 +53,8 @@ fcntl(int fd, int cmd, ... /* arg */ );
 #endif
 */
 #ifndef gettid
-#define gettid(...) (int)GetCurrentThreadId()
+#define gettid(...) 0
+//#define gettid(...) (int)GetCurrentThreadId()
 #endif
 
 #ifndef getpid

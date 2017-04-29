@@ -117,6 +117,6 @@ int
 cpu_has_crc32c(void);
 
 void
-cpu_dump_extension(void);
+cpu_info(void);
 
 #endif/*__CPU_H__*/

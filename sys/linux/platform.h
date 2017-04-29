@@ -33,5 +33,7 @@ static inline pid_t gettid(void)
 #error "SYS_gettid unavailable on this system"
 #endif
 
+void setproctitle_init(int argc, char *argv[]);
+void setproctitle(const char *fmt, ...);
 
 #endif

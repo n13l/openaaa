@@ -11,7 +11,8 @@ libname               := lib$(lib)-$(PACKAGEVERSION)
 always                += $(if $(CONFIG_MODULES),$(libname).$(so),)
 always                += $(if $(JDK_HOME),$(libname).jar,)
 
-obj-y                 += acc.o env.o cnf.o api.o server.o client.o
+obj-y                 += acc.o env.o cnf.o api.o client.o
+obj-$(CONFIG_LINUX)   += server.o
 obj-$(CONFIG_JNI)     += built-jni.o
 
 ccflags-$(CONFIG_JNI) += -I$(JDK_HOME)/include -I$(JDK_HOME)/include/$(PLATFORM)

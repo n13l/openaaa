@@ -33,15 +33,15 @@
 /* API version, they compare as integers */
 #define API_VERSION PACKAGE_VERSION
 
-#define AAA_ENDPOINT_CLIENT       1
-#define AAA_ENDPOINT_SERVER       2
+//#define AAA_ENDPOINT_CLIENT       1
+//#define AAA_ENDPOINT_SERVER       2
 
 /* A private structures containing the aaa context */
 struct aaa;
 
 enum aaa_endpoint {
-	ENDPOINT_CLIENT = 1,
-	ENDPOINT_SERVER = 2
+	AAA_ENDPOINT_CLIENT = 1,
+	AAA_ENDPOINT_SERVER = 2
 };
 
 #define AAA_BIND_SESSION_ID 0x1
@@ -64,7 +64,7 @@ enum aaa_endpoint {
  */
 
 struct aaa *
-aaa_new(enum aaa_endpoint type);
+aaa_new(enum aaa_endpoint type, int flags);
 
 /*
  * NAME

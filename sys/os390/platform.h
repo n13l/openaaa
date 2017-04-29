@@ -2,7 +2,6 @@
 #define __SYS_PLATFORM_H__
 
 #include <sys/compiler.h>
-#include <sys/xlc.h>
 
 #define MAP_ANON MAP_ANONYMOUS
 #define MAP_ANONYMOUS 0

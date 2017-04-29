@@ -70,7 +70,7 @@ struct log_ctx {
 #ifdef CONFIG_LOGGING
 #define debug(fmt, ...) \
 do { \
-  if (log_verbose < 0) break; \
+  if (log_verbose < 1) break; \
   struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
@@ -86,10 +86,8 @@ do { \
 do { \
   if (log_verbose < 2) break; \
   struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
-  log_printf(&log_ctx, fmt, ## __VA_ARGS__); \
+  log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
-
-/* printf("%s:%s(): " fmt "\n", KBUILD_MODNAME, __func__,  ## __VA_ARGS__); */
 
 #define debug3(fmt, ...) \
 do { \

@@ -11,6 +11,8 @@
 
 #define KBUILD_STR(s) #s
 
+static const char *options = "scvV";
+
 static struct option long_options[] = {
         {"server",   no_argument, 0, 's'},
         {"client",   no_argument, 0, 'c'},
@@ -20,13 +22,19 @@ static struct option long_options[] = {
         {0,          0,           0,  0 }
 };
 
+static void
+usage(void)
+{
+	printf("aaa utility v%s\n", PACKAGE_VERSION);
+}
+
 int
 main(int argc, char *argv[])
 {
         int endpoint = 0, c, index = 0;
 
         do {
-                c = getopt_long (argc, argv, "scvV", long_options, &index);
+                c = getopt_long (argc, argv, options, long_options, &index);
                 /* the end of the options. */
                 if (c == -1)
                         break;
@@ -45,14 +53,15 @@ main(int argc, char *argv[])
                 case 'v': log_verbose++; break;
                 case 'V': info("version: %s", PACKAGE_VERSION); break;
                 case '?':
-                        /* getopt_long already printed an error message. */
+		case 'h':
+                        usage();
                         break;
                 default:
                         die("wrong arguments");
                 }
         } while(1);
 
-        if (endpoint == 1)
+        if (endpoint == 1 && aaa_server)
                 return aaa_server(argc, argv);
 
         return 0;

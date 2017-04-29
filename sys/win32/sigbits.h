@@ -50,6 +50,11 @@ struct sigaction {
 #define SIGUSR1         10       /* Interrupt (ANSI).  */
 #endif
 
+#ifndef SIGUSR2
+#define SIGUSR2         11       /* Interrupt (ANSI).  */
+#endif
+
+
 int sigsetmask (int __mask);
 
 /* Get and/or change the set of blocked signals.  */                            

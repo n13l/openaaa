@@ -31,15 +31,29 @@
 #include <sys/types.h>
 #include <mem/pool.h>
 
+#include <dict.h>
+
 struct aaa {
 	struct mm_pool *mp;
+	struct mm_pool *mp_attrs;
+	struct dict attrs;
 	const char *config;
 };
 
-void                                                                            
-aaa_config_load(struct aaa *c);
+struct msg {
+	struct aaa *aaa;
+	int status;
+	const char *id;
+	const char *op;
+	const char *sid;
+	const char *uid;
+};
 
-int
-aaa_server(int argc, char *argv[]);
+void aaa_config_load(struct aaa *c);
+int session_init(void);
+int session_fini(void);
+int session_bind(struct aaa *aaa, const char *id, int type);
+
+extern int (*aaa_server)(int argc, char *argv[]);
 
 #endif

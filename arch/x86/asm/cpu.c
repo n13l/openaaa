@@ -215,8 +215,6 @@ cpu_vendor(void)
 		if (cpu->ebx != ebx || cpu->ecx != ecx || cpu->edx != edx)
 			continue;
 
-		debug("cpu.vendor=%s", x86_vendor_names[cpu->idx]);
-
 		return x86_vendor_names[cpu->idx];
 	}
 
@@ -252,7 +250,7 @@ unsigned long long cpu_getcycles(void)
 }
 
 void
-cpu_dump_extension(void)
+cpu_info(void)
 {
 	u32 eax = 0, ebx = 0, ecx = 0, edx = 0;
 	__get_cpuid(1, &eax, &ebx, &ecx, &edx);    
@@ -264,6 +262,7 @@ cpu_dump_extension(void)
 	debug("cpu.extended model %d", (eax >> 16) & 0xF);
 	debug("cpu.extended family %d", (eax >> 20) & 0xFF);
 */
+	debug("cpu.vendor=%s", cpu_vendor());
 	debug("cpu.arch=%s", CONFIG_ARCH);
 	debug("cpu.bits=%d", sizeof(void *) == 8 ? 64 : 32);
 	debug("cpu.pagesize=%d", CPU_PAGE_SIZE);

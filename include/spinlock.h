@@ -1,10 +1,8 @@
 /*
- * The MIT License (MIT)
- *
- * Copyright (c) 2015 Daniel Kubec <niel@rtfm.cz> 
+ * The MIT License (MIT)         Copyright (c) 2017 Daniel Kubec <niel@rtfm.cz> 
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy 
- * of this software and associated documentation files (the "Software"),to deal 
+ * of this software and associated documentation files (the "Software"),to deal
  * in the Software without restriction, including without limitation the rights 
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
@@ -17,27 +15,39 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,ARISING FROM,
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
 
-#ifndef __POSIX_SIGNAL_H__
-#define __POSIX_SIGNAL_H__
+#ifndef __GENERIC_SPINLOCK_H__
+#define __GENERIC_SPINLOCK_H__
 
-void
-irq_enable(void);
+#include <errno.h>
+#include <atomic.h>
 
-void
-irq_disable(void);
+typedef unsigned spinlock;
 
-int
-irq_pending(int req);
+static inline void
+spin_lock(spinlock *lock)
+{
+	while (1) {
+		if (!xchg_32(lock, EBUSY)) return;
+		while (*lock) cpu_relax();
+	}
+}
 
-void
-sig_disable(int sig);
+static inline void
+spin_unlock(spinlock *lock)
+{
+	barrier();
+	*lock = 0;
+}
 
-void
-sig_enable(int sig);
+static int
+spin_trylock(spinlock *lock)
+{
+	return xchg_32(lock, EBUSY);
+}
 
-#endif
+#endif/**/

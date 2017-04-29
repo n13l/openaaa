@@ -32,6 +32,12 @@
  * SUCH DAMAGE.
  */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif
+
+#undef HAVE_SETPROCTITLE
+
 #ifndef HAVE_SETPROCTITLE
 
 #include <stdlib.h>
@@ -46,8 +52,6 @@
 #ifdef HAVE_SYS_PSTAT_H
 #include <sys/pstat.h>
 #endif
-
-#include <sched.h>
 
 #if defined(CONFIG_DARWIN)
 #include <crt_externs.h>
@@ -179,3 +183,10 @@ cpu_set_affinity(int id, int mode, int cpu)
 
 	return 0;                                                               
 }
+
+/* 
+if (prctl(PR_SET_PDEATHSIG, SIGHUP) < 0)
+die("prctl reason=%s", strerror(errno));
+debug4("prctl type=PR_SET_PDEATHSIG sig=SIGHUP");
+*/
+	

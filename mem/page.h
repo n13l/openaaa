@@ -119,38 +119,6 @@ page_alloc(struct pagemap *map)
 }
 
 static inline struct page *
-page_alloc_rcu(struct pagemap *map)
-{
-	struct page *page = get_page(map, map->list);
-	page->hdr = (u32)0U;
-	map->list = page->avail;
-	map->avail--;
-	return page;
-}
-
-static inline struct page *
-page_alloc_safe_rcu(struct pagemap *map)
-{
-	struct page *page;
-	if ((page = get_page_safe(map, map->list)) == NULL)
-		return page;
-
-	page->hdr = (u32)0U;
-	map->list = page->avail;
-	map->avail--;
-	return page;
-}
-
-static inline void
-page_free_rcu(struct pagemap *map, struct page *page)
-{
-	page->hdr = (u32)~0U;
-	page->avail = map->list;
-	map->list = page_index(map, page);
-	map->avail++;
-}
-
-static inline struct page *
 page_alloc_safe(struct pagemap *map)
 {
 	struct page *page;
@@ -170,16 +138,6 @@ page_free(struct pagemap *map, struct page *page)
 	page->avail = map->list;
 	map->list = page_index(map, page);
 	map->avail++;
-}
-
-static inline void
-page_lock(struct page *page)
-{
-}
-
-static inline void
-page_unlock(struct page *page)
-{
 }
 
 static inline void

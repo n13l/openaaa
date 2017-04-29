@@ -55,7 +55,7 @@ static void
 info_cpu(void)
 {
 	_unused const char *vendor = cpu_vendor();
-	cpu_dump_extension();
+	cpu_info();
 
 }
 

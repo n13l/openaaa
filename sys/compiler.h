@@ -19,25 +19,25 @@ typedef unsigned int uint;            /* Shorter type for unsigned int       */
 typedef u64          timestamp_t;     /* Milliseconds since an unknown epoch */
 
 #ifdef __CHECKER__
-#define __bitwise__ __attribute__((bitwise))
+#define bitwise __attribute__((bitwise))
 #else
-#define __bitwise__
+#define bitwise
 #endif
 #ifdef __CHECK_ENDIAN__
-#define __bitwise __bitwise__
+#define endian_bitwise bitwise
 #else
-#define __bitwise
+#define endian_bitwise
 #endif
 
-typedef u16 __bitwise le16;
-typedef u16 __bitwise be16;
-typedef u32 __bitwise le32;
-typedef u32 __bitwise be32;
-typedef u64 __bitwise le64;
-typedef u64 __bitwise be64;
+typedef u16 endian_bitwise le16;
+typedef u16 endian_bitwise be16;
+typedef u32 endian_bitwise le32;
+typedef u32 endian_bitwise be32;
+typedef u64 endian_bitwise le64;
+typedef u64 endian_bitwise be64;
 
-typedef u16 __bitwise __sum16;
-typedef u32 __bitwise __wsum;
+typedef u16 endian_bitwise sum16;
+typedef u32 endian_bitwise wsum;
 
 #if __GNUC__ >= 3
 # undef  inline
@@ -284,6 +284,15 @@ typedef u32 __bitwise __wsum;
 
 #ifndef O_NOATIME
 #define O_NOATIME 0
+#endif
+
+/* IBM XL C/C++ */
+#if defined(__IBMCPP__) || defined(__xlC__) || defined(__xlc__)
+/* http://www-01.ibm.com/support/docview.wss?uid=swg27039015 */
+#ifdef KBUILD_STR
+#undef KBUILD_STR
+#endif
+#define KBUILD_STR(s) #s
 #endif
 
 #endif

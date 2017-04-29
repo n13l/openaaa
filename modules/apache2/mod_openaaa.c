@@ -79,7 +79,7 @@ child_init(apr_pool_t *p, server_rec *s)
 {
 	log_custom_set(log_write, s);
 
-	struct aaa *a = aaa_new(0);
+	struct aaa *a = aaa_new(AAA_ENDPOINT_SERVER, 0);
 
 	//aaa_set_opt(a, AAA_OPT_USERDATA, (const char *)s);
 	//aaa_set_opt(a, AAA_OPT_CUSTOMLOG, (char *)custom_log);

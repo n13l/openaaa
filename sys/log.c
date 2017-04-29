@@ -1,11 +1,13 @@
 #include <sys/compiler.h>
 #include <sys/log.h>
-#include <list.h>
+#include <mem/stack.h>
+
 #include <unistd.h>
 #include <string.h>
+#include <unix/timespec.h>
 
 void *log_userdata = NULL;
-int log_verbose = 4;
+int log_verbose = 0;
 char progname[256] = {0};
 
 void (*log_write_cb)(struct log_ctx *ctx, const char *msg, int len) = NULL;
@@ -38,17 +40,20 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 	int len = vsnprintf(msg, sizeof(msg) - 2, fmt, args2);
 	va_end(args2);
 
-	ctx->user = log_userdata;
+	const char *module = printfa("%s:%s", ctx->module, ctx->fn);
 
+	ctx->user = log_userdata;
 	if (len < 1)
 		return;
 
 	if (log_write_cb) {
 		log_write_cb(ctx, msg, len);
 	} else {
+		int pid = getpid();
+		int tid = gettid();
 		byte amsg[512];
-		snprintf(amsg, sizeof(amsg) - 1, "%s:%s %s\n", 
-		         ctx->module, ctx->fn, msg);
+		snprintf(amsg, sizeof(amsg) - 1, "%.8d:%.8d %s %s\n",
+		         pid, tid, module, msg);
 		write(0, amsg, strlen(amsg));
 	}
 }

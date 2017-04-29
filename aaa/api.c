@@ -2,29 +2,33 @@
 #include <sys/cpu.h>
 #include <sys/log.h>
 #include <mem/pool.h>
+
 #include <aaa/lib.h>
 #include <aaa/prv.h>
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <list.h>
+#include <dict.h>
+
+int (*aaa_server)(int argc, char *argv[]) = NULL;
 
 struct aaa *
-aaa_new(enum aaa_endpoint type)
+aaa_new(enum aaa_endpoint type, int flags)
 {
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
-	struct aaa *c = mm_alloc(mp, sizeof(*c));
+	struct aaa *aaa = mm_alloc(mp, sizeof(*aaa));
 
-	c->mp = mp;
+	aaa->mp = mp;
+	aaa->mp_attrs = mm_pool_create(CPU_PAGE_SIZE, 0);
 
-	aaa_config_load(c);
+	dict_init(&aaa->attrs, aaa->mp_attrs);
 
-	return c;
+	return aaa;
 }
 
 void
 aaa_free(struct aaa *aaa)
 {
+	mm_pool_destroy(aaa->mp_attrs);
 	mm_pool_destroy(aaa->mp);
 }
 
@@ -34,16 +38,24 @@ aaa_bind(struct aaa *aaa, int type, const char *value)
 	return -1;
 }
 
+void
+aaa_reset(struct aaa *aaa)
+{
+	mm_flush(aaa->mp_attrs);
+	dict_init(&aaa->attrs, aaa->mp_attrs);
+}
+
 int
 aaa_attr_set(struct aaa *aaa, const char *attr, char *value)
 {
-	return -1;
+	dict_set(&aaa->attrs, attr, value);
+	return 0;
 }
 
 const char *
 aaa_attr_get(struct aaa *aaa, const char *attr)
 {
-	return NULL;
+	return dict_get(&aaa->attrs, attr);
 }
 
 int

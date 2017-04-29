@@ -30,14 +30,6 @@
 #define DECLARE_LIST(name)   struct list name = INIT_LIST(name)
 #define DECLARE_NODE(name)   struct node name = INIT_NODE
 
-/*
-	struct user { char *name; int age; struct node n; };
-
-	DECLARE_LIST(list);
-	struct node *node = DECLARE_ITEM(struct user, n, .name = "", .age = 9);
-	list_add(&list, node);
-*/
-	
 #define DECLARE_ITEM(type, node,...) \
         ({ type __o = (type) {.node = INIT_NODE ,## __VA_ARGS__ }; &__o.node;})
 
@@ -178,12 +170,21 @@ list_del(struct node *node)
 	for (struct node *it, *(n) = (list).head.next; \
 		(it) = (n)->next, (n) != &(list).head; (n) = it)
 
-/* struct person *p = __container_of(n, struct person, node); */
-
-#define list_for_each_type(it, node, list) \
+#define list_for_each_item(list, it, node) \
 	for ((it) = __container_of(list_for_first(list), typeof(*it), node); \
 	     &(it->node) != &(list).head; \
 	     (it) = __container_of(it->node.next, typeof(*it), node))
+
+static inline unsigned int
+list_size(struct list *list)
+{
+	unsigned int size = 0;
+	list_for_each(node, (*list))
+		size++;
+
+	return size;
+}
+
 
 static inline void
 snode_init(struct snode *snode)
@@ -284,6 +285,7 @@ hlist_add(struct hnode *hnode, struct hnode *next)
 		next->next->prev  = &next->next;
 }
 
+/*
 #ifdef CONFIG_DEBUG_LIST
 # define hlist_first(node)     ({ (list)->head; )}
 # define hlist_next(node, pos) ({node = node->next; hlist_next_hook(pos) 1;})
@@ -297,5 +299,5 @@ hlist_add(struct hnode *hnode, struct hnode *next)
 
 #define hlist_for_each_delsafe(node, it, list) \
 	for (node = hlist_first(list); it && ({it = pos->next; 1;}); node = it)
-
+*/
 #endif/*__GENERIC_LIST_H__*/
