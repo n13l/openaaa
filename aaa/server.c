@@ -345,7 +345,6 @@ attr_enc(byte *pkt, int len, int maxlen, const char *key, const char *val)
 	memcpy(pkt, val, vlen);
 	pkt += vlen;
 	*pkt = '\n';
-	*pkt++ = 0;
 	return linelen;
 }
 
@@ -364,6 +363,7 @@ udp_build(struct msg *msg, byte *pkt, int size)
 		len += attr_enc(pkt, len, size, a->key, a->val);
 	}
 
+	debug2("\n%s", pkt);
 	return len;
 }
 
