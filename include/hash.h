@@ -76,12 +76,9 @@ hash_buffer(const char *ptr, int size)
 #define hash_next(hook)
 #endif/*CONFIG_DEBUG_HASH_TABLE*/
 
-/* Decent compiler is able to make an obviously build-time decisions */
 #define hash_bits(name) (unsigned int)(log2(array_size(name)))
 #define hash_data(name, key) (u32)hash_u32(key, hash_bits(name))
 #define hash_data_shared(key, bts) (u32)hash_u32(key, bits)
-
-/* Type-generic macro used for hash calculation */
 
 #define hash_init(table) \
 	for (unsigned __i = 0; __i < array_size(table); __i++) \
@@ -90,7 +87,6 @@ hash_buffer(const char *ptr, int size)
 #define hash_init_shared(table, shift) \
 	for (unsigned __i = 0; __i < (1 << shift); __i++) \
 		INIT_HLIST_PTR(&table[__i]);
-
 
 #define hash_add(htable, hnode, slot) \
 	hlist_add_head(& htable[slot], hnode)
@@ -104,32 +100,18 @@ hash_buffer(const char *ptr, int size)
 # define hlist_first(node)     ({ (list)->head; })
 # define hlist_next(node, pos) ({node = pos->next; 1;})
 
-#define hlist_entry(ptr, type, member) __container_of(ptr,type,member)
-
-/*
-#define hlist_for_each(pos, head) \
-for (pos = (head)->first; pos ; pos = pos->next)
-
-#define hlist_for_each_safe(pos, n, head) \
-for (pos = (head)->first; pos && ({ n = pos->next; 1; }); \
-pos = n)
-*/
-
-#define hlist_entry_safe(ptr, type, member) \
-({ typeof(ptr) ____ptr = (ptr); ____ptr ? hlist_entry(____ptr, type, member) : NULL; })
-
 #define hlist_for_each(node, list) \
 	for (node = hlist_first(list); node; node = item->next)
 
 #define hlist_for_each_delsafe(node, it, list) \
 	for (node = hlist_first(list); it && ({it = pos->next; 1;}); node = it)
 
-#define hlist_for_each_entry_safe(pos, n, list, member)                 \
-	for (pos = hlist_entry_safe((list)->head, typeof(*pos), member);\
-	     pos && ({ n = pos->member.next; 1; });                     \
-	     pos = hlist_entry_safe(n, typeof(*pos), member))
+#define hlist_for_each_item_safe(item, n, list, member)                 \
+	for (item = __container_of_safe((list)->head, typeof(*item), member);\
+	     item && ({ n = item->member.next; 1; });                     \
+	     item = __container_of_safe(n, typeof(*item), member))
 
 #define hash_for_each_item_delsafe(htable, obj, tmp, member, slot)        \
-	hlist_for_each_entry_safe(obj, tmp, &htable[slot], member)
+	hlist_for_each_item_safe(obj, tmp, &htable[slot], member)
 
 #endif
