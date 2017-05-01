@@ -106,7 +106,6 @@ struct task {
 	struct ev_signal sigint_watcher;
 	struct ev_signal sigterm_watcher;
 	struct ev_signal sighup_watcher;
-	struct ev_signal sigsegv_watcher;
 	struct ev_signal sigusr1_watcher;
 	struct ev_child child_watcher;
 	struct list list;
@@ -203,28 +202,6 @@ chld_handler(EV_P_ ev_child *w, int revents)
 	ev_break(loop, EVBREAK_ALL);
 }
 
-static void 
-handler_child(struct task *task)
-{
-/*	
-	int status, rv;
-	pid_t pid;
-
-	while((pid = waitpid(-1, &status, WNOHANG | WUNTRACED | WCONTINUED)) > 0) {
-		task_status(pid, status);
-		struct task *c;
-		list_for_each_item(task_disp.list, c, node) {
-			if (pid != c->pid)
-				continue;
-			if (WIFEXITED(status) || WIFSIGNALED(status)) {
-				task_disp.running--;
-				c->state = TASK_STATE_NONE;
-			}
-		}
-}
-*/
-}
-
 static void
 timer(EV_P_ ev_timer *w, int revents)
 {
@@ -309,27 +286,33 @@ sched_idle(struct task *task)
 }
 
 static int 
-parse_pkt(struct msg *msg, byte *pkt, unsigned int len)
+udp_parse(struct msg *msg, byte *packet, unsigned int len)
 {
 	struct aaa *aaa = msg->aaa;
-	byte *ptr = pkt, *end = pkt + len;
-	while (pkt < end) {
-		byte *key = pkt;
-		while (pkt < end && *pkt != ':' && *pkt != '\n')
-			pkt++;
-		if (pkt >= end)
+	byte *ptr = packet, *end = packet + len;
+	while (packet < end) {
+		byte *key = packet;
+		while (packet < end && *packet != ':' && *packet != '\n')
+			packet++;
+		if (packet >= end)
 			return -1;
-		if (*pkt != ':')
-			return pkt - ptr;
-		*pkt++ = 0;
-		byte *value = pkt;
-		while (pkt < end && *pkt != '\n')
-			pkt++;
-		if (pkt >= end)
+		if (*packet != ':')
+			return packet - ptr;
+		*packet++ = 0;
+		byte *value = packet;
+		while (packet < end && *packet != '\n')
+			packet++;
+		if (packet >= end)
 			return -1;
-		*pkt++ = 0;
+		*packet++ = 0;
 
-		debug("%s: %s", key, value);
+		debug3("%s:%s", key, value);
+
+		if (!strncasecmp(key, "sess.id", 4))
+			msg->sid = value;
+		if (!strncasecmp(key, "user.id", 4))
+			msg->uid = value;
+
 		if (strncasecmp(key, "msg.", 4)) {
 			aaa_attr_set(aaa, key, value);
 			continue;
@@ -345,13 +328,14 @@ parse_pkt(struct msg *msg, byte *pkt, unsigned int len)
 }
 
 static int
-encode_attr(byte *pkt, int len, int maxlen, const char *key, const char *val)
+attr_enc(byte *pkt, int len, int maxlen, const char *key, const char *val)
 {
 	if (len < 0)
 		return len;
 
 	int klen = strlen(key), vlen = strlen(val);
 	int linelen = klen + 1 + vlen + 1;
+
 	if (len + linelen > maxlen)
 		return -1;
 	pkt += len;
@@ -361,19 +345,22 @@ encode_attr(byte *pkt, int len, int maxlen, const char *key, const char *val)
 	memcpy(pkt, val, vlen);
 	pkt += vlen;
 	*pkt = '\n';
-	return len + linelen;
+	return linelen;
 }
 
 static int
-build_pkt(struct msg *msg, byte *pkt, int size)
+udp_build(struct msg *msg, byte *pkt, int size)
 {
-
+	const char *status = printfa("%d", msg->status);
 	int len = 0;
-	len = encode_attr(pkt, len, size, "msg.status", printfa("%d", msg->status));
+	len += attr_enc(pkt, len, size, "msg.status", status);
+	len += attr_enc(pkt, len, size, "msg.id", "1");
+	debug3("msg.status:%s", status);
+	debug3("msg.id:%s", "1");
 
 	dict_for_each(a, msg->aaa->attrs.list) {
-		debug3("%s: %s", a->key, a->val);
-		len += encode_attr(pkt, len, size, a->key, a->val);
+		debug3("%s:%s", a->key, a->val);
+		len += attr_enc(pkt, len, size, a->key, a->val);
 	}
 
 	return len;
@@ -407,7 +394,9 @@ cmd_get(struct cmd *cmd)
 static int
 cmd_touch(struct cmd *cmd)
 {
-	return 0;
+	struct msg *msg = &cmd->msg;
+	msg->status = 0;
+	return msg->sid ? session_touch(msg->aaa, msg->sid) : -EINVAL;
 }
 
 static int
@@ -423,13 +412,15 @@ cmd_select(struct cmd *cmd)
 {
 	struct msg *msg = &cmd->msg;
 	msg->status = 0;
-	return session_bind(NULL, msg->sid, 0);
+	return msg->sid ? session_select(msg->aaa, msg->sid) : -EINVAL;
 }
 
 static int
-cmd_create(struct cmd *cmd)
+cmd_commit(struct cmd *cmd)
 {
-	return 0;
+	struct msg *msg = &cmd->msg;
+	msg->status = 0;
+	return msg->sid ? session_commit(msg->aaa, msg->sid) : -EINVAL;
 }
 
 static int
@@ -443,12 +434,10 @@ static const struct cmd_table {
 	int (*handler)(struct cmd *cmd);
 } cmd_table[] = {
 	{ "nop",    cmd_nop    },
-	{ "set",    cmd_set    },
-	{ "get",    cmd_get    },
 	{ "touch",  cmd_get    },
 	{ "bind",   cmd_bind   },
 	{ "select", cmd_select },
-	{ "create", cmd_create },
+	{ "commit", cmd_commit },
 	{ "delete", cmd_delete },
 	{ NULL,     NULL }
 };
@@ -473,7 +462,6 @@ cmd_parse(struct cmd *cmd)
 		d++;
 	if (d->handler)
 		return cmd_execute(cmd, d);
-
 	return -EINVAL;
 }
 
@@ -503,32 +491,32 @@ udp_serve(struct task *task)
 			return;
 	}
 
-	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
-
 	struct cmd cmd;
 	struct msg *msg = &cmd.msg;
 	msg->aaa = aaa;
 
 	char *v = printfa("%s:%d", inet_ntoa(from.sin_addr), ntohs(from.sin_port));
-	debug3("peer=%s", v);
+	debug2("%s recv %jd byte(s)", v, (intmax_t)size);
 
-	if (parse_pkt(msg, pkt, size) < 0)
+	if (udp_parse(msg, pkt, (int)size) < 0)
 		goto cleanup;
 
 	if (cmd_parse(&cmd))
 		goto cleanup;
 
-	if ((size = build_pkt(msg, pkt, sizeof(pkt) - 1)) < 1)
+	if ((size = udp_build(msg, pkt, sizeof(pkt) - 1)) < 1)
 		goto cleanup;
 
 	int sent = sendto(fd, pkt, size, 0, &from, len);
+	debug2("%s sent %d byte(s)", v, sent);
+
 	if (sent < 0)
 	        error("sendto failed: reason=%s ", strerror(errno));
 	else if (sent < size)
 		error("sendto sent partial packet (%d of %d bytes)", sent, (int)size);
 
 cleanup:
-	mm_pool_destroy(mp);
+	aaa_reset(aaa);
 }
 
 const char *
@@ -587,13 +575,11 @@ task_init(struct task *task)
 		ev_signal_init(&task->sigint_watcher,  sighandler, SIGINT);
 		ev_signal_init(&task->sigterm_watcher, sighandler, SIGTERM);
 		ev_signal_init(&task->sighup_watcher,  sighandler, SIGHUP);
-		//ev_signal_init(&task->sigsegv_watcher,  sighandler, SIGSEGV);
 		ev_signal_init(&task->sigusr1_watcher,  sighandler, SIGUSR1);
 
 		ev_signal_start(task->loop, &task->sigint_watcher);
 		ev_signal_start(task->loop, &task->sigterm_watcher);
 		ev_signal_start(task->loop, &task->sighup_watcher);
-		//ev_signal_start(task->loop, &task->sigsegv_watcher);
 		ev_signal_start(task->loop, &task->sigusr1_watcher);
 		setproctitle("aaad");
 
@@ -706,7 +692,6 @@ task_fini(struct task *task)
 	};
 
 	struct aaa *aaa;
-
 	switch (task->type) {
 	case TASK_TYPE_DISP:
 		break;
@@ -735,7 +720,6 @@ task_wait(struct task *task)
 	case TASK_TYPE_DISP:
 		sched(task);
 		ev_loop(task->loop, 0);
-		handler_child(task);
 		break;
 	case TASK_TYPE_WORK:
 		while(!request_restart && !request_shutdown) {
@@ -744,7 +728,7 @@ task_wait(struct task *task)
 		task_fini(task);
 		exit(0);
 	default:
-		die("wrong type");
+		die("unknown task type");
 		break;
 		
 	}
@@ -809,7 +793,7 @@ void
 sched_fini(void)
 {
 	task_fini(&task_disp);
-	debug("stopped");
+	info("stopped");
 }
 
 int

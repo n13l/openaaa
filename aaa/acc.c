@@ -11,14 +11,42 @@
 #include <list.h>
 #include <hash.h>
 
-DEFINE_HASHTABLE(htable_sid, 9);
-DEFINE_HASHTABLE(htable_bid, 9);
-DEFINE_HASHTABLE(htable_uid, 9);
+#define HTABLE_BITS 9
+
+DEFINE_HASHTABLE_SHARED(htable_sid);
+DEFINE_HASHTABLE_SHARED(htable_bid);
+DEFINE_HASHTABLE_SHARED(htable_uid);
 
 struct attrs {
-	struct bb sid;
-	struct bb uid;
+	char sid[64];
+	char uid[32];
 };
+
+struct cursor {
+	timestamp_t now;
+	int expires; 
+	struct bb id;
+	u32 hash;
+	u32 slot;
+};
+
+timestamp_t
+get_time(void)
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return tv.tv_sec;
+}
+
+static inline void
+acct_cursor(struct cursor *cursor, struct bb *id, int expires)
+{
+	cursor->hash = hash_buffer(id->addr, id->len);
+	cursor->slot = hash_u32(cursor->hash, HTABLE_BITS);
+	cursor->expires = expires;
+	memcpy(&cursor->id, id, sizeof(*id));
+	cursor->now = get_time();
+}
 
 struct session {
 	struct page page;
@@ -27,10 +55,7 @@ struct session {
 	struct hnode bid;
         timestamp_t created;
         timestamp_t modified;
-        timestamp_t access;
         timestamp_t expires;
-	char s_sid[64];
-	char s_uid[64];
 	struct attrs attrs;
 	unsigned char obj[];
 };
@@ -44,26 +69,30 @@ struct request {
 	u32  hash_bid;
 };
 
-struct pagemap *pagemap = NULL;
+static struct pagemap *pagemap = NULL;
 
-timestamp_t
-get_time(void)
-{
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	return tv.tv_sec;
-}
+u32 htab_pages;
+u32 shift = 12, pages = 32768;
 
 int
 session_init(void)
 {
-	u32 shift = 12, pages = 32768;
+	htab_pages = align_to(CPU_PAGE_SIZE, (1<<HTABLE_BITS) * sizeof(struct hlist));
+	htable_sid = mmap_open(NULL, MAP_SHARED | MAP_ANON, shift, htab_pages);
+	if (!htable_sid)
+		die("mm_open() failed reason=%s", strerror(errno));
+
+	hash_init_shared(htable_sid, shift);
+
+	debug3("mm area=%p shift=%d pages=%d table %d MB", htable_sid, 
+		HTABLE_BITS, htab_pages, (int)pages2mb(HTABLE_BITS, htab_pages));
+	
 	pagemap = mmap_open(NULL, MAP_SHARED | MAP_ANON, shift, pages);
 	if (!pagemap)
 		die("mm_open() failed reason=%s", strerror(errno));
 
-	debug3("mm area=%p shift=%d pagesize=%d pages=%d size=%lu MB(s)", 
-		pagemap, shift, (1 << shift), pages, pages2mb(shift, pages));
+	debug3("mm area=%p shift=%d pages=%d size=%lu MB(s)", 
+		pagemap, shift, pages, pages2mb(shift, pages));
 
 	return 0;
 }
@@ -74,56 +103,6 @@ session_fini(void)
 	if (pagemap)
 		mmap_close(pagemap);
 	return 0;
-}
-
-static inline void
-session_time_init(struct session *session, int expires)
-{
-	session->created = session->modified = session->access = get_time();
-	session->expires = session->access + expires;
-}
-
-static struct session *
-session_lookup(const char *id, int expires)
-{
-	struct session *session = NULL, *item = NULL;
-	u32 h = hash_string(id);
-
-	struct hnode *it = NULL;
-	hash_for_each_item_safe(htable_sid, item, it , sid, h) {
-		struct bb *sid = &session->attrs.sid;
-		if (strncmp(id, sid->addr, sid->len))
-			continue;
-		session = item;
-	}
-
-	return session;
-}
-
-static struct session *
-session_create(const char *id, int expires)
-{
-	struct page *page = page_alloc_safe(pagemap);
-	if (!page)
-		return NULL;
-
-	struct session *session = (struct session *)page;
-	strncpy(session->s_sid, id, sizeof(session->s_sid));
-
-	session->attrs.sid.addr = session->s_sid;
-	session->attrs.sid.len  = strlen(session->s_sid);
-	session_time_init(session, expires);
-
-	debug3("sess.id=%s", session->attrs.sid.addr);
-	debug3("sess.created=%jd", (intmax_t)session->created);
-	debug3("sess.modified=%jd", (intmax_t)session->modified);
-	debug3("sess.access=%jd", (intmax_t)session->access);
-	debug3("sess.expires=%jd", (intmax_t)session->expires);
-
-	debug3("expires in %jd sec(s)", session->expires - session->access);
-
-	strncpy(session->s_sid, id, sizeof(session->s_sid));
-	return NULL;
 }
 
 int
@@ -145,48 +124,241 @@ page_unlock(struct page *page)
 }
 
 int
-page_copy(struct page *page, struct page *to)
+page_copy(struct page *page, struct page *from)
 {
 	page_lock(page);
-
+	memcpy(page, from, 1 << shift);
 	page_unlock(page);
 	return 0;
 }
 
+static int 
+session_parse(struct aaa *aaa, byte *buf, unsigned int len)
+{
+	len--; /* zero ending */
+	byte *ptr = buf, *end = buf + len, *a, *b;
+	while (buf < end) {
+		byte *key = buf;
+		while (buf < end && *buf != ':' && *buf != '\n')
+			buf++;
+		if (buf >= end)
+			return -1;
+		if (*buf != ':')
+			return buf - ptr;
+		a = buf;
+		*buf++ = 0;
+		byte *value = buf;
+		while (buf < end && *buf != '\n')
+			buf++;
+		if (buf >= end)
+			return -1;
+		b = buf;
+		*buf++ = 0;
+		debug2("%s:%s", key, value);
+		aaa_attr_set(aaa, key, value);
+		*a = ':';
+		*b = '\n';
+
+	}
+	*buf++ = 0;
+	return len;
+}
+
+
 int
 session_read(struct aaa *aaa, struct session *session)
 {
-	return 0;
+	return session_parse(aaa, session->obj, (1<<shift) - sizeof(*session));
 }
 
-int
+static int
+attr_enc(byte *buf, int len, int maxlen, const char *key, const char *val)
+{
+	if (len < 0)
+		return len;
+
+	int klen = strlen(key), vlen = strlen(val);
+	int linelen = klen + 1 + vlen + 1;
+
+	if (len + linelen > maxlen)
+		return -1;
+	buf += len;
+	memcpy(buf, key, klen);
+	buf += klen;
+	*buf++ = ':';
+	memcpy(buf, val, vlen);
+	buf += vlen;
+	*buf = '\n';
+	return linelen;
+}
+
+static inline int
+session_build(struct aaa *aaa, byte *buf, int size)
+{
+	int len = 0;
+	dict_for_each(a, aaa->attrs.list) {
+		len += attr_enc(buf, len, size, a->key, a->val);
+		debug2("%s:%s", a->key, a->val);
+		if (len > size)
+			return -EINVAL;
+	}
+
+	return len;
+}
+
+static int
 session_write(struct aaa *aaa, struct session *session)
 {
+	return session_build(aaa, session->obj, (1<<shift) - sizeof(*session));
+}
+
+static void
+expired(struct session *session)
+{
+	debug2("session id=%s expired.", session->attrs.sid);
+	hash_del(&session->sid);
+	page_free(pagemap, (struct page *)session);
+}
+
+static int
+lookup(struct aaa *aaa, struct cursor *sid)
+{
+	struct session *session = NULL;
+	struct hnode *it = NULL;
+	int rv = -1;
+	debug3("id=%s hash=%d slot=%d", sid->id.addr, sid->hash, sid->slot);
+	hash_for_each_item_delsafe(htable_sid, session, it, sid, sid->slot) {
+		int exp = session->expires - sid->now;
+		if (exp < 1) {
+			expired(session);
+			continue;
+		}
+
+		if (rv == 0)
+			continue;
+		
+		if (strcmp(sid->id.addr, session->attrs.sid))
+			continue;
+
+		debug2("session id=%s attached.", session->attrs.sid);
+		session_read(aaa, session);
+		rv = 0;
+	}
+
+	return rv;
+}
+
+static void
+set_id(struct session *session, struct cursor *id)
+{
+	strncpy(session->attrs.sid, id->id.addr, sizeof(session->attrs.sid)-1);
+}
+
+static int
+create(struct aaa *aaa, struct cursor *sid)
+{
+	struct page *page = NULL;
+	if (!(page = page_alloc_safe(pagemap)))
+		goto cleanup;
+
+	struct session *session = (struct session *)page;
+	session->created = session->modified = sid->now;
+	session->expires = session->created + sid->expires;
+
+	set_id(session, sid);
+	aaa_attr_set(aaa, "sess.id", (char *)sid->id.addr);
+	aaa_attr_set(aaa, "sess.created",  printfa("%jd", session->created));
+	aaa_attr_set(aaa, "sess.modified", printfa("%jd", session->modified));
+	aaa_attr_set(aaa, "sess.expires",  printfa("%jd", session->expires));
+
+	if (session_write(aaa, session) < 0)
+		goto cleanup;
+	hash_add(htable_sid, &session->sid, sid->slot);
+
+	debug2("session id=%s created.", session->attrs.sid);
 	return 0;
+cleanup:
+	if (page)
+		page_free(pagemap, page);
+	return -EINVAL;
 }
 
 int
 session_bind(struct aaa *aaa, const char *id, int type)
 {
-	u32 expires = 60;
-	u32 hash = hash_string(id);
-	u32 slot = hash_data(htable_sid, hash);
+	struct cursor csid;
+	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
+	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
 
-	debug3("hash=%d slot=%d", hash, slot);
+	if (!(lookup(aaa, &csid)))
+		return 0;
+	if (!(create(aaa, &csid)))
+		return 0;
 
-        struct session *session;
-        do {
-		if (((session = session_lookup(id, expires))))
-			break;
-		if (!(session = session_create(id, expires)))
-			break;
-	} while(0);
-
-	return 0;
+	return -EINVAL;
 }
 
 int
-session_touch(struct msg *msg)
+session_select(struct aaa *aaa, const char *id)
 {
-	return 0;
+	return -EINVAL;
+}
+
+static int
+commit(struct aaa *aaa, struct cursor *sid)
+{
+	aaa_attr_set(aaa, "sess.modified", printfa("%jd", sid->now));
+	aaa_attr_set(aaa, "sess.expires",  printfa("%jd", sid->now + sid->expires));
+		
+	struct session *session = NULL;
+	struct hnode *it = NULL;
+	int rv = -1;
+	debug3("id=%s hash=%d slot=%d", sid->id.addr, sid->hash, sid->slot);
+	hash_for_each_item_delsafe(htable_sid, session, it, sid, sid->slot) {
+		int exp = session->expires - sid->now;
+		if (exp < 1) {
+			expired(session);
+			continue;
+		}
+
+		if (rv == 0)
+			continue;
+		if (strcmp(sid->id.addr, session->attrs.sid))
+			continue;
+
+		session->modified = sid->now;
+		session->expires  = sid->now + sid->expires;
+	
+		session_write(aaa, session);
+		debug2("session id=%s commited.", session->attrs.sid);
+		rv = 0;
+	}
+
+	return rv;
+}
+
+int
+session_commit(struct aaa *aaa, const char *id)
+{
+	struct cursor csid;
+	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
+	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
+
+        if (lookup(aaa, &csid))
+		return -EINVAL;
+
+	return commit(aaa, &csid);
+}
+
+int
+session_touch(struct aaa *aaa, const char *id)
+{
+	struct cursor csid;
+	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
+	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
+
+        if (lookup(aaa, &csid))
+		return -EINVAL;
+
+	return commit(aaa, &csid);
 }

@@ -55,7 +55,18 @@ hash_string(const char *str)
 	return(v);
 }
 
+static inline unsigned long
+hash_buffer(const char *ptr, int size)
+{
+	unsigned long v = 0;
+	for (const char *c = ptr; size; size--)
+		v = (((v << 1) + (v >> 14)) ^ (*c++)) & 0x3fff;
+	return(v);
+}
+
+
 #define DEFINE_HASHTABLE(name, bits) struct hlist name[1 << (bits)]
+#define DEFINE_HASHTABLE_SHARED(name) struct hlist *name
 
 #ifdef CONFIG_DEBUG_HASH_TABLE
 #define hash_first(hook) 
@@ -68,6 +79,7 @@ hash_string(const char *str)
 /* Decent compiler is able to make an obviously build-time decisions */
 #define hash_bits(name) (unsigned int)(log2(array_size(name)))
 #define hash_data(name, key) (u32)hash_u32(key, hash_bits(name))
+#define hash_data_shared(key, bts) (u32)hash_u32(key, bits)
 
 /* Type-generic macro used for hash calculation */
 
@@ -75,10 +87,15 @@ hash_string(const char *str)
 	for (unsigned __i = 0; __i < array_size(table); __i++) \
 		INIT_HLIST_PTR(&table[__i]);
 
-#define hash_add(table, node, key) \
-	hlist_add_head(node, &table[hash_data(key, hash_bits(table))])
+#define hash_init_shared(table, shift) \
+	for (unsigned __i = 0; __i < (1 << shift); __i++) \
+		INIT_HLIST_PTR(&table[__i]);
 
-#define hash_del(table, node) \
+
+#define hash_add(htable, hnode, slot) \
+	hlist_add_head(& htable[slot], hnode)
+
+#define hash_del(node) \
 	hlist_del_init(node);
 
 #define hash_get(table, key) \
@@ -107,17 +124,12 @@ pos = n)
 #define hlist_for_each_delsafe(node, it, list) \
 	for (node = hlist_first(list); it && ({it = pos->next; 1;}); node = it)
 
-
 #define hlist_for_each_entry_safe(pos, n, list, member)                 \
 	for (pos = hlist_entry_safe((list)->head, typeof(*pos), member);\
 	     pos && ({ n = pos->member.next; 1; });                     \
 	     pos = hlist_entry_safe(n, typeof(*pos), member))
 
-#define hash_for_each_item_safe(htable, obj, tmp, member, key)        \
-	hlist_for_each_entry_safe(obj, tmp, &htable[hash_data(htable, key)], member)
+#define hash_for_each_item_delsafe(htable, obj, tmp, member, slot)        \
+	hlist_for_each_entry_safe(obj, tmp, &htable[slot], member)
 
-/*
-#define hash_for_each(name, obj, member, key) \
-	hlist_for_each(obj, &name[hash_data(key, hash_bits(name))], member)
-*/
 #endif

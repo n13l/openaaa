@@ -9,6 +9,19 @@
 #include <errno.h>
 #include <time.h>
 
+/*
+ * https://tools.ietf.org/html/rfc5424
+ *
+ * TODO: asynchsafe syslog()
+ *
+ * logging code support for outputting syslog, just uses the regular C library 
+ * syslog() function. The problem is that this function is not async signal safe, 
+ * mostly because of its use of the printf family of functions internally. 
+ * Annoyingly libvirt does not even need printf support here, because it has 
+ * already expanded the log message string.
+ *
+ */
+
 #ifndef LOG_ERROR
 #define LOG_ERROR 1
 #endif
@@ -23,6 +36,18 @@
 
 #ifndef LOG_DEBUG
 #define LOG_DEBUG 4
+#endif
+#ifndef LOG_DEBUG1
+#define LOG_DEBUG1 5
+#endif
+#ifndef LOG_DEBUG2
+#define LOG_DEBUG2 6
+#endif
+#ifndef LOG_DEBUG3
+#define LOG_DEBUG3 7
+#endif
+#ifndef LOG_DEBUG4
+#define LOG_DEBUG4 8
 #endif
 
 #ifndef CLOCK_REALTIME

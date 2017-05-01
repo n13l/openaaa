@@ -33,8 +33,7 @@
 /* API version, they compare as integers */
 #define API_VERSION PACKAGE_VERSION
 
-//#define AAA_ENDPOINT_CLIENT       1
-//#define AAA_ENDPOINT_SERVER       2
+#define AAA_SESSION_EXPIRES         60
 
 /* A private structures containing the aaa context */
 struct aaa;
@@ -113,10 +112,13 @@ aaa_free(struct aaa *);
 int
 aaa_bind(struct aaa *, int type, const char *value);
 
+void
+aaa_reset(struct aaa *);
+
 /*
  * NAME
  *
- * aaa_set()
+ * aaa_attr_set()
  *
  * DESCRIPTION
  *

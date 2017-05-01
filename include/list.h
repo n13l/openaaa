@@ -227,8 +227,14 @@ hnode_init(struct hnode *hnode)
 	hnode->prev = NULL;
 }
 
+static inline int 
+hnode_unhashed(struct hnode *h)
+{
+	return !h->prev;
+}
+
 static inline void 
-hlist_add_head(struct hnode *hnode, struct hlist *hlist)
+hlist_add_head(struct hlist *hlist, struct hnode *hnode)
 {
 	struct hnode *head = hlist->head;
 	hnode->next = head;
@@ -252,6 +258,15 @@ hlist_del(struct hnode *hnode)
 	*prev = next;
 	if (next)
 		next->prev = prev;
+}
+
+static inline void
+hlist_del_init(struct hnode *n)
+{
+	if (hnode_unhashed(n))
+		return;
+	hlist_del(n);
+	hnode_init(n);
 }
 
 static inline void
