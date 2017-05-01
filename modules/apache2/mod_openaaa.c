@@ -143,7 +143,7 @@ optional_fn_retrieve(void)
 static int
 create_request(request_rec *r)
 {
-	struct srv *srv = ap_srv_config_get(r);
+	struct srv *srv = ap_srv_config_get(r->server);
 	struct req *req = apr_pcalloc(r->pool, sizeof(*req));
 	req->r = r;
 	ap_req_config_set(r, req);
@@ -160,17 +160,6 @@ destroy_request(void *ctx)
 }
 
 static int
-tls_authentication_signal(request_rec *r)
-{
-	struct srv *srv = ap_srv_config_get(r);
-	if (!srv->keymat_label || !srv->keymat_len)
-		return 0;
-
-	const char *v = ssl_var_lookup(ssl_lookup_args, "SSL_SESSION_RESUMED");
-	return !strcasecmp(v, "Initial");
-}
-
-static int
 iterate_func(void *req, const char *key, const char *value) 
 {
 	int stat;
@@ -182,64 +171,6 @@ iterate_func(void *req, const char *key, const char *value)
 	r_info(r, "%s => %s\n", key, value);
 			    
 	return 1;
-}
-
-static inline void
-str_collapse(char *str)
-{
-	char *a = str, *b = str;
-	do while (*b == ' ') b++;
-		while ((*a++ = *b++));
-}
-
-static inline void
-rm_newline_char(const char *str)
-{
-	for(char *p = (char *)str; *p; p++)
-		if (*p == '\n' || *p == '\r')
-			*p = ' ';
-}
-
-static void
-parse_session(request_rec *r, const char *file)
-{
-        struct req *req = ap_req_config_get(r);
-        struct srv *srv = ap_srv_config_get(r);
-        struct aaa *aaa = srv->aaa;
-
-	char n[4096] = {0}, v[4096] = {0};
-
-	FILE *f = fopen(file, "r");
-	if (f == NULL || feof(f))
-		return;
-
-	do {
-		*n = 0;
-		*v = 0;
-		fscanf(f, "%s %s", n, v);
-		rm_newline_char(n);
-		rm_newline_char(v);
-		str_collapse(n);
-		str_collapse(v);
-		if (!*n || !*v)
-			break;
-
-		if (!strcasecmp(n, "cn"))
-			aaa_attr_set(srv->aaa, "user.name", (char *)v);
-
-		if (!strcasecmp(n, "mail")) {
-			aaa_attr_set(srv->aaa, "user.id", (char *)v);
-			aaa_attr_set(srv->aaa, "user.mail", (char *)v);
-		}
-
-		if (!strcasecmp(n, "mobile"))
-			aaa_attr_set(srv->aaa, "user.mobile", (char *)v);
-
-		r_info(r, "%s=%s\n", n, v);
-	} while(!feof(f));
-
-	aaa_commit(srv->aaa);
-	fclose(f);
 }
 
 /*
@@ -271,57 +202,39 @@ pre_connection(conn_rec *c, void *csd)
 static int
 post_read_request(request_rec *r)
 {
+	r_info(r, "%s() uri: %s", __func__, r->uri);
+
 	if (!ap_is_initial_req(r))
 		return DECLINED;
 
-	ap_module_trace_rcall(r);
-
-	return DECLINED;
-/*
-	if ( !ssl_keying_material)
-		return DECLINED;
-*/
 	if (!ssl_is_https)
 		return DECLINED;
-	if (!ssl_var_lookup || !ssl_is_https(r->connection))
+	if (!ssl_is_https(r->connection))
 		return DECLINED;
 
-	struct req *req = ap_req_config_get(r);
-	struct srv *srv = ap_srv_config_get(r);
+ 	struct req *req = ap_req_config_get(r);
+	struct srv *srv = ap_srv_config_get(r->server);
 	struct aaa *aaa = srv->aaa;
 
-	r_info(r, "uri: %s", r->uri);
+	//debug2("server=%p srv=%p", r->server, srv);
+
+	char ssl_id[1024];
+	ssl_get_sess_id(srv->ssl, ssl_id, sizeof(ssl_id) - 1);
+
+	aaa_reset(aaa);
+	aaa_attr_set(aaa, "sess.id", (char *)ssl_id);
+	int rv = aaa_bind(aaa, 0, ssl_id);
+
+	const char *sess_id = aaa_attr_get(aaa, "sess.id");
+	const char *user_id = aaa_attr_get(aaa, "user.id");
+	const char *user_name = aaa_attr_get(aaa, "user.name");
+	r_info(r, "sess.id: %s", sess_id);
+
+	if (user_id)   r_info(r, "user.id: %s", user_id);
+	if (user_name) r_info(r, "user.name: %s", user_name);
 
 	return DECLINED;
 
-/*
-	apr_table_t *t = r->subprocess_env;
-        apr_table_setn(t, "AAA_SESS_KEY",  aaa_attr_get(aaa, "sess.key"));
-        apr_table_setn(t, "AAA_SESS_SEC",  aaa_attr_get(aaa, "sess.sec"));
-
-	if (sec) {
-		const char *file = printfa("/tmp/aaa-%s", sec);
-		r_info(r, "authentized session file=%s", file);
-		parse_session(r, file);
-	}
-
-
-	if (!tls_authentication_signal(r))
-		return DECLINED;
-
-        if (key)
-		r_info(r, "sess.key: %s", key);
-	if (sec)
-		r_info(r, "sess.sec: %s", sec);
-
-	apr_table_setn(t, "AAA_SESS_KEY",  aaa_attr_get(aaa, "sess.key"));
-	apr_table_setn(t, "AAA_SESS_SEC",  aaa_attr_get(aaa, "sess.sec"));	
-
-	aaa_attr_set(srv->aaa, "sess.key", (char *)key);
-	aaa_attr_set(srv->aaa, "sess.sec", (char *)sec);
-	aaa_commit(srv->aaa);
-*/
-	return DECLINED;
 }
 
 /**
@@ -341,58 +254,10 @@ post_read_request(request_rec *r)
 static int
 check_authn(request_rec *r)
 {
-	r_info(r, "%s uri: %s", __func__, r->uri);
-
-	const char *ssl_id = apr_table_get(r->subprocess_env, "SSL_SESSION_ID");
-	r_info(r, "ssl.session.id=%s", ssl_id);
-
-	struct req *req = ap_req_config_get(r);
-	struct srv *srv = ap_srv_config_get(r);
-	struct aaa *aaa = srv->aaa;
-
-
-	int rv = aaa_bind(aaa, 0, ssl_id);
-	const char *sess_id = aaa_attr_get(aaa, "sess.id");
-	const char *user_id = aaa_attr_get(aaa, "user.id");
-	r_info(r, "sess.id: %s", sess_id);
-	r_info(r, "user.id: %s", user_id);
-
-	return DECLINED;
-
-	const char *type = ap_auth_type(r);
-	if (!type || strcasecmp(type, "openaaa"))
+	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
 		return DECLINED;
-
-	//debug("auth type=%s user=%s uri=%s", type, r->user, r->uri);
-
-	return r->user ? OK : HTTP_FORBIDDEN;
-
 	return OK;
-
-	if (!ap_is_initial_req(r))
-		return DECLINED;
-
-	return HTTP_FORBIDDEN;
-
-	ap_module_trace_rcall(r);
-
-	/*
-	* We decline when we are in a subrequest.  The Authorization header
-	* would already be present if it was added in the main request.
-	*/
-
-	if (!ap_is_initial_req(r))
-		return DECLINED;
-/*
-	r_info(r, "auth.type: %s", ap_auth_type(r));
-
-	struct req *req = ap_req_config_get(r);
-	if (!req->user.name)
-		return DECLINED;
-
-	r->user = apr_pstrdup(r->pool, req->user.name);
-*/
-	return DECLINED;
 }
 
 /*
@@ -409,72 +274,40 @@ check_authn(request_rec *r)
 static int
 access_checker(request_rec *r)
 {
-	r_info(r, "%s uri: %s", __func__, r->uri);
-
-	return DECLINED;
-
-	const char *ssl_id = apr_table_get(r->subprocess_env, "SSL_SESSION_ID");
-	r_info(r, "ssl.session.id=%s", ssl_id);
-	struct req *req = ap_req_config_get(r);
-	struct srv *srv = ap_srv_config_get(r);
-	struct aaa *aaa = srv->aaa;
-
-
-	int rv = aaa_bind(aaa, 0, ssl_id);
-	const char *sess_id = aaa_attr_get(aaa, "sess.id");
-	const char *user_id = aaa_attr_get(aaa, "user.id");
-	r_info(r, "sess.id: %s", sess_id);
-	r_info(r, "user.id: %s", user_id);
-
-	return DECLINED;
-
-	/*
-	 * We decline when we are in a subrequest.  The Authorization header
-	 * would already be present if it was added in the main request.
-	 */
-
-	//r->user = apr_pstrdup(r->pool, "nobody");
-	if (r->user)
-		debug("user=%s", r->user);
-	return OK;
-
-
-
-	return DECLINED;
-
-	if (!ap_is_initial_req(r))
-		return DECLINED;
-
-	//r_info(r, "uri: %s", r->uri);
+	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
 
 	/* checking for tls authentification for this reqeust */
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "TLS-AAA"))
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
 		return DECLINED;
 
+	return OK;
 /*
-	struct req *req = ap_req_config_get(r);
-	struct srv *srv = ap_srv_config_get(r);
-	struct aaa *aaa = srv->aaa;
-	struct user *user = &req->user;
 
-	user->name = aaa_attr_get(aaa, "user.name");
-	user->uuid = aaa_attr_get(aaa, "user.uuid");
-*/
-	/*
-	* We return HTTP_UNAUTHORIZED (401) because the client may wish
-	* to authenticate using a different scheme, or a different
-	* user. If this works, they can be granted access. If we
-	* returned HTTP_FORBIDDEN (403) then they don't get a second
-	* chance.
-	*/
-/*
+	return DECLINED;
+
+	r_info(r, "%s uri: %s", __func__, r->uri);
+	struct req *req = ap_req_config_get(r);
+	struct srv *srv = ap_srv_config_get(r->server);
+	struct aaa *aaa = srv->aaa;
+
+	const char *sess_id = aaa_attr_get(aaa, "sess.id");
+	const char *user_id = aaa_attr_get(aaa, "user.id");
+	const char *user_name = aaa_attr_get(aaa, "user.name");
+
+	r_info(r, "sess.id: %s", sess_id);
+	if (!user_id)
+		return HTTP_FORBIDDEN;
+
+	r_info(r, "user.id: %s", user_id);
+	if (user_name) r_info(r, "user.name: %s", user_name);
+
+	r->user = apr_pstrdup(r->pool, user_name ? user_name : user_id);
+	return OK;
+
 	if (user->name)
 		apr_table_add(r->subprocess_env, "REMOTE_USER", user->name);
+*/		
 
-	if (user->name)
-		r_info(r, "user.name: %s", user->name);
-*/
-	return DECLINED;
 }
 
 /*
@@ -494,8 +327,11 @@ access_checker(request_rec *r)
 static int
 check_access(request_rec *r)
 {
-	r_info(r, "%s uri: %s", __func__, r->uri);
-	return DECLINED;
+	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
+		return DECLINED;
+
+	return OK;
 }
 
 /*
@@ -513,8 +349,28 @@ check_access(request_rec *r)
 static int
 auth_checker(request_rec *r)
 {
-	r_info(r, "%s uri: %s", __func__, r->uri);
-	return DECLINED;
+	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
+		return DECLINED;
+
+	struct req *req = ap_req_config_get(r);
+	struct srv *srv = ap_srv_config_get(r->server);
+	struct aaa *aaa = srv->aaa;
+
+	const char *sess_id = aaa_attr_get(aaa, "sess.id");
+	const char *user_id = aaa_attr_get(aaa, "user.id");
+	const char *user_name = aaa_attr_get(aaa, "user.name");
+
+	r_info(r, "sess.id: %s", sess_id);
+	if (!user_id)
+		return HTTP_FORBIDDEN;
+
+	r_info(r, "user.id: %s", user_id);
+	if (user_name) r_info(r, "user.name: %s", user_name);
+
+	r->user = apr_pstrdup(r->pool, user_name ? user_name : user_id);
+	apr_table_add(r->subprocess_env, "REMOTE_USER", r->user);
+	return OK;
 }
 
 /*
@@ -535,18 +391,19 @@ fixups(request_rec *r)
 		return DECLINED;
 
 
+	return DECLINED;
 	const char *ssl_id = apr_table_get(r->subprocess_env, "SSL_SESSION_ID");
 	r_info(r, "ssl.session.id=%s", ssl_id);
 
 	struct req *req = ap_req_config_get(r);
-	struct srv *srv = ap_srv_config_get(r);
+	struct srv *srv = ap_srv_config_get(r->server);
 	struct aaa *aaa = srv->aaa;
 
 	r_info(r, "aaa=%d", (int)aaa);
 
 	aaa_reset(aaa);
 
-	aaa_attr_set(aaa, "sess.id", ssl_id);
+	aaa_attr_set(aaa, "sess.id", (char *)ssl_id);
 	int rv = aaa_bind(aaa, 0, ssl_id);
 
 	const char *sess_id = aaa_attr_get(aaa, "sess.id");
@@ -679,6 +536,13 @@ init_server(server_rec *s, apr_pool_t *p, int is_proxy, SSL_CTX *ctx)
 static int
 pre_handshake(conn_rec *c, SSL *ssl, int is_proxy)
 {
+	server_rec *server = c->base_server;
+
+	struct srv *srv = ap_srv_config_get(server);
+	srv->ssl = ssl;
+
+	debug2("pre_handshake");
+	//debug2("server=%p srv=%p ssl=%p", server, srv, ssl); 
 	ssl_init_conn(ssl);
 	return 0;
 }
@@ -693,6 +557,7 @@ pre_handshake(conn_rec *c, SSL *ssl, int is_proxy)
 static int
 proxy_post_handshake(conn_rec *c, SSL *ssl)
 {
+	debug2("proxy_post_handshake");
 	return 0;
 }
 

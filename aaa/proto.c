@@ -63,7 +63,6 @@ udp_build(struct aaa *aaa, const char *op, byte *buf, int size)
 static int 
 udp_parse(struct aaa *aaa, byte *packet, unsigned int len)
 {
-        debug2("\n%s", packet);
 	byte *ptr = packet, *end = packet + len;
 	while (packet < end) {
 		byte *key = packet;
@@ -81,7 +80,7 @@ udp_parse(struct aaa *aaa, byte *packet, unsigned int len)
 			return -1;
 		*packet++ = 0;
 
-		debug2("%s:%s", key, value);
+//		debug2("%s:%s", key, value);
 /*
 		if (!strncasecmp(key, "sess.id", 4))
 			msg->sid = value;

@@ -37,5 +37,6 @@
 void ssl_init(void);
 void ssl_init_ctxt(SSL_CTX *ctx);
 void ssl_init_conn(SSL *ssl);
+void ssl_get_sess_id(SSL *ssl, char *buf, int size);
 
 #endif/*__ABI_OPENSSL_PLATFORM_H__*/

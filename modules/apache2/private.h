@@ -68,8 +68,14 @@
 #define apr_trace_call(r) \
 	ap_log_rerror(APLOG_MARK, APLOG_NOERRNO | APLOG_DEBUG, 0, r, "%s()", __func__);
 
+/*
 #define ap_srv_config_get(r) \
         ap_get_module_config(r->server->module_config, & MODULE_ENTRY)
+*/
+
+#define ap_srv_config_get(s) \
+        ap_get_module_config(s->module_config, & MODULE_ENTRY)
+
 
 #define AP_GET_DIR_CONFIG(r) \
         ap_get_module_config(r->per_dir_config, & MODULE_ENTRY)
@@ -86,6 +92,12 @@
 #define ap_srv_config_get_cmd(cmd) \
         ap_get_module_config(cmd->server->module_config, & MODULE_ENTRY)
 
+#define ap_conn_config_get(c) \
+        ap_get_module_config((c)->conn_config, & MODULE_ENTRY)
+
+#define ap_conn_config_set(c, obj) \
+        ap_set_module_config((c)->conn_config, & MODULE_ENTRY, obj)
+
 #define ssl_lookup_args \
     r->pool, r->server, r->connection, r
 
@@ -97,6 +109,7 @@ struct srv {
     const char *aaa_id;
     const char *keymat_label;
     unsigned int keymat_len;
+    void *ssl;
     module *mod_ssl;
     module *mod_mpm;
 };
@@ -113,6 +126,10 @@ struct req {
     char *res;
     char *key;
     char *sec;
+};
+
+struct conn {
+	void *ssl;
 };
 
 struct dir {

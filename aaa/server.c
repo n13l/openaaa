@@ -363,7 +363,6 @@ udp_build(struct msg *msg, byte *pkt, int size)
 		len += attr_enc(pkt, len, size, a->key, a->val);
 	}
 
-	debug2("\n%s", pkt);
 	return len;
 }
 

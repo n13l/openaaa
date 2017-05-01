@@ -1178,6 +1178,19 @@ ssl_init_conn(SSL *ssl)
 	
 }
 
+void
+ssl_get_sess_id(SSL *ssl, char *buf, int size)
+{
+	memset(buf, 0, size);
+	
+	SSL_SESSION *sess = CALL_ABI(SSL_get_session)(ssl);
+	unsigned int len;
+	const byte *sessid = CALL_ABI(SSL_SESSION_get_id)(sess, &len);
+	char *sess_id = evala(memhex, (char *)sessid, len);
+
+	memcpy(buf, sess_id, strlen(sess_id));
+}
+
 int
 crypto_lookup(void)
 {
