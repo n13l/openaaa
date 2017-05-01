@@ -257,6 +257,24 @@ check_authn(request_rec *r)
 	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
 	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
 		return DECLINED;
+
+	struct req *req = ap_req_config_get(r);
+	struct srv *srv = ap_srv_config_get(r->server);
+	struct aaa *aaa = srv->aaa;
+
+	const char *sess_id = aaa_attr_get(aaa, "sess.id");
+	const char *user_id = aaa_attr_get(aaa, "user.id");
+	const char *user_name = aaa_attr_get(aaa, "user.name");
+
+	r_info(r, "sess.id: %s", sess_id);
+	if (!user_id)
+		return HTTP_FORBIDDEN;
+
+	r_info(r, "user.id: %s", user_id);
+	if (user_name) r_info(r, "user.name: %s", user_name);
+
+	r->user = apr_pstrdup(r->pool, user_name ? user_name : user_id);
+	apr_table_add(r->subprocess_env, "REMOTE_USER", r->user);
 	return OK;
 }
 
@@ -386,52 +404,28 @@ auth_checker(request_rec *r)
 static int
 fixups(request_rec *r)
 {
-	r_info(r, "%s uri: %s", __func__, r->uri);
-	if (!ap_is_initial_req(r))
+	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
 		return DECLINED;
-
-
-	return DECLINED;
-	const char *ssl_id = apr_table_get(r->subprocess_env, "SSL_SESSION_ID");
-	r_info(r, "ssl.session.id=%s", ssl_id);
 
 	struct req *req = ap_req_config_get(r);
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct aaa *aaa = srv->aaa;
 
-	r_info(r, "aaa=%d", (int)aaa);
-
-	aaa_reset(aaa);
-
-	aaa_attr_set(aaa, "sess.id", (char *)ssl_id);
-	int rv = aaa_bind(aaa, 0, ssl_id);
-
 	const char *sess_id = aaa_attr_get(aaa, "sess.id");
 	const char *user_id = aaa_attr_get(aaa, "user.id");
 	const char *user_name = aaa_attr_get(aaa, "user.name");
+
 	r_info(r, "sess.id: %s", sess_id);
-	r_info(r, "user.id: %s", user_id);
+	if (user_id) r_info(r, "user.id: %s", user_id);
+	if (user_name) r_info(r, "user.name: %s", user_name);
 
-	return DECLINED;
-/*
-	struct srv *srv = ap_srv_config_get(r);
-	struct aaa *a = srv->aaa;
+	if (!user_id && !user_name)
+		return DECLINED;
 
-	apr_table_t *t = r->subprocess_env;
-        apr_table_setn(t, "AAA_SESS_ID",  aaa_attr_get(a, "sess.id"));
-        apr_table_setn(t, "AAA_SESS_CREATED", aaa_attr_get(a, "sess.created"));
-	apr_table_setn(t, "AAA_SESS_MODIFIED",aaa_attr_get(a, "sess.modified"));
-	apr_table_setn(t, "AAA_SESS_ACCESS", aaa_attr_get(a, "sess.access"));
-	apr_table_setn(t, "AAA_SESS_EXPIRES", aaa_attr_get(a, "sess.expires"));
-        apr_table_setn(t, "AAA_SESS_KEY",  aaa_attr_get(a, "sess.key"));
-        apr_table_setn(t, "AAA_SESS_SEC",  aaa_attr_get(a, "sess.sec"));	
-	apr_table_setn(t, "AAA_USER_ID",   aaa_attr_get(a, "user.id"));
-	apr_table_setn(t, "AAA_USER_NAME", aaa_attr_get(a, "user.name"));
-
-	const char *user = aaa_attr_get(a, "user.name");
-	if (user)
-		r_info(r, "user.name: %s", user);
-*/
+	r->user = apr_pstrdup(r->pool, user_name ? user_name : user_id);
+	apr_table_add(r->subprocess_env, "REMOTE_USER", r->user);
+	
 	return DECLINED;
 }
 
