@@ -244,8 +244,8 @@ signal_norace(struct task *task)
 }
 #endif
 
-int fd = -1;
-int port = 8888;
+static int fd = -1;
+static int port = 8888;
 
 static void 
 udp_init(void)
@@ -345,6 +345,7 @@ attr_enc(byte *pkt, int len, int maxlen, const char *key, const char *val)
 	memcpy(pkt, val, vlen);
 	pkt += vlen;
 	*pkt = '\n';
+	*pkt++ = 0;
 	return linelen;
 }
 

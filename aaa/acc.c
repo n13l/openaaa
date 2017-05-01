@@ -18,7 +18,7 @@ DEFINE_HASHTABLE_SHARED(htable_bid);
 DEFINE_HASHTABLE_SHARED(htable_uid);
 
 struct attrs {
-	char sid[64];
+	char sid[128];
 	char uid[32];
 };
 
@@ -226,7 +226,6 @@ lookup(struct aaa *aaa, struct cursor *sid)
 	struct session *session = NULL;
 	struct hnode *it = NULL;
 	int rv = -1;
-	debug3("id=%s hash=%d slot=%d", sid->id.addr, sid->hash, sid->slot);
 	hash_for_each_item_delsafe(htable_sid, session, it, sid, sid->slot) {
 		int exp = session->expires - sid->now;
 		if (exp < 1) {
@@ -236,7 +235,7 @@ lookup(struct aaa *aaa, struct cursor *sid)
 
 		if (rv == 0)
 			continue;
-		
+
 		if (strcmp(sid->id.addr, session->attrs.sid))
 			continue;
 
@@ -290,6 +289,8 @@ session_bind(struct aaa *aaa, const char *id, int type)
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
 	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
 
+        debug2("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
+
 	if (!(lookup(aaa, &csid)))
 		return 0;
 	if (!(create(aaa, &csid)))
@@ -313,7 +314,6 @@ commit(struct aaa *aaa, struct cursor *sid)
 	struct session *session = NULL;
 	struct hnode *it = NULL;
 	int rv = -1;
-	debug3("id=%s hash=%d slot=%d", sid->id.addr, sid->hash, sid->slot);
 	hash_for_each_item_delsafe(htable_sid, session, it, sid, sid->slot) {
 		int exp = session->expires - sid->now;
 		if (exp < 1) {
@@ -344,6 +344,8 @@ session_commit(struct aaa *aaa, const char *id)
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
 	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
 
+        debug2("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
+
         if (lookup(aaa, &csid))
 		return -EINVAL;
 
@@ -357,6 +359,7 @@ session_touch(struct aaa *aaa, const char *id)
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
 	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
 
+        debug2("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
         if (lookup(aaa, &csid))
 		return -EINVAL;
 

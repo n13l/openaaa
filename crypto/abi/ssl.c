@@ -43,6 +43,8 @@
 
 #include <unix/timespec.h>
 
+#include <aaa/lib.h>
+
 #ifdef CONFIG_WIN32
 #include <windows.h>                                                            
 #include <wincrypt.h>
@@ -191,7 +193,8 @@ struct session {
 
 void *libssl = NULL;
 void *libcrypto = NULL;
-int server_handshake_synch = 1;
+static int server_handshake_synch = 1;
+static int server_always          = 0;
 
 void
 ssl_info(const SSL *s, int where, int ret);
@@ -301,7 +304,7 @@ export_keying_material(struct session *sp)
 static void
 ssl_exportkeys(struct session *sp)
 {
-	char *key;
+	char *bind_key, *bind_id, *sess_id;
 	struct aaa_keys *a = &sp->keys;
 
 	if (!a->binding_key.len || !a->binding_id.len)
@@ -311,15 +314,24 @@ ssl_exportkeys(struct session *sp)
 	unsigned int len;
 	const byte *id = CALL_ABI(SSL_SESSION_get_id)(sess, &len);
 	
-	key = evala(memhex, a->binding_key.addr, a->binding_key.len);
-	debug("tls_binding_key=%s", key);
-	key = evala(memhex, a->binding_id.addr, a->binding_id.len);
-	debug("tls_binding_id=%s", key);
-	key = evala(memhex, (char *)id, len);
+	bind_key = evala(memhex, a->binding_key.addr, a->binding_key.len);
+	debug("tls_binding_key=%s", bind_key);
+	bind_id = evala(memhex, a->binding_id.addr, a->binding_id.len);
+	debug("tls_binding_id=%s", bind_id);
+	sess_id = evala(memhex, (char *)id, len);
 
 	/* tls_session_id is empty for tls tickets for client */
-	if (key && *key)
-		debug("tls_session_id=%s", key);
+	if (sess_id && *sess_id)
+		debug("tls_session_id=%s", sess_id);
+
+	if (sp->endpoint == TLS_EP_SERVER || server_always) {
+		struct aaa *usr = aaa_new(AAA_ENDPOINT_SERVER, 0);
+		aaa_attr_set(usr, "sess.id", sess_id);
+		aaa_attr_set(usr, "bind.id", bind_id);
+		aaa_attr_set(usr, "bind.key",bind_key);
+		aaa_bind(usr, 0, sess_id);
+		aaa_free(usr);
+	}
 }
 
 static int
@@ -348,6 +360,7 @@ ssl_derive_keys(struct session *sp)
 	a->binding_id.len  = SHA1_SIZE / 2;
 
 	ssl_exportkeys(sp);
+
 	return 0;
 }
 
@@ -588,6 +601,7 @@ cleanup:
 }
 */
 
+/*
 static int
 ssl_setsession(struct session *sp)
 {
@@ -596,22 +610,15 @@ ssl_setsession(struct session *sp)
 	const byte *id = CALL_ABI(SSL_SESSION_get_id)(sess, &len);
 	char *key = evala(memhex, (char *)id, len);
 
-	timestamp_t now = get_timestamp();
+	struct aaa *aaa = aaa_new(AAA_ENDPOINT_SERVER, 0);
+	aaa_attr_set(aaa, "sess.id", key);
+	aaa_bind(aaa, 0, key);
 
-	info("binding user context to encrypted session");
-	info("sess.created=%ju", (uintmax_t)now);
-	info("sess.modified=%ju", (uintmax_t)now);
-	info("sess.access=%ju", (uintmax_t)now);
-	info("sess.expires=%ju", (uintmax_t)now + 60000);
-	info("sess.id=%s", key);
-	info("user.id=123456");
-	info("user.name=n13l");
-	info("user.email=niel@rtfm.cz");
-	info("user.groups[]=example1 example2");
-	info("user.example1.roles[]=admin editor");
+	aaa_free(aaa);
 
 	return 0;
 }
+*/
 
 static int
 ssl_server_aaa(struct session *sp)
@@ -624,12 +631,26 @@ ssl_server_aaa(struct session *sp)
 	const char *proto_client = dict_get(&sp->recved, proto_attr);
 	const char *proto_server = aaa.protocol;
 
+	SSL_SESSION *sess = CALL_ABI(SSL_get_session)(sp->ssl);
+	unsigned int len;
+	const byte *sessid = CALL_ABI(SSL_SESSION_get_id)(sess, &len);
+	char *sess_id = evala(memhex, (char *)sessid, len);
+
+	struct aaa *usr = aaa_new(AAA_ENDPOINT_SERVER, 0);
+	aaa_attr_set(usr, "sess.id", sess_id);
+	aaa_attr_set(usr, "bind.id", id);
+	aaa_attr_set(usr, "bind.key", key);
+	aaa_bind(usr, 0, key);
+	aaa_free(usr);
+
 	if (!proto_client || !proto_server)
 		return -EINVAL;
 	if (strcmp(proto_client, proto_server))
 		return -EINVAL;
 	if (!aaa.handler || !key || !id || !aaa.authority)
 		return -EINVAL;
+
+//	ssl_setsession(sp);
 
 	char *synch = "";
 #ifdef CONFIG_LINUX	
@@ -656,11 +677,6 @@ ssl_server_aaa(struct session *sp)
 	
 	status = system(msg);
 	debug("%s", WEXITSTATUS(status)? "forbidden" : "authenticated");
-
-	if (!WEXITSTATUS(status)) {
-		ssl_setsession(sp);
-		return 0;
-	}
 
 	if (!server_handshake_synch)
 		return 0;
@@ -1054,6 +1070,10 @@ init_aaa_env(void)
 	char *role = getenv("OPENAAA_ROLE");
 	aaa.role = role ? role : NULL;
 
+	char *verb = getenv("OPENAAA_VERBOSITY");
+	if (verb)
+		log_verbose = atoi(verb);
+
 	debug("checking for aaa environment");
 	if (aaa.authority)
 		debug("env aaa.authority=%s",aaa.authority);
@@ -1077,6 +1097,7 @@ ssl_init(void)
 		return -1;
 	is_ssl_init = 1;
 	server_handshake_synch = 0;
+	server_always = 1;
 
 	list_init(&ssl_module_list);
 

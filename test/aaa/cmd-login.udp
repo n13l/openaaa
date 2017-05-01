@@ -1,2 +1,2 @@
 #!/bin/sh
-printf "msg.op:commit\nmsg.id:1\nsess.id:1234562472384732\nuser.id:1234\n" | nc -u 127.0.0.1 8888
+printf "msg.op:commit\nmsg.id:1\nsess.id:$1\nuser.id:$2\nuser.name:$3\n" | nc -u 127.0.0.1 8888

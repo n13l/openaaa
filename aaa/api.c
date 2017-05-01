@@ -32,10 +32,16 @@ aaa_free(struct aaa *aaa)
 	mm_pool_destroy(aaa->mp);
 }
 
+static int
+aaa_bind_sess_id(struct aaa *aaa)
+{
+	return 0;
+}
+
 int
 aaa_bind(struct aaa *aaa, int type, const char *value)
 {
-	return -1;
+	return udp_bind(aaa, type, value);
 }
 
 void
