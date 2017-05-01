@@ -34,6 +34,7 @@
 #define barrier()   asm volatile("": : :"memory")
 #define cpu_relax() asm volatile("pause\n": : :"memory")
 
+/*
 static inline void *xchg_64(void *ptr, void *x)
 {
 	__asm__ __volatile__("xchgq %0,%1"
@@ -75,4 +76,5 @@ atomic_bitsetandtest(void *ptr, int x)
 	                     :"memory");
 	return out;
 }
+*/
 #endif/*__ITERATOR_FILE_LIB_H__*/

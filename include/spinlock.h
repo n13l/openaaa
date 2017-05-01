@@ -31,23 +31,30 @@ typedef unsigned spinlock;
 static inline void
 spin_lock(spinlock *lock)
 {
+/*	
 	while (1) {
 		if (!xchg_32(lock, EBUSY)) return;
 		while (*lock) cpu_relax();
 	}
+*/	
 }
 
 static inline void
 spin_unlock(spinlock *lock)
 {
+/*	
 	barrier();
 	*lock = 0;
+*/	
 }
 
 static int
 spin_trylock(spinlock *lock)
 {
+	return EBUSY;
+/*	
 	return xchg_32(lock, EBUSY);
+*/	
 }
 
 #endif/**/
