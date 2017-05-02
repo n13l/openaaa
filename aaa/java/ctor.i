@@ -3,9 +3,9 @@
         try {
                 String lib;
                 if (System.getProperty("os.name").startsWith("Windows"))
-                        lib = "libaaa-1.0.1"; 
+                        lib = "libaaa-0.0.1"; 
                 else 
-                        lib = "aaa-1.0.1";
+                        lib = "aaa-0.0.1";
 
                 System.loadLibrary(lib);
                 System.out.println("native library " + lib + " loaded.");

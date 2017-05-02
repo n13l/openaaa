@@ -1,6 +1,6 @@
 config SUPPORT_LANGUAGE
         bool "Language Binding Support"
-        default n
+        default y
 
 config SUPPORT_JAVA
         bool "Enable API bindings for Java"

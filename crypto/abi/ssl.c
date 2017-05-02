@@ -327,8 +327,7 @@ ssl_exportkeys(struct session *sp)
 	if (sp->endpoint == TLS_EP_SERVER || server_always) {
 		struct aaa *usr = aaa_new(AAA_ENDPOINT_SERVER, 0);
 		aaa_attr_set(usr, "sess.id", sess_id);
-		aaa_attr_set(usr, "auth.id", bind_id);
-		aaa_attr_set(usr, "auth.key",bind_key);
+		aaa_attr_set(usr, "sess.key",bind_key);
 		aaa_bind(usr, 0, sess_id);
 		aaa_free(usr);
 	}
@@ -638,8 +637,7 @@ ssl_server_aaa(struct session *sp)
 
 	struct aaa *usr = aaa_new(AAA_ENDPOINT_SERVER, 0);
 	aaa_attr_set(usr, "sess.id", sess_id);
-	aaa_attr_set(usr, "auth.id", id);
-	aaa_attr_set(usr, "auth.key", key);
+	aaa_attr_set(usr, "sess.key", key);
 	aaa_bind(usr, 0, sess_id);
 	aaa_free(usr);
 

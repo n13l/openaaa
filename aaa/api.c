@@ -46,7 +46,7 @@ aaa_reset(struct aaa *aaa)
 }
 
 int
-aaa_attr_set(struct aaa *aaa, const char *attr, char *value)
+aaa_attr_set(struct aaa *aaa, const char *attr, const char *value)
 {
 	dict_set(&aaa->attrs, attr, value);
 	return 0;

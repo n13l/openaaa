@@ -1,5 +1,4 @@
-%module(package="com.openaaa", 
-        jniclassname="JNI",
+%module(package="com.openaaa", jniclassname="JNI",
         docstring="Bindings for AAA library") "Native"
 
 %javaconst(1);
@@ -17,6 +16,11 @@
 %nodefaultctor aaa;
 %ignore aaa_new;
 %ignore aaa_free;
+%ignore aaa_bind;
+%ignore aaa_commit;
+%ignore aaa_reset;
+%ignore aaa_attr_set;
+%ignore aaa_attr_get;
 
 %{
 struct aaa {} ;
@@ -26,10 +30,27 @@ struct aaa {} ;
 
 struct aaa { 
         %extend {
-                aaa(int type) { 
-                        struct aaa *aaa = aaa_new(type); 
+                aaa(int type, int flags) { 
+                        struct aaa *aaa = aaa_new(type, flags); 
                         return (struct aaa*)aaa;
                 }
+		int _bind(int type, const char *id) {
+			return aaa_bind(self, type, id);
+		}
+		int _commit() {
+			return aaa_commit(self);
+		}
+		void _reset() {
+			aaa_reset(self);
+		}
+	
+		int _set(const char *key, const char *val) {
+			return aaa_attr_set(self, key, val);
+		}
+ 		const char * _get(const char *key) {
+			return aaa_attr_get(self, key);
+		}
+
                 ~aaa() { 
                         aaa_free((struct aaa*)self);
                 }

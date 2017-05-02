@@ -109,10 +109,10 @@ aaa_free(struct aaa *);
  */
 
 int
-aaa_bind(struct aaa *, int type, const char *value);
+aaa_bind(struct aaa *aaa, int type, const char *id);
 
 void
-aaa_reset(struct aaa *);
+aaa_reset(struct aaa *aaa);
 
 /*
  * NAME
@@ -135,7 +135,7 @@ aaa_reset(struct aaa *);
  */
 
 int 
-aaa_attr_set(struct aaa *, const char *attr, char *value);
+aaa_attr_set(struct aaa *, const char *attr, const char *value);
 
 /*
  * NAME
