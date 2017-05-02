@@ -672,8 +672,8 @@ ssl_server_aaa(struct session *sp)
 		msg = printfa("%s -pr4 -a%s -i%s -k%s -g%s -r%s %s", 
 		         aaa.handler, host, id, key, aaa.group, aaa.role, synch);
 	else
-		msg = printfa("%s -pr4 -a%s -i%s -k%s %s", 
-		              aaa.handler, host, id, key, synch);
+		msg = printfa("%s -pr4 -s%s -a%s -i%s -k%s %s", 
+		              aaa.handler, sess_id, host, id, key, synch);
 	
 	status = system(msg);
 	debug("%s", WEXITSTATUS(status)? "forbidden" : "authenticated");

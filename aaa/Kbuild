@@ -8,6 +8,7 @@ CFLAGS_server.o += -Wno-comment -Wno-parentheses
 lib                   := aaa
 libname               := lib$(lib)-$(PACKAGEVERSION)
 
+always                += $(libname).a
 always                += $(if $(CONFIG_MODULES),$(libname).$(so),)
 always                += $(if $(JDK_HOME),$(libname).jar,)
 
@@ -25,14 +26,22 @@ swopt4j               := -package com.openaaa -I$(src) -I./java -java
 libaaa-dirs           := sys mem net crypto aaa arch/$(SRCARCH)
 libaaa-objs           := $(patsubst %,%/built-in.o, $(libaaa-dirs))
 libaaa-libs           := $(patsubst %,%/lib.a, $(libs-y))
-libaaa-all            := $(libaaa-objs) $(libaaa-libs) $(KBUILD_LIBS)
+libaaa-all            := $(libaaa-objs) $(libaaa-libs) 
+
+#$(KBUILD_LIBS)
 
 $(obj)/$(libname).$(so): $(libaaa-objs) $(libaaa-libs)
 	$(call if_changed,$(libname).$(so))
 
+$(obj)/$(libname).a: $(libaaa-objs) $(libaaa-libs)
+	$(call if_changed,$(libname).a)
+
 quiet_cmd_$(libname).$(so) = LD [M]  $@
 	cmd_$(libname).$(so) = $(CC) $(LDFLAGS) $(SHLIB_LDFLAGS) -o $@ \
 	                             $(libaaa-all)
+quiet_cmd_$(libname).a = AR      $@
+	cmd_$(libname).a = $(AR) ar cr $@ $(libaaa-all)
+
 
 PHONY += $(libaaa-dirs)
 $(libaaa-dirs): scripts_basic
