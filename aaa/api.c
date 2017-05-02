@@ -32,12 +32,6 @@ aaa_free(struct aaa *aaa)
 	mm_pool_destroy(aaa->mp);
 }
 
-static int
-aaa_bind_sess_id(struct aaa *aaa)
-{
-	return 0;
-}
-
 int
 aaa_bind(struct aaa *aaa, int type, const char *value)
 {
@@ -103,5 +97,5 @@ aaa_touch(struct aaa *aaa)
 int
 aaa_commit(struct aaa *aaa)
 {
-	return -1;
+	return udp_commit(aaa);
 }

@@ -155,3 +155,57 @@ cleanup:
 
         return 0;
 }
+
+int
+udp_commit(struct aaa *aaa)
+{
+        int fd = 1;
+        byte packet[8192];
+        memset(packet, 0, sizeof(packet));
+
+        int size = udp_build(aaa, "commit", packet, sizeof(packet) - 1);
+
+	if ((fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+		die("Cannot create UDP socket: %s", strerror(errno));
+
+	int one = 1;
+	if (setsockopt(fd , SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)) < 0)
+		die("Cannot set SO_REUSEADDR: %s", strerror(errno));
+
+	struct timeval tv = {.tv_sec = 10, .tv_usec = 0 };
+	if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv)) < 0)
+		die("SO_RCVTIMEO");
+
+	struct sockaddr_in in = {
+		.sin_family = AF_INET,
+		.sin_port = htons(port),
+		.sin_addr.s_addr = inet_addr("127.0.0.1")
+	};
+
+	socklen_t len = sizeof(in);
+	
+        int sent = sendto(fd, packet, size, 0, &in, len);
+	if (sent < 0)
+	        error("sendto failed: reason=%s ", strerror(errno));
+	else if (sent < size)
+		error("sendto sent partial packet (%d of %d bytes)", sent, (int)size);
+
+        char *v = printfa("%s:%d", inet_ntoa(in.sin_addr), ntohs(in.sin_port));
+        debug2("%s sent %d byte(s)", v, sent);
+
+        memset(packet, 0, sizeof(packet));
+	ssize_t recved = recvfrom(fd, packet, sizeof(packet) - 1, MSG_TRUNC, &in, &len);
+	if (recved < 0) {
+	        error("recvfrom failed: reason=%s ", strerror(errno));
+                goto cleanup;
+        }
+
+        debug2("%s recv %jd byte(s)", v, (intmax_t)recved);
+        udp_parse(aaa, packet, (unsigned int)recved);
+
+cleanup:        
+        if (fd != -1)
+                close(fd);
+
+        return 0;
+}

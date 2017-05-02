@@ -60,6 +60,9 @@ int session_touch(struct aaa *aaa, const char *id);
 int
 udp_bind(struct aaa *aaa, int type, const char *id);
 
+int
+udp_commit(struct aaa *aaa);
+
 extern int (*aaa_server)(int argc, char *argv[]);
 
 #endif
