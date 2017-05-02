@@ -308,9 +308,9 @@ udp_parse(struct msg *msg, byte *packet, unsigned int len)
 
 		debug3("%s:%s", key, value);
 
-		if (!strncasecmp(key, "sess.id", 4))
+		if (!strcasecmp(key, "sess.id"))
 			msg->sid = value;
-		if (!strncasecmp(key, "user.id", 4))
+		if (!strcasecmp(key, "user.id"))
 			msg->uid = value;
 
 		if (strncasecmp(key, "msg.", 4)) {

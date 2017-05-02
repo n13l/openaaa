@@ -81,22 +81,10 @@ udp_parse(struct aaa *aaa, byte *packet, unsigned int len)
 		*packet++ = 0;
 
 //		debug2("%s:%s", key, value);
-/*
-		if (!strncasecmp(key, "sess.id", 4))
-			msg->sid = value;
-		if (!strncasecmp(key, "user.id", 4))
-			msg->uid = value;
-*/
 		if (strncasecmp(key, "msg.", 4)) {
 			aaa_attr_set(aaa, key, value);
 			continue;
 		}
-/*
-		if (!strcasecmp(key, "msg.op"))
-			msg->op = value;
-		else if (!strcasecmp(key, "msg.id"))
-			msg->id = value;
-*/		
 	}
 	return len;
 }
