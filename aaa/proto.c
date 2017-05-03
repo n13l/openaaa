@@ -26,7 +26,7 @@
 static int port = 8888;
 
 static int
-attr_enc(byte *buf, int len, int maxlen, const char *key, const char *val)
+attr_enc(byte *buf, int len, int maxlen, char *key, char *val)
 {
 	if (len < 0)
 		return len;
@@ -47,7 +47,7 @@ attr_enc(byte *buf, int len, int maxlen, const char *key, const char *val)
 }
 
 static int
-udp_build(struct aaa *aaa, const char *op, byte *buf, int size)
+udp_build(struct aaa *aaa, char *op, byte *buf, int size)
 {
 	int len = 0;
 	len += attr_enc(buf, len, size, "msg.op", op);
