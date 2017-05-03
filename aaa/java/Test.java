@@ -10,6 +10,7 @@ class Test {
 		/* authentize user */
 		aaa._set("user.id", args[1]);
 		aaa._set("user.name", args[2]);
+		aaa._set("acct.example.roles[]", "vpn svn git");
 		aaa._commit();
 
 		aaa.finalize();

@@ -328,7 +328,7 @@ udp_parse(struct msg *msg, byte *packet, unsigned int len)
 }
 
 static int
-attr_enc(byte *pkt, int len, int maxlen, const char *key, const char *val)
+attr_enc(byte *packet, int len, int mlen, char *key, char *val)
 {
 	if (len < 0)
 		return len;
@@ -336,22 +336,22 @@ attr_enc(byte *pkt, int len, int maxlen, const char *key, const char *val)
 	int klen = strlen(key), vlen = strlen(val);
 	int linelen = klen + 1 + vlen + 1;
 
-	if (len + linelen > maxlen)
+	if (len + linelen > mlen)
 		return -1;
-	pkt += len;
-	memcpy(pkt, key, klen);
-	pkt += klen;
-	*pkt++ = ':';
-	memcpy(pkt, val, vlen);
-	pkt += vlen;
-	*pkt = '\n';
+	packet += len;
+	memcpy(packet, key, klen);
+	packet += klen;
+	*packet++ = ':';
+	memcpy(packet, val, vlen);
+	packet += vlen;
+	*packet = '\n';
 	return linelen;
 }
 
 static int
 udp_build(struct msg *msg, byte *pkt, int size)
 {
-	const char *status = printfa("%d", msg->status);
+	char *status = printfa("%d", msg->status);
 	int len = 0;
 	len += attr_enc(pkt, len, size, "msg.status", status);
 	len += attr_enc(pkt, len, size, "msg.id", "1");
@@ -468,12 +468,13 @@ cmd_parse(struct cmd *cmd)
 static void
 udp_serve(struct task *task)
 {
-	struct aaa *aaa = (struct aaa *)task_user_get(task);
+	struct cmd cmd;
+	struct msg *msg = &cmd.msg;
+	msg->aaa = (struct aaa *)task_user_get(task);
 
 	byte pkt[8192];
 	struct sockaddr_in from;
 	socklen_t len = sizeof(from);
-	memset(pkt,0, sizeof(pkt));
 
 	irq_enable();
 	ssize_t size = recvfrom(fd, pkt, sizeof(pkt), MSG_TRUNC, &from, &len);
@@ -491,9 +492,7 @@ udp_serve(struct task *task)
 			return;
 	}
 
-	struct cmd cmd;
-	struct msg *msg = &cmd.msg;
-	msg->aaa = aaa;
+	pkt[size] = 0;
 
 	char *v = printfa("%s:%d", inet_ntoa(from.sin_addr), ntohs(from.sin_port));
 	debug2("%s recv %jd byte(s)", v, (intmax_t)size);
@@ -507,6 +506,7 @@ udp_serve(struct task *task)
 	if ((size = udp_build(msg, pkt, sizeof(pkt) - 1)) < 1)
 		goto cleanup;
 
+	pkt[size] = 0;
 	int sent = sendto(fd, pkt, size, 0, &from, len);
 	debug2("%s sent %d byte(s)", v, sent);
 
@@ -516,7 +516,7 @@ udp_serve(struct task *task)
 		error("sendto sent partial packet (%d of %d bytes)", sent, (int)size);
 
 cleanup:
-	aaa_reset(aaa);
+	aaa_reset(msg->aaa);
 }
 
 const char *
@@ -542,6 +542,7 @@ task_getid(struct task *task)
 	}
 }
 
+/*
 static inline void
 sched_info(struct task *task)
 {
@@ -549,6 +550,15 @@ sched_info(struct task *task)
 	const char *state = task_getstatename(task);
 	debug("index=%.2d state=%s type=%s", task->index, state, type);
 }
+*/
+
+/*
+int
+sched_state(struct task *task,  enum task_state state)
+{
+
+}
+*/
 
 void
 task_init(struct task *task)
@@ -567,28 +577,22 @@ task_init(struct task *task)
 		task->ppid = task->pid = getpid();
 		task->loop = ev_default_loop(0);
 		signal_norace(task);
-
 		ev_timer_init(&task->timer_watcher, timer, 5, 0.);
 		ev_timer_start(task->loop, &task->timer_watcher);  
-
 		/* setup signal handlers */
 		ev_signal_init(&task->sigint_watcher,  sighandler, SIGINT);
 		ev_signal_init(&task->sigterm_watcher, sighandler, SIGTERM);
 		ev_signal_init(&task->sighup_watcher,  sighandler, SIGHUP);
 		ev_signal_init(&task->sigusr1_watcher,  sighandler, SIGUSR1);
-
 		ev_signal_start(task->loop, &task->sigint_watcher);
 		ev_signal_start(task->loop, &task->sigterm_watcher);
 		ev_signal_start(task->loop, &task->sighup_watcher);
 		ev_signal_start(task->loop, &task->sigusr1_watcher);
 		setproctitle("aaad");
-
 		sig_enable(SIGTERM);
 		sig_enable(SIGINT);
 		sig_enable(SIGCHLD);
 		sig_enable(SIGUSR1);
-
-
 		break;
 	case TASK_TYPE_WORK:
 		setproctitle("aaad-worker");
@@ -599,12 +603,11 @@ task_init(struct task *task)
 		sig_disable(SIGUSR2);
 		sig_ignore(SIGINT);
 		sig_ignore(SIGTERM);
-
 		struct aaa *aaa = aaa_new(AAA_ENDPOINT_SERVER, 0);
 		task_user_set(task, aaa);
 		break;
 	default:
-		die("task type broken");
+		die("unexpected task type");
 		break;
 	}
 	const char *type = task_gettypename(task);
@@ -756,11 +759,9 @@ static void
 restart(void)
 {
 	configure();
-
 	struct task *child;
-	list_for_each_item(task_disp.list, child, node) {
+	list_for_each_item(task_disp.list, child, node)
 		kill(child->pid, SIGHUP);
-	}
 }
 
 void
@@ -801,9 +802,7 @@ aaa_server1(int argc, char *argv[])
 {
 	irq_init();
 	irq_disable();
-
 	session_init();
-
 	setproctitle_init(argc, argv);
 
 	_unused struct sched_class sched_class = {
