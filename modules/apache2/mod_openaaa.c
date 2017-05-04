@@ -223,7 +223,7 @@ post_read_request(request_rec *r)
 
 	aaa_reset(aaa);
 	aaa_attr_set(aaa, "sess.id", (char *)ssl_id);
-	int rv = aaa_bind(aaa, 0, ssl_id);
+	int rv = aaa_bind(aaa);
 
 	const char *sess_id = aaa_attr_get(aaa, "sess.id");
 	const char *user_id = aaa_attr_get(aaa, "user.id");

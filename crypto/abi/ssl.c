@@ -328,7 +328,7 @@ ssl_exportkeys(struct session *sp)
 		struct aaa *usr = aaa_new(AAA_ENDPOINT_SERVER, 0);
 		aaa_attr_set(usr, "sess.id", sess_id);
 		aaa_attr_set(usr, "sess.key",bind_key);
-		aaa_bind(usr, 0, sess_id);
+		aaa_bind(usr);
 		aaa_free(usr);
 	}
 }
@@ -638,7 +638,7 @@ ssl_server_aaa(struct session *sp)
 	struct aaa *usr = aaa_new(AAA_ENDPOINT_SERVER, 0);
 	aaa_attr_set(usr, "sess.id", sess_id);
 	aaa_attr_set(usr, "sess.key", key);
-	aaa_bind(usr, 0, sess_id);
+	aaa_bind(usr);
 	aaa_free(usr);
 
 	if (!proto_client || !proto_server)

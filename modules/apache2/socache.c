@@ -90,7 +90,8 @@ sc_store(ap_socache_instance_t *ctx, server_rec *s,
         char val[(dlen * 2) + 1];
         //memhex(val, (char *)d, dlen, 0);
 	val[dlen * 2] = 0;
-	if (aaa_bind(aaa, AAA_BIND_SESSION_ID, key))
+	aaa_attr_set(aaa, "sess.id", key);
+	if (aaa_bind(aaa))
 		APR_EINVAL;
 
 	aaa_attr_set(aaa, "sess.i2d", val);
@@ -114,7 +115,8 @@ sc_retrieve(ap_socache_instance_t *ctx, server_rec *s,
 	key[len * 2] = 0;
 	s_info(s, "sess.id: %s", key);
 
-	if (aaa_bind(aaa, AAA_BIND_SESSION_ID, key))
+	aaa_attr_set(aaa, "sess.id", key);
+	if (aaa_bind(aaa))
 		return APR_NOTFOUND;
 	if (aaa_select(aaa, NULL))
 		return APR_NOTFOUND;

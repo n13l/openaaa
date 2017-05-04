@@ -404,7 +404,7 @@ cmd_bind(struct cmd *cmd)
 {
 	struct msg *msg = &cmd->msg;
 	msg->status = 0;
-	return msg->sid ? session_bind(msg->aaa, msg->sid, 0) : -EINVAL;
+	return msg->sid ? session_bind(msg->aaa, msg->sid) : -EINVAL;
 }
 
 static int

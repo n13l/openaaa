@@ -21,12 +21,15 @@ ccflags-$(CONFIG_JNI) += -DBUILD_JNI=1
 
 #swflags              := -debug-module 1
 swopt                 := 
-swopt4j               := -package com.openaaa -I$(src) -I./java -java
+swopt4j               := -package com.opensec -I$(src) -I./java -java
 
 libaaa-dirs           := sys mem net crypto aaa arch/$(SRCARCH)
 libaaa-objs           := $(patsubst %,%/built-in.o, $(libaaa-dirs))
 libaaa-libs           := $(patsubst %,%/lib.a, $(libs-y))
 libaaa-all            := $(libaaa-objs) $(libaaa-libs) 
+
+install::
+	echo "INSTALL"
 
 #$(KBUILD_LIBS)
 
@@ -51,9 +54,18 @@ clean-files  += $(libname).$(so) $(libname).jar
 $(obj)/$(libname).jar: $(obj)/built-jni.c
 	$(call if_changed,$(libname).jar)
 
+#quiet_cmd_$(libname).jar = JR      $@
+#	cmd_$(libname).jar = $(JAR) cmvf $(obj)/META-INF/MANIFEST.MF $(obj)/$(libname).jar \
+#	$(subst $(obj)/com/openaaa/, -C aaa/com/openaaa , $(wildcard $(obj)/com/openaaa/*.class))
+#
+#quiet_cmd_$(libname).jar = JR      $@
+#	cmd_$(libname).jar = $(JAR) cmvf $(obj)/META-INF/MANIFEST.MF $(obj)/$(libname).jar \
+#	$(wildcard $(obj)/com/openaaa/*.class)
+#
 quiet_cmd_$(libname).jar = JR      $@
 	cmd_$(libname).jar = $(JAR) cmvf $(obj)/META-INF/MANIFEST.MF $(obj)/$(libname).jar \
-	$(subst $(obj)/com/openaaa/, -C aaa/com/openaaa , $(wildcard $(obj)/com/openaaa/*.class))
+	$(subst $(obj)/, -C aaa , $(wildcard $(obj)/com/opensec/*.class))
+#
 
 $(obj)/Test.java: $(KBUILD_SRC)/$(src)/java/Test.java
 	@cp -R $(KBUILD_SRC)/$(src)/java/META-INF $(obj)/

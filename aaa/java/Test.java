@@ -1,11 +1,11 @@
-package com.openaaa;
+package com.opensec;
 
 class Test {
 	public static void main(String[] args) throws Exception {
 
 		AAA aaa = new AAA(2, 0);
 		aaa._set("sess.id", args[0]);
-		aaa._bind(1, args[0]);
+		aaa._bind();
 
 		/* authentize user */
 		aaa._set("user.id", args[1]);

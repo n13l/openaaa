@@ -42,8 +42,6 @@ enum aaa_endpoint {
 	AAA_ENDPOINT_SERVER = 2
 };
 
-#define AAA_BIND_SESSION_ID 0x1
-
 /* public api functions */
 
 /*
@@ -109,7 +107,7 @@ aaa_free(struct aaa *);
  */
 
 int
-aaa_bind(struct aaa *aaa, int type, const char *id);
+aaa_bind(struct aaa *aaa);
 
 void
 aaa_reset(struct aaa *aaa);

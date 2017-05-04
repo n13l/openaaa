@@ -33,9 +33,13 @@ aaa_free(struct aaa *aaa)
 }
 
 int
-aaa_bind(struct aaa *aaa, int type, const char *value)
+aaa_bind(struct aaa *aaa)
 {
-	return udp_bind(aaa, type, value);
+	const char *sid = aaa_attr_get(aaa, "sess.id");
+	if (!sid || !*sid)
+		return -EINVAL;
+
+	return udp_bind(aaa);
 }
 
 void

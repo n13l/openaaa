@@ -18,7 +18,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <sys/socket.h>                                                         
 #include <netinet/in.h>                                                         
 #include <arpa/inet.h>
@@ -91,7 +90,7 @@ udp_parse(struct aaa *aaa, byte *packet, unsigned int len)
 
 
 int
-udp_bind(struct aaa *aaa, int type, const char *id)
+udp_bind(struct aaa *aaa)
 {
         int fd = 1;
         byte packet[8192];
@@ -118,7 +117,7 @@ udp_bind(struct aaa *aaa, int type, const char *id)
 
 	socklen_t len = sizeof(in);
 	
-        int sent = sendto(fd, packet, size, 0, &in, len);
+        int sent = sendto(fd, packet, size, 0, (struct sockaddr * )&in, len);
 	if (sent < 0)
 	        error("sendto failed: reason=%s ", strerror(errno));
 	else if (sent < size)
@@ -128,7 +127,8 @@ udp_bind(struct aaa *aaa, int type, const char *id)
         debug2("%s sent %d byte(s)", v, sent);
 
         memset(packet, 0, sizeof(packet));
-	ssize_t recved = recvfrom(fd, packet, sizeof(packet) - 1, MSG_TRUNC, &in, &len);
+	ssize_t recved = recvfrom(fd, packet, sizeof(packet) - 1, MSG_TRUNC, 
+                                  (struct sockaddr *)&in, &len);
 	if (recved < 0) {
 	        error("recvfrom failed: reason=%s ", strerror(errno));
                 goto cleanup;
@@ -172,7 +172,7 @@ udp_commit(struct aaa *aaa)
 
 	socklen_t len = sizeof(in);
 	
-        int sent = sendto(fd, packet, size, 0, &in, len);
+        int sent = sendto(fd, packet, size, 0, (struct sockaddr *)&in, len);
 	if (sent < 0)
 	        error("sendto failed: reason=%s ", strerror(errno));
 	else if (sent < size)
@@ -182,7 +182,8 @@ udp_commit(struct aaa *aaa)
         debug2("%s sent %d byte(s)", v, sent);
 
         memset(packet, 0, sizeof(packet));
-	ssize_t recved = recvfrom(fd, packet, sizeof(packet) - 1, MSG_TRUNC, &in, &len);
+	ssize_t recved = recvfrom(fd, packet, sizeof(packet) - 1, MSG_TRUNC, 
+                                  (struct sockaddr *)&in, &len);
 	if (recved < 0) {
 	        error("recvfrom failed: reason=%s ", strerror(errno));
                 goto cleanup;

@@ -11,6 +11,12 @@ BuildRequires:  flex bison gperf pkgconfig
 %description
 OpenAAA
 
+%package java
+Summary: OpenAAA Java Bindings
+Group: Applications/System
+%description java
+OpenAAA Java Bindings
+
 %package vpn
 Summary: OpenAAA VPN Plugin
 Group: Applications/System
@@ -27,7 +33,7 @@ OpenAAA PKCS#11 Bridge
 %setup -q
 
 %build
-make defconfig DEBUG=1 -j1
+make defconfig -j1
 make -j1
 
 %install
@@ -37,14 +43,18 @@ find %{buildroot}
 %clean
 rm -rf %{buildroot}
 
-%post -p /sbin/ldconfig
-find %{buildroot}
-%postun -p /sbin/ldconfig
-find %{buildroot}
+#%post -p /sbin/ldconfig
+#find %{buildroot}
+#%postun -p /sbin/ldconfig
+#find %{buildroot}
 
 %files
 %defattr(-, root, root)
 %{_libdir}/*
+
+%files java
+%defattr(-, root, root)
+%{_libdir}/openaaa/aaa/libaaa-*.jar
 
 %files vpn
 %defattr(-, root, root)

@@ -34,8 +34,8 @@ struct aaa {
                         struct aaa *aaa = aaa_new(type, flags); 
                         return (struct aaa*)aaa;
                 }
-		int _bind(int type, const char *id) {
-			return aaa_bind(self, type, id);
+		int _bind() {
+			return aaa_bind(self);
 		}
 		int _commit() {
 			return aaa_commit(self);

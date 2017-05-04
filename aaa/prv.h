@@ -52,13 +52,13 @@ struct msg {
 void aaa_config_load(struct aaa *c);
 int session_init(void);
 int session_fini(void);
-int session_bind(struct aaa *aaa, const char *id, int type);
+int session_bind(struct aaa *aaa, const char *id);
 int session_select(struct aaa *aaa, const char *id);
 int session_commit(struct aaa *aaa, const char *id);
 int session_touch(struct aaa *aaa, const char *id);
 
 int
-udp_bind(struct aaa *aaa, int type, const char *id);
+udp_bind(struct aaa *aaa);
 
 int
 udp_commit(struct aaa *aaa);

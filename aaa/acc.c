@@ -1,5 +1,6 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
+#include <sys/time.h>
 #include <mem/alloc.h>
 #include <mem/page.h>
 #include <mem/map.h>
@@ -266,9 +267,9 @@ create(struct aaa *aaa, struct cursor *sid)
 
 	set_id(session, sid);
 	aaa_attr_set(aaa, "sess.id", (char *)sid->id.addr);
-	aaa_attr_set(aaa, "sess.created",  printfa("%jd", session->created));
-	aaa_attr_set(aaa, "sess.modified", printfa("%jd", session->modified));
-	aaa_attr_set(aaa, "sess.expires",  printfa("%jd", session->expires));
+	aaa_attr_set(aaa, "sess.created",  printfa("%jd", (intmax_t)session->created));
+	aaa_attr_set(aaa, "sess.modified", printfa("%jd", (intmax_t)session->modified));
+	aaa_attr_set(aaa, "sess.expires",  printfa("%jd", (intmax_t)session->expires));
 
 	if (session_write(aaa, session) < 0)
 		goto cleanup;
@@ -283,7 +284,7 @@ cleanup:
 }
 
 int
-session_bind(struct aaa *aaa, const char *id, int type)
+session_bind(struct aaa *aaa, const char *id)
 {
 	struct cursor csid;
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
@@ -308,8 +309,8 @@ session_select(struct aaa *aaa, const char *id)
 static int
 commit(struct aaa *aaa, struct cursor *sid)
 {
-	aaa_attr_set(aaa, "sess.modified", printfa("%jd", sid->now));
-	aaa_attr_set(aaa, "sess.expires",  printfa("%jd", sid->now + sid->expires));
+	aaa_attr_set(aaa, "sess.modified", printfa("%jd", (intmax_t)sid->now));
+	aaa_attr_set(aaa, "sess.expires",  printfa("%jd", (intmax_t)sid->now + sid->expires));
 		
 	struct session *session = NULL;
 	struct hnode *it = NULL;

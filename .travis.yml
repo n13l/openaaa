@@ -3,6 +3,7 @@ services:
   - docker
 language:
   - c
+  - java
 compiler:
   - gcc
   - clang
@@ -11,6 +12,8 @@ os:
   - osx
 osx:
   - osx_image: xcode8.1
+jdk:
+  - oraclejdk8
 addons:
   apt:
     packages:
@@ -23,6 +26,7 @@ addons:
     - gcc-mingw-w64-i686
     - binutils-mingw-w64
     - gcc-mingw-w64
+    - swig
 env:
   global:
     - BUILD_BRANCH=$TRAVIS_BRANCH
