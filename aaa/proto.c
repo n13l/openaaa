@@ -23,6 +23,9 @@
 #include <sys/socket.h>                                                         
 #include <netinet/in.h>                                                         
 #include <arpa/inet.h>
+#else
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #endif
 
 static int port = 8888;
@@ -105,11 +108,11 @@ udp_bind(struct aaa *aaa)
 		die("Cannot create UDP socket: %s", strerror(errno));
 
 	int one = 1;
-	if (setsockopt(fd , SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)) < 0)
+	if (setsockopt(fd , SOL_SOCKET, SO_REUSEADDR, (const void *)&one, sizeof(one)) < 0)
 		die("Cannot set SO_REUSEADDR: %s", strerror(errno));
 
 	struct timeval tv = {.tv_sec = 10, .tv_usec = 0 };
-	if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv)) < 0)
+	if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const void *)&tv,sizeof(tv)) < 0)
 		die("SO_RCVTIMEO");
 
 	struct sockaddr_in in = {
@@ -160,11 +163,11 @@ udp_commit(struct aaa *aaa)
 		die("Cannot create UDP socket: %s", strerror(errno));
 
 	int one = 1;
-	if (setsockopt(fd , SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)) < 0)
+	if (setsockopt(fd , SOL_SOCKET, SO_REUSEADDR, (const void *)&one, sizeof(one)) < 0)
 		die("Cannot set SO_REUSEADDR: %s", strerror(errno));
 
 	struct timeval tv = {.tv_sec = 10, .tv_usec = 0 };
-	if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv)) < 0)
+	if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const void *)&tv,sizeof(tv)) < 0)
 		die("SO_RCVTIMEO");
 
 	struct sockaddr_in in = {

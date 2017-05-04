@@ -26,11 +26,9 @@
 #ifndef __AAA_PRV_H__
 #define __AAA_PRV_H__
 
-#include <stdlib.h>
-#include <stdarg.h>
-#include <sys/types.h>
+#include <sys/compiler.h>
+#include <mem/alloc.h>
 #include <mem/pool.h>
-
 #include <dict.h>
 
 struct aaa {

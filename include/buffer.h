@@ -24,7 +24,6 @@
 #define __GENERIC_BYTEBUFFERS_H__
 
 #include <sys/compiler.h>
-#include <stddef.h>
 
 /* opaque info for memory allocation */
 struct mm;

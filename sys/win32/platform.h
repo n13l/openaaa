@@ -1,10 +1,6 @@
 #ifndef __SYS_PLATFORM_H__
 #define __SYS_PLATFORM_H__
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
-
 #ifndef RTLD_NOLOAD
 #define RTLD_NOLOAD 0
 #endif
@@ -22,8 +18,12 @@
 
 #if defined(__MINGW32__) || defined(__MINGW64__) 
 
+#ifndef WIFEXITED
 #define WIFEXITED(x) ((x) != 3)
+#endif
+#ifndef WEXITSTATUS
 #define WEXITSTATUS(x) (x)
+#endif
 
 #ifndef S_ISLNK
 #define S_ISLNK(X) 0
@@ -35,6 +35,10 @@
 
 #ifndef readlink
 #define readlink(file, path, size) do {} while(0)
+#endif
+
+#ifndef MSG_TRUNC
+#define MSG_TRUNC 0
 #endif
 
 int
@@ -66,9 +70,10 @@ fcntl(int fd, int cmd, ... /* arg */ );
 int
 setenv(const char *name, const char *value, int overwrite);
 
+/*
 struct tm *
 gmtime_r(const time_t *timep, struct tm *result);
-
+*/
 struct timespec;
 
 char *

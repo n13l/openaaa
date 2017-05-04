@@ -23,9 +23,9 @@
 #ifndef __MEM_PAGE_H__
 #define __MEM_PAGE_H__
 
-#include <stdbool.h>
-#include <string.h>
-#include <errno.h>
+//#include <stdbool.h>
+//#include <string.h>
+//#include <errno.h>
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
