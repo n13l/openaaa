@@ -8,6 +8,8 @@ Source0:        %{name}-%{version}.tar.gz
 URL:            https://github.com/n13l/openaaa
 BuildRequires:  flex bison gperf pkgconfig
 
+%define debug_package %{nil}
+
 %description
 OpenAAA
 

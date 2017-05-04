@@ -18,9 +18,12 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
+
+#ifndef CONFIG_WIN32
 #include <sys/socket.h>                                                         
 #include <netinet/in.h>                                                         
 #include <arpa/inet.h>
+#endif
 
 static int port = 8888;
 
