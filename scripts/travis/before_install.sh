@@ -85,13 +85,7 @@ if [ "$TRAVIS_OS_NAME" == "osx" ]; then
   unset CROSS_COMPILE 
   export BUILD_OS_NAME="osx"
   brew update 
-  brew install flex bison gperftools swig
-  brew tap caskroom/cask
-  brew install brew-cask
-  brew tap caskroom/versions
-  brew cask info java8
-  brew cask install java8
-  brew install jenv
+  brew install flex bison gperftools swig 
 fi
 
 if [ "$BUILD_TARGET" == "linux" ]; then
