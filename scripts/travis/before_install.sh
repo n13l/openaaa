@@ -40,6 +40,8 @@ if [ "$BUILD_TARGET" == "win64" ]; then
   export BUILD_OS_RELEASE="generic"
   export WINEDEBUG=err-all,fixme-all
   export OS_EXEC="wine"
+  mkdir $HOME/usr
+  mkdir $HOME/usr/x86_64-w64-mingw32/
   wget https://github.com/ojdkbuild/ojdkbuild/releases/download/1.8.0.131-1/java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64.zip
   sudo unzip java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64.zip -d $HOME/usr/x86_64-w64-mingw32/
   chmod +x $HOME/usr/x86_64-w64-mingw32/java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64/bin/javac.exe
