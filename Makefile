@@ -852,13 +852,6 @@ ifeq ($(CONFIG_STRIP_ASM_SYMS),y)
 LDFLAGS_libarch	+= $(call ld-option, -X,)
 endif
 
-# Default kernel image to build when no specific target is given.
-# KBUILD_IMAGE may be overruled on the command line or
-# set in the environment
-# Also any assignments in arch/$(ARCH)/Makefile take precedence over
-# this default value
-#export KBUILD_IMAGE ?= libarch
-
 #
 # INSTALL_PATH specifies where to place the updated kernel and system map
 # images. Default is /boot, but you can set it to other values
@@ -1086,6 +1079,19 @@ endif
 # By default, build modules as well
 all: prepare $(progs) modules
 
+# Location for installation
+export prefix      = /usr
+export bindir      = $(prefix)/bin
+export libdir      = $(prefix)/lib
+export mandir      = $(prefix)/man
+export INSTALLDIR  = $(prefix)/lib/openaaa
+export INSTALLROOT =
+
+install: _all
+	$(Q)$(MAKE) --no-print-directory \
+                    -f $(KBUILD_SRC)/scripts/Makefile.install \
+		    srctree=$(KBUILD_SRC) obj=$(obj)
+
 # Build modules
 #
 # A module can be listed more than once in obj-m resulting in
@@ -1110,7 +1116,7 @@ modules_prepare: prepare scripts
 
 # Target to install modules
 PHONY += modules_install 
-#install: modules_install
+
 modules_install: _modinst_ _modinst_post
 
 PHONY += _modinst_
@@ -1387,9 +1393,8 @@ modules: $(module-dirs)
 #	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
 
 PHONY += modules_install 
-#install: modules_install 
+
 modules_install: _emodinst_ _emodinst_post
-	echo "modules_install"
 
 install-dir := $(if $(INSTALL_MOD_DIR),$(INSTALL_MOD_DIR),extra)
 PHONY += _emodinst_
@@ -1401,6 +1406,23 @@ _emodinst_:
 PHONY += _emodinst_post
 _emodinst_post: _emodinst_
 	$(call cmd,depmod)
+
+# Location for installation
+export prefix      = /usr
+export bindir      = $(prefix)/bin
+export libdir      = $(prefix)/lib
+export mandir      = $(prefix)/man
+export INSTALLDIR  = $(prefix)/lib/openaaa
+export INSTALLROOT =
+
+install: _all
+	@echo "MAKECMDGOALS: $(MAKECMDGOALS)"
+	@echo "srctree: $(srctree)"
+	@echo "curdir: $(CURDIR)"
+	@echo "src: $(KBUILD_SRC)"
+	$(Q)$(MAKE) --no-print-directory -f /home/n13l/git/openaaa/scripts/Makefile.install srctree=$(CURDIR)
+
+PHONY += install
 
 clean-dirs := $(addprefix _clean_,$(KBUILD_EXTMOD))
 

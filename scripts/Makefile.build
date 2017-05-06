@@ -71,8 +71,13 @@ include scripts/Makefile.test
 endif
 
 # Do not include test rules unless needed
-ifneq ($(toolprogs-y)$(toolprogs-m),)
-include scripts/Makefile.tool
+ifneq ($(install-bin-y),)
+include scripts/Makefile.install
+endif
+
+# Do not include test rules unless needed
+ifneq ($(progs-y)$(progs-m),)
+include scripts/Makefile.prog
 endif
 
 ifneq ($(KBUILD_SRC),)

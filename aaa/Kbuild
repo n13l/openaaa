@@ -1,4 +1,4 @@
-testprogs-y := aaa
+progs-y := aaa
 LIBS_aaa = aaa/built-in.o
 
 # lib ev warning cleanup
@@ -11,6 +11,13 @@ libname               := lib$(lib)-$(PACKAGEVERSION)
 always                += $(libname).a
 always                += $(if $(CONFIG_MODULES),$(libname).$(so),)
 always                += $(if $(JDK_HOME),$(libname).jar,)
+
+install-bin-y         += aaa
+install-lib-y         += $(libname).a
+install-lib-y         += $(if $(CONFIG_MODULES),$(libname).$(so),)
+install-lib-y         += $(if $(JDK_HOME),$(libname).jar,)
+
+install-y             += $(install-lib-y)
 
 obj-y                 += acc.o env.o cnf.o api.o proto.o
 obj-$(CONFIG_LINUX)   += server.o
@@ -28,11 +35,6 @@ libaaa-objs           := $(patsubst %,%/built-in.o, $(libaaa-dirs))
 libaaa-libs           := $(patsubst %,%/lib.a, $(libs-y))
 libaaa-all            := $(libaaa-objs) $(libaaa-libs) 
 
-install::
-	echo "INSTALL"
-
-#$(KBUILD_LIBS)
-
 $(obj)/$(libname).$(so): $(libaaa-objs) $(libaaa-libs)
 	$(call if_changed,$(libname).$(so))
 
@@ -43,7 +45,7 @@ quiet_cmd_$(libname).$(so) = LD [M]  $@
 	cmd_$(libname).$(so) = $(CC) $(LDFLAGS) $(SHLIB_LDFLAGS) -o $@ \
 	                             $(libaaa-all) $(KBUILD_LIBS)
 quiet_cmd_$(libname).a = AR      $@
-	cmd_$(libname).a = $(AR) ar cr $@ $(libaaa-all)
+	cmd_$(libname).a = $(AR) cr $@ $(libaaa-all)
 
 
 PHONY += $(libaaa-dirs)
@@ -55,7 +57,7 @@ $(obj)/$(libname).jar: $(obj)/built-jni.c
 	$(call if_changed,$(libname).jar)
 
 quiet_cmd_$(libname).jar = JR      $@
-	cmd_$(libname).jar = $(JAR) cmvf $(obj)/META-INF/MANIFEST.MF $(obj)/$(libname).jar \
+	cmd_$(libname).jar = $(JAR) cmf $(obj)/META-INF/MANIFEST.MF $(obj)/$(libname).jar \
 	$(subst $(obj)/, -C aaa , $(wildcard $(obj)/com/opensec/*.class))
 
 $(obj)/Test.java: $(KBUILD_SRC)/$(src)/java/Test.java

@@ -236,8 +236,8 @@ $(BOOT_TARGETS): vmlinux
 	$(Q)$(MAKE) $(build)=$(boot) $@
 
 PHONY += install
-install:
-	$(Q)$(MAKE) $(build)=$(boot) $@
+#install:
+#	$(Q)$(MAKE) $(build)=$(boot) $@
 
 PHONY += vdso_install
 vdso_install:

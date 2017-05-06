@@ -1,0 +1,61 @@
+# 
+# progs-y := example
+# Will compile example.c and create an executable named example
+#
+# progs-y := test1
+# test1-y := main.o helper.o
+
+__progs := $(sort $(progs-y))
+
+# Executables compiled from a single .c file
+prog-csingle := $(foreach m,$(__progs),$(if $($(m)-y),,$(m)))
+
+# Executables linked based on several .o files
+prog-cmulti := $(foreach m,$(__progs), $(if $($(m)-y),$(m)))
+
+# Object (.o) files compiled from .c files
+prog-cobjs := $(sort $(foreach m,$(__progs),$($(m)-y)))
+
+__obj_fixed := $(patsubst %/,%,$(obj))
+__src_fixed := $(patsubst %/,%,$(src))
+
+# Add $(obj) prefix to all paths
+prog-csingle := $(addprefix $(__obj_fixed)/,$(prog-csingle))
+prog-cmulti  := $(addprefix $(__obj_fixed)/,$(prog-cmulti))
+prog-cobjs   := $(addprefix $(__obj_fixed)/,$(prog-cobjs))
+
+# Options to testcc.
+testc_flags = -Wp,-MD,$(depfile) $(KBUILD_CFLAGS) $(KBUILD_CPPFLAGS) \
+	      $(USERINCLUDE) $(TEST_CFLAGS) -I. -I../ -I../include \
+	      -include $(srctree)/sys/$(PLATFORM)/platform.h
+
+testld_flags = 
+testld_builtin = arch/$(SRCARCH)/built-in.o sys/built-in.o mem/built-in.o
+testld_libs = $(KBUILD_LIBS)
+
+# prog-csingle -> executable
+quiet_cmd_prog-csingle = CC      $@
+      cmd_prog-csingle = $(CC) $(LDFLAGS_$(*F)) $(testc_flags) -o $@ $< $(testld_builtin) \
+                               $(testld_libs) $(LIBS_$(*F)) $(KBUILD_LIBS)
+
+$(prog-csingle): $(__obj_fixed)/%: $(__src_fixed)/%.c FORCE
+	$(call if_changed_dep,prog-csingle)
+
+# prog-cobjs -> .o
+quiet_cmd_prog-cobjs	= CC      $@
+      cmd_prog-cobjs	= $(CC) $(testc_flags) -c -o $@ $< 
+
+$(prog-cobjs): $(__obj_fixed)/%.o: $(__src_fixed)/%.c FORCE
+	$(call if_changed_dep,prog-cobjs)
+
+# Link an executable based on list of .o files
+quiet_cmd_prog-cmulti	= LD      $@
+      cmd_prog-cmulti	= $(CC) $(testld_flags) -o $@ \
+			  $(addprefix $(obj)/,$($(@F)-y)) $(testld_builtin) \
+      			  $(testld_libs) $(LIBS_$(*F)) $(KBUILD_LIBS)
+$(prog-cmulti): $(__obj_fixed)/%: $(prog-cobjs) FORCE
+	$(call if_changed,prog-cmulti)
+
+# clean support
+targets += $(prog-csingle) $(prog-cmulti) $(prog-cobjs)
+always += $(prog-csingle) $(prog-cmulti)
