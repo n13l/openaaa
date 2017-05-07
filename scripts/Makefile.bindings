@@ -8,7 +8,7 @@ CONFIG_JNI := $(if $(JDK_HOME),y,n)
 
 $(info JAVA=$(JAVA))
 $(info JAVAC=$(JAVAC))
-$(info JDK_HOME='$(JDK_HOME)')
+$(info JDK_HOME=$(JDK_HOME))
 $(info JAVA_HOME=$(JAVA_HOME))
 $(info CONFIG_JNI=$(CONFIG_JNI))
 

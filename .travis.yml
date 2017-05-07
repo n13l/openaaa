@@ -158,8 +158,8 @@ script:
     make defconfig ;
     make ;
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      sudo make install INSTALL_PATH=/opt/aaa ;
-      sudo make modules_install INSTALL_PATH=/opt/aaa ;
+      sudo make install INSTALL_PATH=/opt/aaa INSTALL_MOD_PATH=/opt/aaa/lib ;
+      sudo make modules_install INSTALL_PATH=/opt/aaa INSTALL_MOD_PATH=/opt/aaa/lib ;
     else
       sudo make install ;
       sudo make modules_install ;
