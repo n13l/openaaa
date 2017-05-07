@@ -1,5 +1,10 @@
 #!/bin/sh
-if [[ ! -z $JDK_HOME ]]; then 
+if [ ! -z "$JAVA_HOME" ]; then 
+	echo "$JAVA_HOME"
+	exit 0;
+fi
+
+if [ ! -z "$JDK_HOME" ]; then 
 	echo "$JDK_HOME"
 	exit 0; 
 fi
