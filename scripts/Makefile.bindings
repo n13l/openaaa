@@ -6,11 +6,11 @@ JAVA       := $(if $(JDK_HOME),$(JDK_HOME)/bin/java$(exe),)
 JAR        := $(if $(JDK_HOME),$(JDK_HOME)/bin/jar$(exe),)
 CONFIG_JNI := $(if $(JDK_HOME),y,n)
 
-$(info JAVA=$(JAVA))
-$(info JAVAC=$(JAVAC))
-$(info JDK_HOME=$(JDK_HOME))
-$(info JAVA_HOME=$(JAVA_HOME))
-$(info CONFIG_JNI=$(CONFIG_JNI))
+#$(info JAVA=$(JAVA))
+#$(info JAVAC=$(JAVAC))
+#$(info JDK_HOME=$(JDK_HOME))
+#$(info JAVA_HOME=$(JAVA_HOME))
+#$(info CONFIG_JNI=$(CONFIG_JNI))
 
 export JDK_HOME CONFIG_JNI JAVAC JAVA JAR
 endif
