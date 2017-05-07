@@ -104,6 +104,7 @@ else
 # 3) Install binaries by descending
 .PHONY: header footer descend
 header:
+	$(Q)mkdir -p $(INSTALL_PATH)
 	$(Q)mkdir -p $(INSTALL_MOD_PATH)
 	$(Q)mkdir -p $(INSTALL_PATH)/bin
 	$(Q)echo "  INSTALL $(INSTALL_PATH)"
