@@ -17,7 +17,7 @@ install-lib-y         += $(libname).a
 install-lib-y         += $(if $(CONFIG_MODULES),$(libname).$(so),)
 install-lib-y         += $(if $(JDK_HOME),$(libname).jar,)
 
-install-y             += $(install-lib-y)
+install-y             += $(install-bin-y) $(install-lib-y)
 
 obj-y                 += acc.o env.o cnf.o api.o proto.o
 obj-$(CONFIG_LINUX)   += server.o

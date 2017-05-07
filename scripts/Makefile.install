@@ -4,7 +4,7 @@
 # File is logically seperated in two pieces.
 # First piece is used when during a recursive descend of the klibc tree
 # and second piece is used to do the final steps in the install
-# If KLIBC_INSTALL is defined it tells us we are descending and we
+# If KBUILD_INSTALL is defined it tells us we are descending and we
 # use first piece of the file.
 
 # This indicates the location of the final version of the shared library.
@@ -27,7 +27,26 @@ quiet_cmd_install = INSTALL $(install-y)
       cmd_install = $(install-bin) $(install-y) \
                                    $(INSTALLROOT)$(INSTALLDIR)/$(KLIBCCROSS)bin
 
-ifeq ($(KLIBC_INSTALL),1)
+install-bin-obj := $(addprefix $(obj)/,$(sort $(install-bin-y)))
+install-lib-obj := $(addprefix $(obj)/,$(sort $(install-lib-y)))
+
+always += install/aaa/aaa
+always += install/aaa/libaaa-0.0.1.$(so)
+always += install/aaa/libaaa-0.0.1.jar
+
+install/aaa/aaa: aaa/aaa
+	@mkdir -p $(CURDIR)/install/bin
+	@cp aaa/aaa $(CURDIR)/install/bin
+
+install/aaa/libaaa-0.0.1.$(so): aaa/libaaa-0.0.1.$(so)
+	@mkdir -p $(CURDIR)/install/lib
+	@cp aaa/libaaa-0.0.1.$(so) $(CURDIR)/install/lib
+
+install/aaa/libaaa-0.0.1.jar: aaa/libaaa-0.0.1.jar
+	@mkdir -p $(CURDIR)/install/lib
+	@cp aaa/libaaa-0.0.1.jar $(CURDIR)/install/lib
+
+ifeq ($(KBUILD_INSTALL),1)
 # First part - we are descending..
 
 # Reset variables (to get right type of assingment)
@@ -66,7 +85,7 @@ endif
 # Descending
 .PHONY: $(subdir-)
 $(subdir-):
-	$(Q)$(MAKE) KLIBC_INSTALL=1 -f /home/n13l/git/openaaa/scripts/Makefile.install obj=$@ srctree=$(srctree)
+	$(Q)$(MAKE) KBUILD_INSTALL=1 -f $(srctree)/scripts/Makefile.install obj=$@ srctree=$(srctree)
 
 # If quiet is set, only print short version of command
 cmd = @$(if $($(quiet)cmd_$(1)),echo '  $($(quiet)cmd_$(1))' &&) $(cmd_$(1))
@@ -85,7 +104,9 @@ else
 # 3) Install binaries by descending
 .PHONY: header footer descend
 header:
-	$(Q)echo "  INSTALL headers to $(INSTALLROOT)$(INSTALLDIR)"
+	$(Q)echo "  INSTALL $(INSTALL_PATH)"
+	$(Q)cp -R $(obj)/install/lib/* $(INSTALL_MOD_PATH)/
+	$(Q)cp -R $(obj)/install/bin/* $(INSTALL_PATH)/bin/
 #	$(Q)mkdir -p $(INSTALLROOT)$(bindir)
 #	$(Q)mkdir -p $(INSTALLROOT)$(mandir)/man1
 #	$(Q)mkdir -p $(INSTALLROOT)$(SHLIBDIR)
@@ -101,14 +122,14 @@ header:
 #	$(Q)$(install-bin) $(objtree)/klcc/$(KCROSS)klcc $(INSTALLROOT)$(bindir)
 
 footer: header
-	$(Q)echo "  INSTALL binaries to $(INSTALLROOT)$(INSTALLDIR)/$(KLIBCCROSS)bin"
+#	$(Q)echo "  INSTALL binaries to $(INSTALLROOT)$(INSTALLDIR)/$(KLIBCCROSS)bin"
 
-descend: footer
+descend: footer 
 #	echo "srctree: $(srctree)"
-	echo "KLIBC_INSTALL: $(KLIBC_INSTALL)"
-#	$(Q)$(MAKE) KLIBC_INSTALL=1 -f $(srctree)/scripts/Makefile.install obj=$(obj)
-	$(Q)$(MAKE) KLIBC_INSTALL=1 -f /home/n13l/git/openaaa/scripts/Makefile.install obj=$(obj) srctree=$(srctree)
+#	echo "KBUILD_INSTALL: $(KBUILD_INSTALL)"
+#	$(Q)$(MAKE) KBUILD_INSTALL=1 -f $(srctree)/scripts/Makefile.install obj=$(obj)
+	$(Q)$(MAKE) KBUILD_INSTALL=1 -f $(srctree)/scripts/Makefile.install obj=$(obj) srctree=$(srctree)
 
-__install: descend
+__install: descend 
 	@:
 endif

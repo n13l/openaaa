@@ -1,6 +1,10 @@
 #ifndef __SYS_PLATFORM_H__
 #define __SYS_PLATFORM_H__
 
+/* https://sourceforge.net/p/mingw-w64/wiki2/gnu%20printf/ */
+#define __USE_MINGW_ANSI_STDIO 1
+#include <stdio.h>
+
 #ifndef RTLD_NOLOAD
 #define RTLD_NOLOAD 0
 #endif

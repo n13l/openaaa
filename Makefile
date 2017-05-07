@@ -1413,13 +1413,9 @@ export bindir      = $(prefix)/bin
 export libdir      = $(prefix)/lib
 export mandir      = $(prefix)/man
 export INSTALLDIR  = $(prefix)/lib/openaaa
-export INSTALLROOT =
+export INSTALLROOT ?= /usr
 
 install: _all
-	@echo "MAKECMDGOALS: $(MAKECMDGOALS)"
-	@echo "srctree: $(srctree)"
-	@echo "curdir: $(CURDIR)"
-	@echo "src: $(KBUILD_SRC)"
 	$(Q)$(MAKE) --no-print-directory -f /home/n13l/git/openaaa/scripts/Makefile.install srctree=$(CURDIR)
 
 PHONY += install
