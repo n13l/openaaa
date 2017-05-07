@@ -29,6 +29,8 @@ if [ "$BUILD_TARGET" == "win32" ]; then
   export BUILD_OS_RELEASE="generic"
   export WINEDEBUG=err-all,fixme-all
   export OS_EXEC="wine"
+  unset  JDK_HOME
+  unset  JAVA_HOME
 fi 
 if [ "$BUILD_TARGET" == "win64" ]; then 
   unset CC 
@@ -40,12 +42,15 @@ if [ "$BUILD_TARGET" == "win64" ]; then
   export BUILD_OS_RELEASE="generic"
   export WINEDEBUG=err-all,fixme-all
   export OS_EXEC="wine"
+  export JAVA_NAME=java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64
   mkdir /tmp/x86_64-w64-mingw32/
   wget https://github.com/ojdkbuild/ojdkbuild/releases/download/1.8.0.131-1/java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64.zip
   unzip java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64.zip -d /tmp/x86_64-w64-mingw32/
   chmod +x /tmp/x86_64-w64-mingw32/java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64/bin/javac.exe
   chmod +x /tmp/x86_64-w64-mingw32/java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64/bin/jar.exe
   export JDK_HOME=/tmp/x86_64-w64-mingw32/java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64
+  export JAVA_HOME="$JDK_HOME"
+  export PATH=$JAVA_HOME:$PATH
 fi
 if [ "$BUILD_ARCH" == "s390x" ]; then
   echo "deb http://ftp.de.debian.org/debian sid main contrib non-free" | sudo tee -a /etc/apt/sources.list

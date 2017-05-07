@@ -15,6 +15,6 @@ if [[ "$1" == "darwin" ]]; then
 fi
 
 if [[ "$1" == "win32" ]]; then
-	#export JDK_HOME=$(dirname $(dirname $(which javac)))
-	#echo "$JDK_HOME"; exit 0;
+	export JDK_HOME=$(dirname $(dirname $(which javac)))
+	echo "$JDK_HOME"; exit 0;
 fi
