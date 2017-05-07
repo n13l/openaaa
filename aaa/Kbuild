@@ -17,7 +17,10 @@ endif
 install-bin-y         += aaa
 install-lib-y         += $(libname).a
 install-lib-y         += $(if $(CONFIG_MODULES),$(libname).$(so),)
-install-lib-y         += $(if $(CONFIG_JNI),$(libname).jar,)
+
+ifeq ($(CONFIG_JNI),y)
+install-lib-y         += $(libname).jar
+endif
 
 install-y             += $(install-bin-y) $(install-lib-y)
 
