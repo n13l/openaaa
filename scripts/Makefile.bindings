@@ -1,14 +1,14 @@
 # Java Bindings
 ifdef CONFIG_SUPPORT_JAVA
 JDK_HOME   := $(shell ../scripts/java/home.sh $(PLATFORM) 2>/dev/null)
-JAVAC      := $(JDK_HOME)/bin/javac$(exe)
-JAVA       := $(JDK_HOME)/bin/java$(exe)
-JAR        := $(JDK_HOME)/bin/jar$(exe)
+JAVAC      := $(if $(JDK_HOME),$(JDK_HOME)/bin/javac$(exe),)
+JAVA       := $(if $(JDK_HOME),$(JDK_HOME)/bin/java$(exe),)
+JAR        := $(if $(JDK_HOME),$(JDK_HOME)/bin/jar$(exe),)
 CONFIG_JNI := $(if $(JDK_HOME),y,n)
 
 $(info JAVA=$(JAVA))
 $(info JAVAC=$(JAVAC))
-$(info JDK_HOME=$(JDK_HOME))
+$(info JDK_HOME='$(JDK_HOME)')
 $(info JAVA_HOME=$(JAVA_HOME))
 $(info CONFIG_JNI=$(CONFIG_JNI))
 
