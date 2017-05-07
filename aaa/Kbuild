@@ -10,7 +10,9 @@ libname               := lib$(lib)-$(PACKAGEVERSION)
 
 always                += $(libname).a
 always                += $(if $(CONFIG_MODULES),$(libname).$(so),)
-always                += $(if $(CONFIG_JNI),$(libname).jar,)
+ifeq ($(CONFIG_JNI),y)
+always                += $(libname).jar
+endif
 
 install-bin-y         += aaa
 install-lib-y         += $(libname).a
