@@ -31,20 +31,20 @@ install-bin-obj := $(addprefix $(obj)/,$(sort $(install-bin-y)))
 install-lib-obj := $(addprefix $(obj)/,$(sort $(install-lib-y)))
 
 always += install/aaa/aaa
-always += install/aaa/libaaa-0.0.1.$(so)
-always += install/aaa/libaaa-0.0.1.jar
+always += install/aaa/libaaa-$(PACKAGEVERSION).$(so)
+always += install/aaa/libaaa-$(PACKAGEVERSION).jar
 
 install/aaa/aaa: aaa/aaa
 	@mkdir -p $(CURDIR)/install/bin
 	@cp aaa/aaa $(CURDIR)/install/bin
 
-install/aaa/libaaa-0.0.1.$(so): aaa/libaaa-0.0.1.$(so)
+install/aaa/libaaa-$(PACKAGEVERSION).$(so): aaa/libaaa-$(PACKAGEVERSION).$(so)
 	@mkdir -p $(CURDIR)/install/lib
-	@cp aaa/libaaa-0.0.1.$(so) $(CURDIR)/install/lib
+	@cp aaa/libaaa-$(PACKAGEVERSION).$(so) $(CURDIR)/install/lib
 
-install/aaa/libaaa-0.0.1.jar: aaa/libaaa-0.0.1.jar
+install/aaa/libaaa-$(PACKAGEVERSION).jar: aaa/libaaa-$(PACKAGEVERSION).jar
 	@mkdir -p $(CURDIR)/install/lib
-	@cp aaa/libaaa-0.0.1.jar $(CURDIR)/install/lib
+	@cp aaa/libaaa-$(PACKAGEVERSION).jar $(CURDIR)/install/lib
 
 ifeq ($(KBUILD_INSTALL),1)
 # First part - we are descending..
