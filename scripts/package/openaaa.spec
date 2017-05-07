@@ -39,6 +39,7 @@ make defconfig -j1
 make -j1
 
 %install
+make install INSTALL_PATH="%{buildroot}%" INSTALL_MOD_PATH="%{buildroot}%{_libdir}"
 make modules_install INSTALL_MOD_PATH="%{buildroot}%{_libdir}"
 find %{buildroot}
 
@@ -56,7 +57,7 @@ rm -rf %{buildroot}
 
 %files java
 %defattr(-, root, root)
-%{_libdir}/openaaa/aaa/libaaa-*.jar
+%{_libdir}/libaaa-*.jar
 
 %files vpn
 %defattr(-, root, root)
