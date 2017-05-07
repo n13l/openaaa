@@ -2,8 +2,13 @@
 ifdef CONFIG_SUPPORT_JAVA
 JDK_HOME   = $(shell ../scripts/java/home.sh $(PLATFORM) 2>/dev/null)
 JAVAC      = $(JDK_HOME)/bin/javac$(exe)
+JAVA       = $(JDK_HOME)/bin/java$(exe)
 JAR        = $(JDK_HOME)/bin/jar$(exe)
 CONFIG_JNI = $(if $(JDK_HOME),y,n)
 
-export JDK_HOME CONFIG_JNI JAVAC JAR
+$(info JAVA=$(JAVA))
+$(info JAVAC=$(JAVAC))
+$(info JDK_HOME=$(JDK_HOME))
+
+export JDK_HOME CONFIG_JNI JAVAC JAVA JAR
 endif
