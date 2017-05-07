@@ -53,7 +53,7 @@ ifeq ($(KBUILD_INSTALL),1)
 subdir- :=
 
 # Include Kbuild file
-include /home/n13l/git/openaaa/scripts/Kbuild.include
+include $(srctree)/scripts/Kbuild.include
 #include $(srctree)/$(obj)/Kbuild
 
 # Directories to visit
