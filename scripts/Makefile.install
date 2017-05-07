@@ -32,7 +32,10 @@ install-lib-obj := $(addprefix $(obj)/,$(sort $(install-lib-y)))
 
 always += install/aaa/aaa
 always += install/aaa/libaaa-$(PACKAGEVERSION).$(so)
+
+ifeq ($(CONFIG_JNI),y)
 always += install/aaa/libaaa-$(PACKAGEVERSION).jar
+endif
 
 install/aaa/aaa: aaa/aaa
 	@mkdir -p $(CURDIR)/install/bin
