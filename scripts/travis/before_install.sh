@@ -46,11 +46,12 @@ if [ "$BUILD_TARGET" == "win64" ]; then
   mkdir /tmp/x86_64-w64-mingw32/
   wget https://github.com/ojdkbuild/ojdkbuild/releases/download/1.8.0.131-1/java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64.zip
   unzip java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64.zip -d /tmp/x86_64-w64-mingw32/
+  chmod +x /tmp/x86_64-w64-mingw32/java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64/bin/java.exe
   chmod +x /tmp/x86_64-w64-mingw32/java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64/bin/javac.exe
   chmod +x /tmp/x86_64-w64-mingw32/java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64/bin/jar.exe
   export JAVA_HOME=/tmp/x86_64-w64-mingw32/java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64
-  export JDK_HOME="$JAVA_HOME"
-  export PATH=$JAVA_HOME:$PATH
+  export JDK_HOME=/tmp/x86_64-w64-mingw32/java-1.8.0-openjdk-1.8.0.131-1.b11.ojdkbuild.windows.x86_64
+  export PATH=$JAVA_HOME/bin:$PATH
 fi
 if [ "$BUILD_ARCH" == "s390x" ]; then
   echo "deb http://ftp.de.debian.org/debian sid main contrib non-free" | sudo tee -a /etc/apt/sources.list
