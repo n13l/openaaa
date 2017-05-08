@@ -8,8 +8,9 @@ fi
 
 if [ -z "$JDK_HOME" ]; 
 then 
+	break ;
 else
-	echo "$JDK_HOME"
+	echo "$JDK_HOME";
 	exit 0; 
 fi
 
