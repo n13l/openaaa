@@ -19,6 +19,7 @@ aaa_env_init(void)
         if (!(aaad_host = getenv("OPENAAA_SERVICE")))
                 return;
 
+#ifndef CONFIG_WIN32
         struct hostent *hostent = gethostbyname(aaad_host);
         if (!hostent)
                 return;
@@ -30,6 +31,8 @@ aaa_env_init(void)
 
         info("aaa.service.ip=%s", ip);
         aaad_ip = strdup(ip);
+
+#endif
 }
 
 void
