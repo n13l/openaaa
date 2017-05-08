@@ -6,7 +6,7 @@ License:        MIT
 Group:          Applications/System
 Source0:        %{name}-%{version}.tar.gz
 URL:            https://github.com/n13l/openaaa
-BuildRequires:  flex bison gperf pkgconfig swig java-1.8.0-openjdk-devel
+BuildRequires:  flex bison gperf pkgconfig swig java-1.8.0-openjdk-devel wine
 
 %define debug_package %{nil}
 
