@@ -85,11 +85,8 @@ udp_parse(struct aaa *aaa, byte *packet, unsigned int len)
 			return -1;
 		*packet++ = 0;
 
-//		debug2("%s:%s", key, value);
-		if (strncasecmp(key, "msg.", 4)) {
+		if (strncasecmp(key, "msg.", 4))
 			aaa_attr_set(aaa, key, value);
-			continue;
-		}
 	}
 	return len;
 }
@@ -118,7 +115,7 @@ udp_bind(struct aaa *aaa)
 	struct sockaddr_in in = {
 		.sin_family = AF_INET,
 		.sin_port = htons(port),
-		.sin_addr.s_addr = inet_addr("127.0.0.1")
+		.sin_addr.s_addr = inet_addr(aaad_ip)
 	};
 
 	socklen_t len = sizeof(in);
@@ -173,7 +170,7 @@ udp_commit(struct aaa *aaa)
 	struct sockaddr_in in = {
 		.sin_family = AF_INET,
 		.sin_port = htons(port),
-		.sin_addr.s_addr = inet_addr("127.0.0.1")
+		.sin_addr.s_addr = inet_addr(aaad_ip)
 	};
 
 	socklen_t len = sizeof(in);

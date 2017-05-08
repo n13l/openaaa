@@ -48,8 +48,8 @@ struct msg {
 };
 
 void aaa_config_load(struct aaa *c);
-int session_init(void);
-int session_fini(void);
+int acct_init(void);
+int acct_fini(void);
 int session_bind(struct aaa *aaa, const char *id);
 int session_select(struct aaa *aaa, const char *id);
 int session_commit(struct aaa *aaa, const char *id);
@@ -63,4 +63,11 @@ udp_commit(struct aaa *aaa);
 
 extern int (*aaa_server)(int argc, char *argv[]);
 
+extern const char *aaad_ip;
+
+void
+aaa_env_init(void);
+
+void
+aaa_env_fini(void);
 #endif

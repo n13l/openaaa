@@ -44,6 +44,7 @@
 #include <unix/timespec.h>
 
 #include <aaa/lib.h>
+#include <aaa/prv.h>
 
 #ifdef CONFIG_WIN32
 #include <windows.h>                                                            
@@ -1093,6 +1094,7 @@ ssl_init(void)
 {
 	if (is_ssl_init)
 		return -1;
+
 	is_ssl_init = 1;
 	server_handshake_synch = 0;
 	server_always = 1;
@@ -1148,6 +1150,7 @@ ssl_init(void)
 	IMPORT_ABI(SSL_shutdown);
 
 	init_aaa_env();
+	aaa_env_init();
 	return 0;
 }
 
@@ -1252,5 +1255,7 @@ crypto_lookup(void)
 
 	ssl_version();
 	init_aaa_env();
+
+	aaa_env_init();
 	return 0;
 }

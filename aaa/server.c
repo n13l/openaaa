@@ -802,7 +802,7 @@ aaa_server1(int argc, char *argv[])
 {
 	irq_init();
 	irq_disable();
-	session_init();
+	acct_init();
 	setproctitle_init(argc, argv);
 
 	_unused struct sched_class sched_class = {
@@ -815,7 +815,7 @@ aaa_server1(int argc, char *argv[])
 	sched_wait();
 	sched_fini();
 
-	session_fini();
+	acct_fini();
 	return 0;
 }
 

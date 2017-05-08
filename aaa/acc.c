@@ -77,7 +77,7 @@ u32 htab_pages;
 u32 shift = 12, pages = 32768;
 
 int
-session_init(void)
+acct_init(void)
 {
 	htab_pages = align_to(CPU_PAGE_SIZE, (1<<HTABLE_BITS) * sizeof(struct hlist));
 	htable_sid = mmap_open(NULL, MAP_SHARED | MAP_ANON, shift, htab_pages);
@@ -100,7 +100,7 @@ session_init(void)
 }
 
 int
-session_fini(void)
+acct_fini(void)
 {
 	if (pagemap)
 		mmap_close(pagemap);
