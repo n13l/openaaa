@@ -9,11 +9,18 @@
 #include <list.h>
 #include <dict.h>
 
+static int aaa_initialized = 0;
+
 int (*aaa_server)(int argc, char *argv[]) = NULL;
 
 struct aaa *
 aaa_new(enum aaa_endpoint type, int flags)
 {
+	if (!aaa_initialized) {
+		aaa_env_init();
+		aaa_initialized = 1;
+	}
+
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
 	struct aaa *aaa = mm_alloc(mp, sizeof(*aaa));
 
