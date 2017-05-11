@@ -26,6 +26,7 @@ aaa_new(enum aaa_endpoint type, int flags)
 
 	aaa->mp = mp;
 	aaa->mp_attrs = mm_pool_create(CPU_PAGE_SIZE, 0);
+	aaa->attrs_it = NULL;
 
 	dict_init(&aaa->attrs, aaa->mp_attrs);
 
@@ -54,11 +55,15 @@ aaa_reset(struct aaa *aaa)
 {
 	mm_flush(aaa->mp_attrs);
 	dict_init(&aaa->attrs, aaa->mp_attrs);
+	aaa->attrs_it = NULL;
 }
 
 int
 aaa_attr_set(struct aaa *aaa, const char *attr, const char *value)
 {
+	if (!attr || !value)
+		return -EINVAL;
+
 	dict_set(&aaa->attrs, attr, value);
 	return 0;
 }
@@ -66,7 +71,7 @@ aaa_attr_set(struct aaa *aaa, const char *attr, const char *value)
 const char *
 aaa_attr_get(struct aaa *aaa, const char *attr)
 {
-	return dict_get(&aaa->attrs, attr);
+	return attr ? dict_get(&aaa->attrs, attr): NULL;
 }
 
 int
@@ -82,15 +87,50 @@ aaa_attr_has_value(struct aaa *aaa, const char *key, const char *val)
 }
 
 const char *
-aaa_attr_find_first(struct aaa *aaa, const char *path, unsigned recurse)
+aaa_attr_first(struct aaa *aaa, const char *path)
 {
-	return NULL;
+	struct list *list = &aaa->attrs.list;
+	struct node *node = list_first(list);
+
+	aaa->attrs_it = NULL;
+	if (!node)
+		return NULL;
+
+	struct attr *attr = __container_of(node, struct attr, node);
+	if (!attr->key)
+		return NULL;
+
+	aaa->attrs_it = node;
+	return attr->key;
 }
 
 const char *
-aaa_attr_find_next(struct aaa *aaa)
+aaa_attr_next(struct aaa *aaa)
 {
-	return NULL;
+	struct list *list = &aaa->attrs.list;
+	struct node *node = list_next(list, aaa->attrs_it);
+
+	if (!node)
+		return NULL;
+
+	struct attr *attr = __container_of(node, struct attr, node);
+	if (!attr->key)
+		return NULL;
+
+	aaa->attrs_it = node;
+	return attr->key;
+}
+
+void
+aaa_attr_dump(struct aaa *aaa, const char *path)
+{
+	struct list *list = &aaa->attrs.list;
+	struct node *node;
+
+	for (node = list_first(list); node; node = list_next(list, node)) {
+		struct attr *attr = __container_of(node, struct attr, node);
+		debug("%s:%s", attr->key, attr->val);
+	}
 }
 
 int
@@ -99,14 +139,39 @@ aaa_select(struct aaa *aaa, const char *path)
 	return -1;
 }
 
+static timestamp_t
+get_time(void)
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return tv.tv_sec;
+}
+
+
 int
 aaa_touch(struct aaa *aaa)
 {
-	return -1;
+	const char *sid = aaa_attr_get(aaa, "sess.id");
+	if (!sid || !*sid)
+		return -EINVAL;
+
+        timestamp_t modified = get_time();
+        timestamp_t expires = modified + AAA_SESSION_EXPIRES;
+	
+	aaa_attr_set(aaa, "sess.modified", printfa("%jd", (intmax_t)modified));
+	aaa_attr_set(aaa, "sess.expires",  printfa("%jd", (intmax_t)expires));
+
+	dict_sort(&aaa->attrs);
+	return udp_touch(aaa);
 }
 
 int
 aaa_commit(struct aaa *aaa)
 {
+	const char *sid = aaa_attr_get(aaa, "sess.id");
+	if (!sid || !*sid)
+		return -EINVAL;
+
+	dict_sort(&aaa->attrs);
 	return udp_commit(aaa);
 }

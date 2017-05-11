@@ -194,7 +194,7 @@ aaa_attr_has_value(struct aaa *, const char *key, const char *val);
 /*
  * NAME
  *
- * aaa_find_first()
+ * aaa_attr_first()
  *
  * DESCRIPTION
  *
@@ -221,12 +221,12 @@ aaa_attr_has_value(struct aaa *, const char *key, const char *val);
  */
 
 const char *
-aaa_attr_find_first(struct aaa *, const char *path, unsigned recurse);
+aaa_attr_first(struct aaa *, const char *path);
 
 /*
  * NAME
  *
- * aaa_find_next()
+ * aaa_attr_next()
  *
  * DESCRIPTION
  *
@@ -243,7 +243,30 @@ aaa_attr_find_first(struct aaa *, const char *path, unsigned recurse);
  */
 
 const char *
-aaa_attr_find_next(struct aaa *);
+aaa_attr_next(struct aaa *);
+
+/*
+ * NAME
+ *
+ * aaa_attr_next()
+ *
+ * DESCRIPTION
+ *
+ * It finds the next attribute in the specified subtree, as initialized by a call
+ * to aaa_find_first().
+ *
+ * RETURN
+ *
+ * Upon successful completion, the name of the attribute is returned and 
+ * if @val is non-NULL, *@val is set to the value of the attribute (in case of 
+ * multi-valued attributes, it is an arbitrary chosen value from the set). 
+ * Otherwise, NULL is returned and you can call aaa_last_error() to 
+ * determine the cause of the error.
+ */
+
+
+void
+aaa_attr_dump(struct aaa *aaa, const char *path);
 
 /*
  * NAME

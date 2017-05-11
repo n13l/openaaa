@@ -35,6 +35,7 @@ struct aaa {
 	struct mm_pool *mp;
 	struct mm_pool *mp_attrs;
 	struct dict attrs;
+        struct node *attrs_it;
 	const char *config;
 };
 
@@ -60,6 +61,9 @@ udp_bind(struct aaa *aaa);
 
 int
 udp_commit(struct aaa *aaa);
+
+int
+udp_touch(struct aaa *aaa);
 
 extern int (*aaa_server)(int argc, char *argv[]);
 

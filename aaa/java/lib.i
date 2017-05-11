@@ -34,6 +34,11 @@ struct aaa {
                         struct aaa *aaa = aaa_new(type, flags); 
                         return (struct aaa*)aaa;
                 }
+                aaa() { 
+                        struct aaa *aaa = aaa_new(2, 0); 
+                        return (struct aaa*)aaa;
+                }
+	
 		int _bind() {
 			return aaa_bind(self);
 		}
@@ -50,6 +55,19 @@ struct aaa {
  		const char * _get(const char *key) {
 			return aaa_attr_get(self, key);
 		}
+
+                const char * _first(const char *path) {
+                        return aaa_attr_first(self, path);
+                }
+
+                const char * _next() {
+                        return aaa_attr_next(self);
+                }
+
+                void _dump(const char *path) {
+                        aaa_attr_dump(self, path);
+                }
+
 
                 ~aaa() { 
                         aaa_free((struct aaa*)self);

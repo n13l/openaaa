@@ -32,7 +32,7 @@ struct cursor {
 	u32 slot;
 };
 
-timestamp_t
+static timestamp_t
 get_time(void)
 {
 	struct timeval tv;

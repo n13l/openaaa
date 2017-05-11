@@ -216,8 +216,6 @@ post_read_request(request_rec *r)
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct aaa *aaa = srv->aaa;
 
-	//debug2("server=%p srv=%p", r->server, srv);
-
 	char ssl_id[1024];
 	ssl_get_sess_id(srv->ssl, ssl_id, sizeof(ssl_id) - 1);
 
@@ -232,6 +230,18 @@ post_read_request(request_rec *r)
 
 	if (user_id)   r_info(r, "user.id: %s", user_id);
 	if (user_name) r_info(r, "user.name: %s", user_name);
+
+	for (const char *k = aaa_attr_first(aaa, ""); k; k = aaa_attr_next(aaa)) {
+		char *ap_key = printfa("aaa.%s", k);
+		const char *v = aaa_attr_get(aaa, k);
+		if (!v) continue;
+		for (char *p = ap_key; *p; p++) {
+			*p = toupper(*p);
+			if (*p == '.') *p='_';
+		}
+		apr_table_add(r->subprocess_env, ap_key, v);
+	}
+
 
 	return DECLINED;
 
@@ -267,14 +277,16 @@ check_authn(request_rec *r)
 	const char *user_name = aaa_attr_get(aaa, "user.name");
 
 	r_info(r, "sess.id: %s", sess_id);
-	if (!user_id)
+	if (!user_id) {
+		apr_table_set(r->subprocess_env, "PROXY_REFERRER", r->uri);
 		return HTTP_FORBIDDEN;
+	}
 
 	r_info(r, "user.id: %s", user_id);
 	if (user_name) r_info(r, "user.name: %s", user_name);
 
 	r->user = apr_pstrdup(r->pool, user_name ? user_name : user_id);
-	apr_table_add(r->subprocess_env, "REMOTE_USER", r->user);
+	apr_table_set(r->subprocess_env, "REMOTE_USER", r->user);
 	return OK;
 }
 
@@ -299,33 +311,6 @@ access_checker(request_rec *r)
 		return DECLINED;
 
 	return OK;
-/*
-
-	return DECLINED;
-
-	r_info(r, "%s uri: %s", __func__, r->uri);
-	struct req *req = ap_req_config_get(r);
-	struct srv *srv = ap_srv_config_get(r->server);
-	struct aaa *aaa = srv->aaa;
-
-	const char *sess_id = aaa_attr_get(aaa, "sess.id");
-	const char *user_id = aaa_attr_get(aaa, "user.id");
-	const char *user_name = aaa_attr_get(aaa, "user.name");
-
-	r_info(r, "sess.id: %s", sess_id);
-	if (!user_id)
-		return HTTP_FORBIDDEN;
-
-	r_info(r, "user.id: %s", user_id);
-	if (user_name) r_info(r, "user.name: %s", user_name);
-
-	r->user = apr_pstrdup(r->pool, user_name ? user_name : user_id);
-	return OK;
-
-	if (user->name)
-		apr_table_add(r->subprocess_env, "REMOTE_USER", user->name);
-*/		
-
 }
 
 /*
@@ -420,12 +405,24 @@ fixups(request_rec *r)
 	if (user_id) r_info(r, "user.id: %s", user_id);
 	if (user_name) r_info(r, "user.name: %s", user_name);
 
+	for (const char *k = aaa_attr_first(aaa, ""); k; k = aaa_attr_next(aaa)) {
+		char *ap_key = printfa("aaa.%s", k);
+		const char *v = aaa_attr_get(aaa, k);
+		if (!v) continue;
+		for (char *p = ap_key; *p; p++) {
+			*p = toupper(*p);
+			if (*p == '.') *p='_';
+		}
+		apr_table_add(r->subprocess_env, ap_key, v);
+	}
+
 	if (!user_id && !user_name)
 		return DECLINED;
 
 	r->user = apr_pstrdup(r->pool, user_name ? user_name : user_id);
 	apr_table_add(r->subprocess_env, "REMOTE_USER", r->user);
-	
+
+
 	return DECLINED;
 }
 
@@ -555,18 +552,45 @@ proxy_post_handshake(conn_rec *c, SSL *ssl)
 	return 0;
 }
 
+static int
+header_parser(request_rec *r)
+{
+	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
+
+	struct req *req = ap_req_config_get(r);
+	struct srv *srv = ap_srv_config_get(r->server);
+	struct aaa *aaa = srv->aaa;
+
+	for (const char *k = aaa_attr_first(aaa, ""); k; k = aaa_attr_next(aaa)) {
+		char *ap_key = printfa("aaa.%s", k);
+		const char *v = aaa_attr_get(aaa, k);
+		if (!v) continue;
+		for (char *p = ap_key; *p; p++) {
+			*p = toupper(*p);
+			if (*p == '.') *p='_';
+		}
+		apr_table_set(r->subprocess_env, ap_key, v);
+	}
+
+	return OK;
+}
+
 static void
 register_hooks(apr_pool_t *p)
 {
 	/* pre_connection hook needs to run after mod_ssl connection hook. */
 	static const char *pre_ssl[] = { "mod_ssl.c", NULL };
+	/* make sure we run before mod_rewrite's handler */
+	static const char *const asz_succ[] = { "mod_setenvif.c", 
+	                                        "mod_rewrite.c", NULL };
 
 	ap_hook_child_init(child_init, NULL, NULL, APR_HOOK_MIDDLE);
 	ap_hook_optional_fn_retrieve(optional_fn_retrieve, NULL,NULL,APR_HOOK_MIDDLE);
+	ap_hook_header_parser(header_parser, NULL, asz_succ, APR_HOOK_MIDDLE);
 	ap_hook_post_config(post_config, NULL, NULL, APR_HOOK_MIDDLE);
 	ap_hook_pre_connection(pre_connection, pre_ssl, NULL, APR_HOOK_MIDDLE);
 	ap_hook_create_request(create_request, NULL, NULL, APR_HOOK_MIDDLE);
-	ap_hook_post_read_request(post_read_request,NULL,NULL, APR_HOOK_LAST);
+	ap_hook_post_read_request(post_read_request,NULL, asz_succ, APR_HOOK_MIDDLE);
 	ap_hook_check_authn(check_authn, NULL,NULL, APR_HOOK_FIRST, AP_AUTH_INTERNAL_PER_CONF);
 	ap_hook_access_checker(access_checker, NULL, NULL, APR_HOOK_MIDDLE);
 	ap_hook_check_access(check_access, NULL, NULL, APR_HOOK_MIDDLE, AP_AUTH_INTERNAL_PER_CONF);
