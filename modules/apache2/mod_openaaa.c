@@ -82,9 +82,6 @@ child_init(apr_pool_t *p, server_rec *s)
 
 	struct aaa *a = aaa_new(AAA_ENDPOINT_SERVER, 0);
 
-	//aaa_set_opt(a, AAA_OPT_USERDATA, (const char *)s);
-	//aaa_set_opt(a, AAA_OPT_CUSTOMLOG, (char *)custom_log);
-
 	for (; s; s = s->next) {
 		struct srv *srv;
 		srv = ap_get_module_config(s->module_config, &MODULE_ENTRY);
@@ -147,7 +144,7 @@ create_request(request_rec *r)
 	struct req *req = apr_pcalloc(r->pool, sizeof(*req));
 	req->r = r;
 	ap_req_config_set(r, req);
-	apr_pool_cleanup_register(r->pool, r,destroy_request,destroy_request);
+	apr_pool_cleanup_register(r->pool, r, destroy_request,destroy_request);
 
 	return DECLINED;
 }
@@ -157,20 +154,6 @@ destroy_request(void *ctx)
 {
 	request_rec *r = ctx;
 	return DECLINED;
-}
-
-static int
-iterate_func(void *req, const char *key, const char *value) 
-{
-	int stat;
-	char *line;
-	request_rec *r = (request_rec *)req;
-	if (key == NULL || value == NULL || value[0] == '\0')
-		return 1;
-
-	r_info(r, "%s => %s\n", key, value);
-			    
-	return 1;
 }
 
 /*
@@ -206,13 +189,12 @@ post_read_request(request_rec *r)
 
 	if (!ap_is_initial_req(r))
 		return DECLINED;
-
 	if (!ssl_is_https)
 		return DECLINED;
 	if (!ssl_is_https(r->connection))
 		return DECLINED;
 
- 	struct req *req = ap_req_config_get(r);
+	struct req *req = ap_req_config_get(r);
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct aaa *aaa = srv->aaa;
 
@@ -230,18 +212,6 @@ post_read_request(request_rec *r)
 
 	if (user_id)   r_info(r, "user.id: %s", user_id);
 	if (user_name) r_info(r, "user.name: %s", user_name);
-
-	for (const char *k = aaa_attr_first(aaa, ""); k; k = aaa_attr_next(aaa)) {
-		char *ap_key = printfa("aaa.%s", k);
-		const char *v = aaa_attr_get(aaa, k);
-		if (!v) continue;
-		for (char *p = ap_key; *p; p++) {
-			*p = toupper(*p);
-			if (*p == '.') *p='_';
-		}
-		apr_table_add(r->subprocess_env, ap_key, v);
-	}
-
 
 	return DECLINED;
 
@@ -278,7 +248,9 @@ check_authn(request_rec *r)
 
 	r_info(r, "sess.id: %s", sess_id);
 	if (!user_id) {
-		apr_table_set(r->subprocess_env, "PROXY_REFERRER", r->uri);
+		apr_table_set(r->subprocess_env, "SCRIPT_REFERER", r->uri);
+		r_info(r, "%s() SCRIPT_REFERER=%s", __func__, r->uri);
+		r_info(r, "%s() HTTP_FORBIDDEN", __func__);
 		return HTTP_FORBIDDEN;
 	}
 
@@ -527,13 +499,9 @@ init_server(server_rec *s, apr_pool_t *p, int is_proxy, SSL_CTX *ctx)
 static int
 pre_handshake(conn_rec *c, SSL *ssl, int is_proxy)
 {
-	server_rec *server = c->base_server;
-
-	struct srv *srv = ap_srv_config_get(server);
+	struct srv *srv = ap_srv_config_get(c->base_server);
 	srv->ssl = ssl;
 
-	debug2("pre_handshake");
-	//debug2("server=%p srv=%p ssl=%p", server, srv, ssl); 
 	ssl_init_conn(ssl);
 	return 0;
 }
@@ -555,11 +523,20 @@ proxy_post_handshake(conn_rec *c, SSL *ssl)
 static int
 header_parser(request_rec *r)
 {
-	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
+	if (!ssl_is_https)
+		return DECLINED;
+	if (!ssl_is_https(r->connection))
+		return DECLINED;
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
+		return DECLINED;
 
+	const char *ref = r->main ? r->main->uri: r->prev ? r->prev->uri: NULL;
+	
 	struct req *req = ap_req_config_get(r);
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct aaa *aaa = srv->aaa;
+
+	r_info(r, "%s() uri=%s", __func__, r->uri);
 
 	for (const char *k = aaa_attr_first(aaa, ""); k; k = aaa_attr_next(aaa)) {
 		char *ap_key = printfa("aaa.%s", k);
@@ -571,6 +548,12 @@ header_parser(request_rec *r)
 		}
 		apr_table_set(r->subprocess_env, ap_key, v);
 	}
+
+	if (!ref)
+		return OK;
+
+	r_info(r, "%s() script referer=%s", __func__, ref);
+	apr_table_set(r->subprocess_env, "SCRIPT_REFERER", ref);
 
 	return OK;
 }

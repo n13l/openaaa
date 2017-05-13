@@ -122,6 +122,7 @@ struct user {
 struct req {
     request_rec *r;
     struct user user;
+    char *uri;
     char *sid;
     char *res;
     char *key;
