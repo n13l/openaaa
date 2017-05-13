@@ -381,10 +381,10 @@ fixups(request_rec *r)
 		char *ap_key = printfa("aaa.%s", k);
 		const char *v = aaa_attr_get(aaa, k);
 		if (!v) continue;
-		for (char *p = ap_key; *p; p++) {
-			*p = toupper(*p);
-			if (*p == '.') *p='_';
-		}
+
+		for (char *p = ap_key; *p; p++) 
+			if ((*p = toupper(*p)) == '.') *p= '_';
+		
 		apr_table_add(r->subprocess_env, ap_key, v);
 	}
 
@@ -393,7 +393,6 @@ fixups(request_rec *r)
 
 	r->user = apr_pstrdup(r->pool, user_name ? user_name : user_id);
 	apr_table_add(r->subprocess_env, "REMOTE_USER", r->user);
-
 
 	return DECLINED;
 }
@@ -542,10 +541,11 @@ header_parser(request_rec *r)
 		char *ap_key = printfa("aaa.%s", k);
 		const char *v = aaa_attr_get(aaa, k);
 		if (!v) continue;
-		for (char *p = ap_key; *p; p++) {
-			*p = toupper(*p);
-			if (*p == '.') *p='_';
-		}
+
+		for (char *p = ap_key; *p; p++)
+			if ((*p = toupper(*p)) == '.') *p='_';
+	
+		r_info(r, "%s() %s:%s", __func__, ap_key, v);	
 		apr_table_set(r->subprocess_env, ap_key, v);
 	}
 
