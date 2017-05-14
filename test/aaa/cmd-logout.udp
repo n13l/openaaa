@@ -1,0 +1,3 @@
+#!/bin/sh
+modified=$(date +%s)
+printf "msg.op:commit\nmsg.id:1\nsess.id:$1\nsess.expires:0\n" | nc -u 127.0.0.1 8888

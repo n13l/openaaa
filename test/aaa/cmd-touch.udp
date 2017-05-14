@@ -1,2 +1,5 @@
 #!/bin/sh
-printf "msg.op:touch\nmsg.id:1\nsess.id:1234562472384732\n" | nc -u 127.0.0.1 8888
+modified=$(date +%s)
+expires=$(($modified + 3600))
+echo "modified: $modified expires: $expires"
+printf "msg.op:commit\nmsg.id:1\nsess.id:$1\nsess.modified=$modified\nsess.expires=$expires\n" | nc -u 127.0.0.1 8888

@@ -62,9 +62,6 @@ udp_bind(struct aaa *aaa);
 int
 udp_commit(struct aaa *aaa);
 
-int
-udp_touch(struct aaa *aaa);
-
 extern int (*aaa_server)(int argc, char *argv[]);
 
 extern const char *aaad_ip;

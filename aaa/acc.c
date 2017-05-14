@@ -156,8 +156,14 @@ session_parse(struct aaa *aaa, byte *buf, unsigned int len)
 			return -1;
 		b = buf;
 		*buf++ = 0;
-		debug2("%s:%s", key, value);
-		aaa_attr_set(aaa, key, value);
+                
+                struct attr *attr = dict_lookup(&aaa->attrs, key, 0);
+                if (attr && (attr->flags & ATTR_CHANGED)) {
+                        debug2("%s:%s changed", attr->key, attr->val);
+                } else {
+		        debug2("%s:%s", key, value);
+                        dict_set_nf(&aaa->attrs, key, value);
+                }
 		*a = ':';
 		*b = '\n';
 
@@ -310,14 +316,12 @@ session_select(struct aaa *aaa, const char *id)
 static int
 commit(struct aaa *aaa, struct cursor *sid)
 {
-	aaa_attr_set(aaa, "sess.modified", printfa("%jd", (intmax_t)sid->now));
-	aaa_attr_set(aaa, "sess.expires",  printfa("%jd", (intmax_t)sid->now + sid->expires));
-		
 	struct session *session = NULL;
 	struct hnode *it = NULL;
 	int rv = -1;
 	hash_for_each_item_delsafe(htable_sid, session, it, sid, sid->slot) {
 		int exp = session->expires - sid->now;
+                debug4("sess id=%s expires in %d sec(s)", session->attrs.sid, exp);
 		if (exp < 1) {
 			expired(session);
 			continue;
@@ -328,9 +332,15 @@ commit(struct aaa *aaa, struct cursor *sid)
 		if (strcmp(sid->id.addr, session->attrs.sid))
 			continue;
 
-		session->modified = sid->now;
-		session->expires  = sid->now + sid->expires;
-	
+                const char *modified = aaa_attr_get(aaa, "sess.modified");
+                const char *expires  = aaa_attr_get(aaa, "sess.expires");
+
+                if (!modified || !expires)
+                        continue;
+
+		session->modified = strtol(modified, NULL, 10);
+		session->expires  = strtol(expires, NULL, 10);
+
 		session_write(aaa, session);
 		debug2("session id=%s commited.", session->attrs.sid);
 		rv = 0;

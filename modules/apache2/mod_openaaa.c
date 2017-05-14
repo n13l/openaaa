@@ -185,8 +185,6 @@ pre_connection(conn_rec *c, void *csd)
 static int
 post_read_request(request_rec *r)
 {
-	r_info(r, "%s() uri: %s", __func__, r->uri);
-
 	if (!ap_is_initial_req(r))
 		return DECLINED;
 	if (!ssl_is_https)
@@ -194,7 +192,7 @@ post_read_request(request_rec *r)
 	if (!ssl_is_https(r->connection))
 		return DECLINED;
 
-	struct req *req = ap_req_config_get(r);
+	r_info(r, "%s() uri: %s", __func__, r->uri);
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct aaa *aaa = srv->aaa;
 
@@ -203,15 +201,16 @@ post_read_request(request_rec *r)
 
 	aaa_reset(aaa);
 	aaa_attr_set(aaa, "sess.id", (char *)ssl_id);
-	int rv = aaa_bind(aaa);
+	if (aaa_bind(aaa) < 0)
+		return DECLINED;
 
-	const char *sess_id = aaa_attr_get(aaa, "sess.id");
-	const char *user_id = aaa_attr_get(aaa, "user.id");
-	const char *user_name = aaa_attr_get(aaa, "user.name");
-	r_info(r, "sess.id: %s", sess_id);
+	const char *uid = aaa_attr_get(aaa, "user.id");
+	if (!uid || !*uid)
+		return DECLINED;
 
-	if (user_id)   r_info(r, "user.id: %s", user_id);
-	if (user_name) r_info(r, "user.name: %s", user_name);
+	/* increase session expiration for authenticated sessions */
+	aaa_touch(aaa);
+	aaa_commit(aaa);
 
 	return DECLINED;
 
@@ -276,12 +275,10 @@ check_authn(request_rec *r)
 static int
 access_checker(request_rec *r)
 {
-	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
-
-	/* checking for tls authentification for this reqeust */
 	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
 		return DECLINED;
 
+	r_info(r, "%s() uri: %s", __func__, r->uri);
 	return OK;
 }
 
@@ -365,36 +362,16 @@ fixups(request_rec *r)
 	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
 		return DECLINED;
 
-	struct req *req = ap_req_config_get(r);
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct aaa *aaa = srv->aaa;
 
-	const char *sess_id = aaa_attr_get(aaa, "sess.id");
-	const char *user_id = aaa_attr_get(aaa, "user.id");
+	const char *user_id   = aaa_attr_get(aaa, "user.id");
 	const char *user_name = aaa_attr_get(aaa, "user.name");
-
-	r_info(r, "sess.id: %s", sess_id);
-	if (user_id) r_info(r, "user.id: %s", user_id);
-	if (user_name) r_info(r, "user.name: %s", user_name);
-
-	for (const char *k = aaa_attr_first(aaa, ""); k; k = aaa_attr_next(aaa)) {
-		char *ap_key = printfa("aaa.%s", k);
-		const char *v = aaa_attr_get(aaa, k);
-		if (!v) continue;
-
-		for (char *p = ap_key; *p; p++) 
-			if ((*p = toupper(*p)) == '.') *p= '_';
-		
-		apr_table_add(r->subprocess_env, ap_key, v);
-	}
-
-	if (!user_id && !user_name)
-		return DECLINED;
 
 	r->user = apr_pstrdup(r->pool, user_name ? user_name : user_id);
 	apr_table_add(r->subprocess_env, "REMOTE_USER", r->user);
 
-	return DECLINED;
+	return OK;
 }
 
 static void *
@@ -538,15 +515,13 @@ header_parser(request_rec *r)
 	r_info(r, "%s() uri=%s", __func__, r->uri);
 
 	for (const char *k = aaa_attr_first(aaa, ""); k; k = aaa_attr_next(aaa)) {
-		char *ap_key = printfa("aaa.%s", k);
-		const char *v = aaa_attr_get(aaa, k);
-		if (!v) continue;
+		char *key = printfa("aaa.%s", k);
+		for (char *p = key; *p; p++)
+			if ((*p = toupper(*p)) == '.') *p = '_';
 
-		for (char *p = ap_key; *p; p++)
-			if ((*p = toupper(*p)) == '.') *p='_';
-	
-		r_info(r, "%s() %s:%s", __func__, ap_key, v);	
-		apr_table_set(r->subprocess_env, ap_key, v);
+		const char *val = aaa_attr_get(aaa, k);
+		r_info(r, "%s() %s:%s", __func__, k, val);	
+		apr_table_set(r->subprocess_env, key, val);
 	}
 
 	if (!ref)

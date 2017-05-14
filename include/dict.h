@@ -109,6 +109,13 @@ dict_set(struct dict *dict, const char *key, const char *val)
 	a->flags |= ATTR_CHANGED;
 }
 
+static inline void
+dict_set_nf(struct dict *dict, const char *key, const char *val)
+{
+	struct attr *a = dict_lookup(dict, key, 1);
+	a->val = val ? mm_strdup(dict->mp, val) : NULL;
+}
+
 static inline const char *
 dict_get(struct dict *dict, const char *key)
 {

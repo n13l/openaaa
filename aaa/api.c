@@ -147,7 +147,6 @@ get_time(void)
 	return tv.tv_sec;
 }
 
-
 int
 aaa_touch(struct aaa *aaa)
 {
@@ -156,13 +155,12 @@ aaa_touch(struct aaa *aaa)
 		return -EINVAL;
 
         timestamp_t modified = get_time();
-        timestamp_t expires = modified + AAA_SESSION_EXPIRES;
+        timestamp_t expires  = modified + AAA_SESSION_EXPIRES;
 	
 	aaa_attr_set(aaa, "sess.modified", printfa("%jd", (intmax_t)modified));
 	aaa_attr_set(aaa, "sess.expires",  printfa("%jd", (intmax_t)expires));
 
-	dict_sort(&aaa->attrs);
-	return udp_touch(aaa);
+	return 0;
 }
 
 int

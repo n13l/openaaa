@@ -307,12 +307,10 @@ udp_parse(struct msg *msg, byte *packet, unsigned int len)
 		*packet++ = 0;
 
 		debug3("%s:%s", key, value);
-
 		if (!strcasecmp(key, "sess.id"))
 			msg->sid = value;
 		if (!strcasecmp(key, "user.id"))
 			msg->uid = value;
-
 		if (strncasecmp(key, "msg.", 4)) {
 			aaa_attr_set(aaa, key, value);
 			continue;
@@ -541,24 +539,6 @@ task_getid(struct task *task)
 		return -1;
 	}
 }
-
-/*
-static inline void
-sched_info(struct task *task)
-{
-	const char *type = task_gettypename(task);
-	const char *state = task_getstatename(task);
-	debug("index=%.2d state=%s type=%s", task->index, state, type);
-}
-*/
-
-/*
-int
-sched_state(struct task *task,  enum task_state state)
-{
-
-}
-*/
 
 void
 task_init(struct task *task)
