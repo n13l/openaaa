@@ -524,6 +524,14 @@ header_parser(request_rec *r)
 		apr_table_set(r->subprocess_env, key, val);
 	}
 
+	const char *uid  = aaa_attr_get(aaa, "user.id");
+	const char *name = aaa_attr_get(aaa, "user.name");
+
+	if (uid) {
+		const char *user = apr_pstrdup(r->pool, name ? name: uid);
+		apr_table_add(r->subprocess_env, "REMOTE_USER", user);
+	}
+	
 	if (!ref)
 		return OK;
 
