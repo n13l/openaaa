@@ -32,7 +32,7 @@
 
 /* API version, they compare as integers */
 #define API_VERSION PACKAGE_VERSION
-#define AAA_SESSION_EXPIRES         360
+#define AAA_SESSION_EXPIRES         3600
 
 /* A private structures containing the aaa context */
 struct aaa;

@@ -204,7 +204,7 @@ post_read_request(request_rec *r)
 	if (aaa_bind(aaa) < 0)
 		return DECLINED;
 
-	const char *uid = aaa_attr_get(aaa, "user.id");
+	const char *uid = aaa_attr_get(aaa, "user.name");
 	if (!uid || !*uid)
 		return DECLINED;
 
@@ -213,21 +213,15 @@ post_read_request(request_rec *r)
 	aaa_commit(aaa);
 
 	return DECLINED;
-
 }
 
-/**
- * Register a hook function that will analyze the request headers,
- * authenticate the user, and set the user information in the request record.
- * @param pf A check_user_id hook function
- * @param aszPre A NULL-terminated array of strings that name modules whose
- *               hooks should precede this one
- * @param aszSucc A NULL-terminated array of strings that name modules whose
- *                hooks should succeed this one
- * @param nOrder An integer determining order before honouring aszPre and
- *               aszSucc (for example, HOOK_MIDDLE)
- * @param type Internal request processing mode, either
- *             AP_AUTH_INTERNAL_PER_URI or AP_AUTH_INTERNAL_PER_CONF
+/*
+ * This routine is called to check the authentication information sent with
+ * the request (such as looking up the user in a database and verifying that
+ * the [encrypted] password sent matches the one in the database).
+ *
+ * This is a RUN_FIRST hook. The return value is OK, DECLINED, or some
+ * HTTP_mumble error (typically HTTP_UNAUTHORIZED).
  */
 
 static int
@@ -237,48 +231,17 @@ check_authn(request_rec *r)
 	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
 		return DECLINED;
 
-	struct req *req = ap_req_config_get(r);
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct aaa *aaa = srv->aaa;
 
-	const char *sess_id = aaa_attr_get(aaa, "sess.id");
-	const char *user_id = aaa_attr_get(aaa, "user.id");
-	const char *user_name = aaa_attr_get(aaa, "user.name");
-
-	r_info(r, "sess.id: %s", sess_id);
-	if (!user_id) {
-		apr_table_set(r->subprocess_env, "SCRIPT_REFERER", r->uri);
-		r_info(r, "%s() SCRIPT_REFERER=%s", __func__, r->uri);
-		r_info(r, "%s() HTTP_FORBIDDEN", __func__);
-		return HTTP_FORBIDDEN;
+	const char *name = aaa_attr_get(aaa, "user.name");
+	if (!name || !*name) {
+		r_info(r, "%s() HTTP_UNAUTHORIZED", __func__);
+		return HTTP_UNAUTHORIZED;
 	}
 
-	r_info(r, "user.id: %s", user_id);
-	if (user_name) r_info(r, "user.name: %s", user_name);
-
-	r->user = apr_pstrdup(r->pool, user_name ? user_name : user_id);
-	apr_table_set(r->subprocess_env, "REMOTE_USER", r->user);
-	return OK;
-}
-
-/*
- * This hook is used to apply additional access control to this resource.
- * It runs *before* a user is authenticated, so this hook is really to
- * apply additional restrictions independent of a user. It also runs
- * independent of 'Require' directive usage.
- *
- * @param r the current request
- * @return OK, DECLINED, or HTTP_...
- * @ingroup hooks
- */
-
-static int
-access_checker(request_rec *r)
-{
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
-		return DECLINED;
-
-	r_info(r, "%s() uri: %s", __func__, r->uri);
+	r_info(r, "user.name: %s", name);
+	r->user = apr_pstrdup(r->pool, name);
 	return OK;
 }
 
@@ -303,7 +266,7 @@ check_access(request_rec *r)
 	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
 		return DECLINED;
 
-	return OK;
+	return DECLINED;
 }
 
 /*
@@ -324,25 +287,52 @@ auth_checker(request_rec *r)
 	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
 	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
 		return DECLINED;
+	return DECLINED;
+}
 
-	struct req *req = ap_req_config_get(r);
+/*
+ * This routine is called to check to see if the resource being requested
+ * requires authorisation.
+ *
+ * This is a RUN_FIRST hook. The return value is OK, DECLINED, or
+ * HTTP_mumble.  If we return OK, no other modules are called during this
+ * phase.
+ *
+ * If *all* modules return DECLINED, the request is aborted with a server
+ * error.
+ */
+
+static int
+check_authz(request_rec *r)
+{
+	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
+		return DECLINED;
+
+	return DECLINED;
+}
+
+static int
+check_access_ex(request_rec *r)
+{
+	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
+		return DECLINED;
+
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct aaa *aaa = srv->aaa;
 
-	const char *sess_id = aaa_attr_get(aaa, "sess.id");
-	const char *user_id = aaa_attr_get(aaa, "user.id");
-	const char *user_name = aaa_attr_get(aaa, "user.name");
+	const char *name = aaa_attr_get(aaa, "user.name");
+	if (!name || !*name) {
+		r_info(r, "%s() HTTP_UNAUTHORIZED", __func__);
+		return DECLINED;
+	}
 
-	r_info(r, "sess.id: %s", sess_id);
-	if (!user_id)
-		return HTTP_FORBIDDEN;
+	r_info(r, "user.name: %s", name);
+	r->user = apr_pstrdup(r->pool, name);
 
-	r_info(r, "user.id: %s", user_id);
-	if (user_name) r_info(r, "user.name: %s", user_name);
-
-	r->user = apr_pstrdup(r->pool, user_name ? user_name : user_id);
-	apr_table_add(r->subprocess_env, "REMOTE_USER", r->user);
-	return OK;
+	//ap_note_auth_failure(r);
+	return DECLINED;
 }
 
 /*
@@ -358,20 +348,7 @@ auth_checker(request_rec *r)
 static int
 fixups(request_rec *r)
 {
-	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
-		return DECLINED;
-
-	struct srv *srv = ap_srv_config_get(r->server);
-	struct aaa *aaa = srv->aaa;
-
-	const char *user_id   = aaa_attr_get(aaa, "user.id");
-	const char *user_name = aaa_attr_get(aaa, "user.name");
-
-	r->user = apr_pstrdup(r->pool, user_name ? user_name : user_id);
-	apr_table_add(r->subprocess_env, "REMOTE_USER", r->user);
-
-	return OK;
+	return DECLINED;
 }
 
 static void *
@@ -447,7 +424,8 @@ static const command_rec cmds[] = {
 	              "Export len bytes of keying material (default 20)"),	
 	{NULL},
 };
-/**
+
+/*
  * init_server hook -- allow SSL_CTX-specific initialization to be performed by
  * a module for each SSL-enabled server (one at a time)
  * @param s SSL-enabled [virtual] server
@@ -506,8 +484,6 @@ header_parser(request_rec *r)
 	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
 		return DECLINED;
 
-	const char *ref = r->main ? r->main->uri: r->prev ? r->prev->uri: NULL;
-	
 	struct req *req = ap_req_config_get(r);
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct aaa *aaa = srv->aaa;
@@ -520,26 +496,79 @@ header_parser(request_rec *r)
 			if ((*p = toupper(*p)) == '.') *p = '_';
 
 		const char *val = aaa_attr_get(aaa, k);
-		r_info(r, "%s() %s:%s", __func__, k, val);	
+/*		r_info(r, "%s() %s:%s", __func__, k, val);	*/
 		apr_table_set(r->subprocess_env, key, val);
 	}
 
-	const char *uid  = aaa_attr_get(aaa, "user.id");
 	const char *name = aaa_attr_get(aaa, "user.name");
-
-	if (uid) {
-		const char *user = apr_pstrdup(r->pool, name ? name: uid);
+	if (name) {
+		const char *user = apr_pstrdup(r->pool, name);
 		apr_table_add(r->subprocess_env, "REMOTE_USER", user);
 	}
 	
-	if (!ref)
-		return OK;
-
-	r_info(r, "%s() script referer=%s", __func__, ref);
-	apr_table_set(r->subprocess_env, "SCRIPT_REFERER", ref);
-
-	return OK;
+	return DECLINED;
 }
+
+struct authz_rule {
+	const char *org;
+	const char *group;
+	const char *role;
+};
+
+static authz_status
+authz_require_group_check(request_rec *r, const char *line, const void *parsed)
+{
+	struct srv *srv = ap_srv_config_get(r->server);
+	struct aaa *aaa = srv->aaa;
+	struct authz_rule *rule = (struct authz_rule *)parsed;
+
+	if (!r->user)
+		return AUTHZ_DENIED_NO_USER;
+
+	char *path = printfa("acct.%s.roles[]", rule->group);
+	const char *group = aaa_attr_get(aaa, path);
+	if (!group)
+		return AUTHZ_DENIED;
+	if (!rule->role)
+		return AUTHZ_GRANTED;
+
+	char *t, *ln = strdupa(group);
+	for (char *p = strtok_r(ln, " ", &t); p; p = strtok_r(NULL, " ", &t)) {
+		if (!strcmp(rule->role, p))
+			return AUTHZ_GRANTED;
+	}
+
+	return AUTHZ_DENIED;
+}
+
+static const char *
+authz_require_group_parse(cmd_parms *cmd, const char *line, const void **parsed)
+{
+	apr_pool_t *p = cmd->pool;
+
+	if (!line || !*line)
+		return "Require group does take arguments";
+	
+	int len = strlen(line);
+	char *l = apr_pcalloc(p, len + 1);
+	strncpy(l, line, len);
+
+	char *c = strchr(l, ':');
+	if (c) *c = 0;
+
+	struct authz_rule *rule = apr_pcalloc(p, sizeof(*rule));
+	rule->group = apr_pstrdup(p, l);
+	rule->role = c ? apr_pstrdup(p, c + 1): NULL;
+	rule->org = apr_pstrdup(p, line);
+
+	*parsed = rule;
+	return NULL;
+}
+
+static const authz_provider authz_provider_require_group = {
+	&authz_require_group_check,
+	&authz_require_group_parse,
+};
 
 static void
 register_hooks(apr_pool_t *p)
@@ -557,15 +586,23 @@ register_hooks(apr_pool_t *p)
 	ap_hook_pre_connection(pre_connection, pre_ssl, NULL, APR_HOOK_MIDDLE);
 	ap_hook_create_request(create_request, NULL, NULL, APR_HOOK_MIDDLE);
 	ap_hook_post_read_request(post_read_request,NULL, asz_succ, APR_HOOK_MIDDLE);
-	ap_hook_check_authn(check_authn, NULL,NULL, APR_HOOK_FIRST, AP_AUTH_INTERNAL_PER_CONF);
-	ap_hook_access_checker(access_checker, NULL, NULL, APR_HOOK_MIDDLE);
+	ap_hook_check_authn(check_authn, pre_ssl, NULL, APR_HOOK_FIRST, AP_AUTH_INTERNAL_PER_CONF);
+	ap_hook_check_authz(check_authz, pre_ssl, NULL, APR_HOOK_FIRST, AP_AUTH_INTERNAL_PER_CONF);
 	ap_hook_check_access(check_access, NULL, NULL, APR_HOOK_MIDDLE, AP_AUTH_INTERNAL_PER_CONF);
 	ap_hook_auth_checker(auth_checker, NULL, NULL, APR_HOOK_MIDDLE);
-	ap_hook_fixups(fixups, NULL, NULL, APR_HOOK_LAST);
+	ap_hook_check_access_ex(check_access_ex, NULL, NULL, APR_HOOK_LAST, AP_AUTH_INTERNAL_PER_CONF);
+
+/*	ap_hook_fixups(fixups, NULL, NULL, APR_HOOK_LAST); */
 
 	APR_OPTIONAL_HOOK(ssl, init_server, init_server, NULL, NULL, APR_HOOK_MIDDLE);
 	APR_OPTIONAL_HOOK(ssl, pre_handshake, pre_handshake, NULL, NULL, APR_HOOK_MIDDLE);
 	APR_OPTIONAL_HOOK(ssl, proxy_post_handshake, proxy_post_handshake, NULL, NULL, APR_HOOK_MIDDLE);
+
+	ap_register_auth_provider(p, 
+	                          AUTHZ_PROVIDER_GROUP, "group",
+	                          AUTHZ_PROVIDER_VERSION,
+	                          &authz_provider_require_group,
+	                          AP_AUTH_INTERNAL_PER_CONF);
 
 	ap_register_provider(p, AP_SOCACHE_PROVIDER_GROUP, "openaaa",
 	                     AP_SOCACHE_PROVIDER_VERSION, &socache_tls_aaa);
