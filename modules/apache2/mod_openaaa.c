@@ -228,7 +228,7 @@ static int
 check_authn(request_rec *r)
 {
 	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
 	struct srv *srv = ap_srv_config_get(r->server);
@@ -263,7 +263,7 @@ static int
 check_access(request_rec *r)
 {
 	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
 	return DECLINED;
@@ -285,7 +285,7 @@ static int
 auth_checker(request_rec *r)
 {
 	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 	return DECLINED;
 }
@@ -306,7 +306,7 @@ static int
 check_authz(request_rec *r)
 {
 	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
 	return DECLINED;
@@ -316,22 +316,19 @@ static int
 check_access_ex(request_rec *r)
 {
 	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct aaa *aaa = srv->aaa;
 
 	const char *name = aaa_attr_get(aaa, "user.name");
-	if (!name || !*name) {
-		r_info(r, "%s() HTTP_UNAUTHORIZED", __func__);
+	if (!name || !*name)
 		return DECLINED;
-	}
 
 	r_info(r, "user.name: %s", name);
 	r->user = apr_pstrdup(r->pool, name);
 
-	//ap_note_auth_failure(r);
 	return DECLINED;
 }
 
@@ -474,6 +471,22 @@ proxy_post_handshake(conn_rec *c, SSL *ssl)
 	return 0;
 }
 
+static void
+header_attr_set(request_rec *r, const char *prefix, const char *key)
+{
+	struct srv *srv = ap_srv_config_get(r->server);
+	struct aaa *aaa = srv->aaa;
+
+	char *k = printfa("%s.%s", prefix, key);
+	for (char *p = k; *p; p++)
+		if ((*p = toupper(*p)) == '.') *p = '_';
+
+	const char *val = aaa_attr_get(aaa, key);
+	if (!val || !*val)
+		return;
+	apr_table_set(r->subprocess_env, k, val);
+}
+
 static int
 header_parser(request_rec *r)
 {
@@ -481,7 +494,7 @@ header_parser(request_rec *r)
 		return DECLINED;
 	if (!ssl_is_https(r->connection))
 		return DECLINED;
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "openaaa"))
+	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
 	struct req *req = ap_req_config_get(r);
@@ -491,20 +504,15 @@ header_parser(request_rec *r)
 	r_info(r, "%s() uri=%s", __func__, r->uri);
 
 	for (const char *k = aaa_attr_first(aaa, ""); k; k = aaa_attr_next(aaa)) {
-		char *key = printfa("aaa.%s", k);
-		for (char *p = key; *p; p++)
-			if ((*p = toupper(*p)) == '.') *p = '_';
-
-		const char *val = aaa_attr_get(aaa, k);
-/*		r_info(r, "%s() %s:%s", __func__, k, val);	*/
-		apr_table_set(r->subprocess_env, key, val);
+		header_attr_set(r, "aaa", k);
+		if (r->proxyreq != PROXYREQ_REVERSE)
+			continue;
+		header_attr_set(r, "ajp.aaa", k);
 	}
 
 	const char *name = aaa_attr_get(aaa, "user.name");
-	if (name) {
-		const char *user = apr_pstrdup(r->pool, name);
-		apr_table_add(r->subprocess_env, "REMOTE_USER", user);
-	}
+	if (name)
+		apr_table_set(r->subprocess_env, "REMOTE_USER", name);
 	
 	return DECLINED;
 }
@@ -589,10 +597,8 @@ register_hooks(apr_pool_t *p)
 	ap_hook_check_authn(check_authn, pre_ssl, NULL, APR_HOOK_FIRST, AP_AUTH_INTERNAL_PER_CONF);
 	ap_hook_check_authz(check_authz, pre_ssl, NULL, APR_HOOK_FIRST, AP_AUTH_INTERNAL_PER_CONF);
 	ap_hook_check_access(check_access, NULL, NULL, APR_HOOK_MIDDLE, AP_AUTH_INTERNAL_PER_CONF);
-	ap_hook_auth_checker(auth_checker, NULL, NULL, APR_HOOK_MIDDLE);
 	ap_hook_check_access_ex(check_access_ex, NULL, NULL, APR_HOOK_LAST, AP_AUTH_INTERNAL_PER_CONF);
-
-/*	ap_hook_fixups(fixups, NULL, NULL, APR_HOOK_LAST); */
+	ap_hook_auth_checker(auth_checker, NULL, NULL, APR_HOOK_MIDDLE);
 
 	APR_OPTIONAL_HOOK(ssl, init_server, init_server, NULL, NULL, APR_HOOK_MIDDLE);
 	APR_OPTIONAL_HOOK(ssl, pre_handshake, pre_handshake, NULL, NULL, APR_HOOK_MIDDLE);
@@ -604,7 +610,7 @@ register_hooks(apr_pool_t *p)
 	                          &authz_provider_require_group,
 	                          AP_AUTH_INTERNAL_PER_CONF);
 
-	ap_register_provider(p, AP_SOCACHE_PROVIDER_GROUP, "openaaa",
+	ap_register_provider(p, AP_SOCACHE_PROVIDER_GROUP, "aaa",
 	                     AP_SOCACHE_PROVIDER_VERSION, &socache_tls_aaa);
 
 };
