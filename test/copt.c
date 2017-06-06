@@ -36,12 +36,11 @@ struct section_example1 {
 	int port;
 };
 
-#define D_ITEM(type, node,...) \
-        ({ type __o = (type) {.node = INIT_NODE ,## __VA_ARGS__ }; &__o.node;})
-
+#define OPTION_ITEM(T) \
+        (struct node*) ({ struct option_item o = {.node = INIT_NODE, .type = T }; &o.node; })
 
 static struct option_section section = {
-	.items.head = { D_ITEM(struct option_item *, node) },
+	.items.head = OPTION_ITEM(1)
 };
 
 /*
@@ -59,6 +58,7 @@ static struct option long_options[] = {
 static void
 usage(void)
 {
+	struct node *node = OPTION_ITEM(1);
 }
 
 int
