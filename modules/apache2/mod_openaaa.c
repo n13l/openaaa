@@ -118,7 +118,6 @@ child_fini(void *ctx)
 static int
 post_config(apr_pool_t *p, apr_pool_t *l, apr_pool_t *t, server_rec *s)
 {
-	struct srv *srv = ap_get_module_config(s->module_config, &MODULE_ENTRY);
 	ap_add_version_component(p, MODULE_VERSION);
 	return OK;
 }
@@ -355,73 +354,6 @@ config_init_srv(apr_pool_t *p, server_rec *s)
 	return srv;
 }
 
-static void *
-config_init_dir(apr_pool_t *p, char *d)
-{
-	struct dir *dir = apr_pcalloc(p, sizeof(*dir));
-	return dir;
-}
-
-static const char *
-config_tls(cmd_parms *cmd, void *d, const char *v)
-{
-	struct srv *s = ap_srv_config_get_cmd(cmd);
-
-	const char *arg;
-	const char *word = ap_getword_conf(cmd->pool, &arg);
-	if (!strncasecmp(word, "plus", 1)) {
-		word = ap_getword_conf(cmd->pool, &arg);
-	};
-
-	return ap_check_cmd_context(cmd, NOT_IN_DIR_LOC_FILE);
-}
-
-/*
- * Labels here have the same definition as in TLS, i.e., an ASCII string
- * with no terminating NULL.  Label values beginning with "EXPERIMENTAL"
- * MAY be used for private use without registration.  All other label
- * values MUST be registered via Specification Required as described by
- * RFC 5226 [RFC5226].  Note that exporter labels have the potential to
- * collide with existing PRF labels.  In order to prevent this, labels
- * SHOULD begin with "EXPORTER".  This is not a MUST because there are
- * existing uses that have labels which do not begin with this prefix.
- */
-
-static const char *
-config_aaa_label(cmd_parms *cmd, void *d, const char *v)
-{
-	struct srv *s = ap_srv_config_get_cmd(cmd);
-	s->keymat_label = v;
-	return ap_check_cmd_context(cmd, NOT_IN_DIR_LOC_FILE);
-}
-
-/*
- * Keying Material Exporter bytes (default 20)
- */
-
-static const char *
-config_aaa_len(cmd_parms *cmd, void *d, const char *v)
-{
-	struct srv *s = ap_srv_config_get_cmd(cmd);
-	s->keymat_len = atoi(v);
-	return ap_check_cmd_context(cmd, NOT_IN_DIR_LOC_FILE);
-}
-
-/*
- * The command record structure.  Each modules can define a table of these
- * to define the directives it will implement.
- */
-
-static const command_rec cmds[] = {
-	AP_INIT_TAKE1("TLS", config_tls, NULL, RSRC_CONF,
-	              "Configures multiple TLS options"),
-	AP_INIT_TAKE1("TLSKeyingMaterialLabel", config_aaa_label, NULL, RSRC_CONF,
-	              "Labels here have the same definition as in TLS"),
-	AP_INIT_TAKE1("TLSKeyingMaterialLength", config_aaa_len, NULL, RSRC_CONF,
-	              "Export len bytes of keying material (default 20)"),	
-	{NULL},
-};
-
 /*
  * init_server hook -- allow SSL_CTX-specific initialization to be performed by
  * a module for each SSL-enabled server (one at a time)
@@ -452,7 +384,6 @@ pre_handshake(conn_rec *c, SSL *ssl, int is_proxy)
 {
 	struct srv *srv = ap_srv_config_get(c->base_server);
 	srv->ssl = ssl;
-
 	ssl_init_conn(ssl);
 	return 0;
 }
@@ -467,7 +398,6 @@ pre_handshake(conn_rec *c, SSL *ssl, int is_proxy)
 static int
 proxy_post_handshake(conn_rec *c, SSL *ssl)
 {
-	debug2("proxy_post_handshake");
 	return 0;
 }
 
@@ -484,7 +414,12 @@ header_attr_set(request_rec *r, const char *prefix, const char *key)
 	const char *val = aaa_attr_get(aaa, key);
 	if (!val || !*val)
 		return;
-	apr_table_set(r->subprocess_env, k, val);
+
+	char *v = strdupa(val);
+	for (char *p = v; *p; p++)
+		if (*p == ' ') *p = ':';
+
+	apr_table_set(r->subprocess_env, k, v);
 }
 
 static int
@@ -582,7 +517,7 @@ static void
 register_hooks(apr_pool_t *p)
 {
 	/* pre_connection hook needs to run after mod_ssl connection hook. */
-	static const char *pre_ssl[] = { "mod_ssl.c", NULL };
+	static const char *const pre_ssl[]  = { "mod_ssl.c", NULL };
 	/* make sure we run before mod_rewrite's handler */
 	static const char *const asz_succ[] = { "mod_setenvif.c", 
 	                                        "mod_rewrite.c", NULL };
@@ -618,10 +553,10 @@ register_hooks(apr_pool_t *p)
 module AP_MODULE_DECLARE_DATA __attribute__((visibility("default"))) 
 MODULE_ENTRY = {
 	STANDARD20_MODULE_STUFF,
-	config_init_dir,         /* dir config constructor */
+	NULL, // config_init_dir,/* dir config constructor */
 	NULL,                    /* dir merger - default is to override */
 	config_init_srv,         /* server config constructor */         
 	NULL,                    /* merge server config */
-	cmds,                    /* command table */            
+	NULL,                    /* command table */            
 	register_hooks,          /* Apache2 register hooks */           
 };

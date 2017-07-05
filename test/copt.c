@@ -35,14 +35,14 @@ struct section_example1 {
 	char *host;
 	int port;
 };
-
+/*
 #define OPTION_ITEM(T) \
         (struct node*) ({ struct option_item o = {.node = INIT_NODE, .type = T }; &o.node; })
 
 static struct option_section section = {
 	.items.head = OPTION_ITEM(1)
 };
-
+*/
 /*
 static struct option_section section = {
 	.items = &OPTION_STRING("value", &string)
