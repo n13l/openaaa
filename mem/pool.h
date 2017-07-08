@@ -137,8 +137,8 @@ mm_pool_create(size_t blocksize, int flags)
 	block = vm_vblock_alloc(size);
 	struct mm_pool *pool = (void *)((u8 *)block - size);
 
-	mem_pool_dbg("pool %p created with %" PRIuMAX " bytes", 
-	             pool, (uintmax_t)blocksize);
+	mem_pool_dbg("pool %p created with %u bytes", 
+	             pool, (unsigned int)blocksize);
 
 	pool->save.avail[0] = size - sizeof(*pool);
 	pool->save.final[0] = block;

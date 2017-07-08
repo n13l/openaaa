@@ -2,15 +2,15 @@ export SO=so
 
 ifeq ($(PLATFORM),win32)
 KBUILD_LIBS           += -lcomdlg32 -lwinspool -lcomctl32 -lsetupapi -lwininet \
-                         -lwin32spl -lws2_32 -lpsapi -lshlwapi -ladvapi32 \
+                         -lws2_32 -lpsapi -lshlwapi -ladvapi32 \
 			 -lgdi32 -lpsapi -lole32 -lshlwapi -ldbghelp 
 SHLIB_LDFLAGS         := -shared -static-libgcc -static-libstdc++ \
                          -Wl,-Bstatic -lwinpthread -Wl,-Bdynamic \
-                         -Wl,--subsystem,console -Wl,--add-stdcall-alias
+                         -Wl,--subsystem,console -Wl,--add-stdcall-alias 
 so                    := dll
 exe                   := .exe
 KBUILD_CFLAGS         += -D_WIN32_WINNT=0x0501
-KBUILD_CFLAGS         += -D__USE_MINGW_ANSI_STDIO=1
+KBUILD_CFLAGS         += -D__USE_MINGW_ANSI_STDIO=1 
 export KBUILD_LIBS SHLIB_LDFLAGS so exe
 endif
 ifeq ($(PLATFORM),os390)

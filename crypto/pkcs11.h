@@ -656,6 +656,8 @@ typedef unsigned long int ck_user_type;
 typedef unsigned long int ck_ulong;
 typedef unsigned long   (*ck_notify)(ck_ulong, ck_ulong ,void *);
 
+struct ck_function_list;
+
 struct ck_version {
 	unsigned char major;
 	unsigned char minor;

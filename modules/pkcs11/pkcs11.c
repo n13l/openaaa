@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <string.h>
 #include <unistd.h>
 #include <crypto/pkcs11.h>
@@ -37,7 +38,7 @@
 #include <crypto/abi/lib.h>
 
 #define PKCS11_MAJOR 2
-#define PKCS11_MINOR 0
+#define PKCS11_MINOR 20
 /* #define PKCS11_MINOR 22 */
 
 #define CK_VERSION(X, Y) \
@@ -53,10 +54,12 @@
 #undef KBUILD_MODNAME
 #define KBUILD_MODNAME "pkcs11"
 
-static unsigned long
-initialize(void *args)
+/* __attribute__((__stdcall__)) */
+static unsigned long  
+C_Initialize(void *args)
 {
-	debug("openaaa tls-sca bridge");
+	printf("initialize\n");
+	fflush(stdout);
 
 	crypto_lookup();
 	return CKR_OK;
@@ -210,9 +213,9 @@ wait_for_slot_event(ck_flags flags, ck_ulong *slot, void *a)
 	return CKR_NO_EVENT;
 }
 
-struct pkcs11_entry {
+struct ck_function_list {
 	struct ck_version version;
-	void *initialize;
+	__typeof__(C_Initialize) *C_Initialize;
 	void *finalize;
 	void *get_info;
 	void *get_function_list;
@@ -228,11 +231,11 @@ struct pkcs11_entry {
 	void *get_function_status;
 	void *cancel_function;
 	void *wait_for_slot_event;
-};
+}  __attribute__((gcc_struct, packed)); 
 
-static struct pkcs11_entry pkcs11_entry = {
+struct ck_function_list ck_function_list = {
 	.version             = {.major = PKCS11_MAJOR, .minor = PKCS11_MINOR},
-	.initialize          = initialize,
+	.C_Initialize        = C_Initialize,
 	.finalize            = finalize,
 	.get_info            = get_info,
 	.get_slot_list       = get_slot_list,
@@ -247,11 +250,11 @@ static struct pkcs11_entry pkcs11_entry = {
 	.get_function_status = get_function_status,
 	.cancel_function     = cancel_function,
 	.wait_for_slot_event = wait_for_slot_event,
-};
+}; 
 
-EXPORT(unsigned long)
-C_GetFunctionList(void **list)
-{                                                                               
-	*list = (void **)&pkcs11_entry;
+EXPORT(unsigned long) 
+C_GetFunctionList(struct ck_function_list **vtbl) 
+{
+	*vtbl = &ck_function_list;
 	return CKR_OK;                                                          
 }
