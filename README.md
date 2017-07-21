@@ -20,7 +20,6 @@
  - secure session negotiations and session resumption are based on TLS
  - no more cookies and other state information on application layer
  - multipple network and/or application layers access same encrypted session 
- - straightforward bindings to application layer using well-defined mechanism.
  - distributed, high performance and secure session manager (aaad) daemon
  - easy user tracking over authenticated sessions with user context
  - single point log off can destroys all authenticated sessions and invalidate crypto material
@@ -43,6 +42,7 @@
  - cipher negotiations
  - session negotiations and session resumption
  - safe renegotiations [RFC-5746]
+ - application-layer protocol negotiation [RFC-7301]
  - strong authentication
  - cryptographic integrity
  - confidentiality
