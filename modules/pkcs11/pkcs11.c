@@ -54,13 +54,9 @@
 #undef KBUILD_MODNAME
 #define KBUILD_MODNAME "pkcs11"
 
-/* __attribute__((__stdcall__)) */
 static unsigned long  
 C_Initialize(void *args)
 {
-	printf("initialize\n");
-	fflush(stdout);
-
 	crypto_lookup();
 	return CKR_OK;
 }

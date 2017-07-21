@@ -54,7 +54,12 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 		byte amsg[512];
 		snprintf(amsg, sizeof(amsg) - 1, "%.8d:%.8d %s %s\n",
 		         pid, tid, module, msg);
+#ifdef WIN32
+		fprintf(stdout, "%s", amsg);
+		fflush(stdout);
+#else
 		write(0, amsg, strlen(amsg));
+#endif
 	}
 }
 
