@@ -85,6 +85,7 @@ DEFINE_ABI(SSL_CTX_set_ex_data);
 DEFINE_ABI(SSL_CTX_get_ex_data);
 DEFINE_ABI(SSL_CTX_add_client_custom_ext);
 DEFINE_ABI(SSL_CTX_add_server_custom_ext);
+DEFINE_ABI(SSL_CTX_set_alpn_protos);
 DEFINE_ABI(SSL_new);
 DEFINE_ABI(SSL_free);
 DEFINE_ABI(SSL_get0_alpn_selected);
@@ -978,10 +979,13 @@ DEFINE_SSL_CALL(new)(SSL_CTX *ctx)
 	return ssl;
 }
 
-/*
-void SSL_get0_alpn_selected(const SSL *ssl, const unsigned char **data,
-		                             unsigned int *len);
-*/
+void
+DEFINE_CTX_CALL(set_alpn_protos)(SSL_CTX *ctx, const unsigned char *data, unsigned int len)
+{
+	debug3("len=%u", len);
+}
+
+//SSL_CTX_set_alpn_protos(c->ctx, c->alpn_proto_data, c->alpn_proto_len);
 
 void
 symbol_print(void)
@@ -1123,6 +1127,7 @@ ssl_init(void)
 	IMPORT_ABI(SSL_CTX_get_ex_data);
 	IMPORT_ABI(SSL_CTX_add_client_custom_ext);
 	IMPORT_ABI(SSL_CTX_add_server_custom_ext);
+	IMPORT_ABI(SSL_CTX_set_alpn_protos);
 	IMPORT_ABI(SSL_new);
 	IMPORT_ABI(SSL_get0_alpn_selected);
 	IMPORT_ABI(SSL_ctrl);
@@ -1228,6 +1233,7 @@ crypto_lookup(void)
 	IMPORT_ABI(SSL_CTX_get_ex_data);
 	IMPORT_ABI(SSL_CTX_add_client_custom_ext);
 	IMPORT_ABI(SSL_CTX_add_server_custom_ext);
+	IMPORT_ABI(SSL_CTX_set_alpn_protos);
 	IMPORT_ABI(SSL_new);
 	IMPORT_ABI(SSL_get0_alpn_selected);
 	IMPORT_ABI(SSL_ctrl);
