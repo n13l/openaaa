@@ -1163,7 +1163,7 @@ ssl_init(void)
 	IMPORT_ABI(SSL_set_verify_result);
 	IMPORT_ABI(SSL_shutdown);
 
-	//init_aaa_env();
+	init_aaa_env();
 	aaa_env_init();
 	return 0;
 }
