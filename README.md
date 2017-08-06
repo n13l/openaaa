@@ -6,7 +6,7 @@
 
 **Authentication**
  - strong mutual authentication using transport layer security
- - TLS authentication based on current and/org future decentralized trust
+ - strong mutual and anonymous authentication based on decentralized trust
  - channel binding based on standard and well-defined mechanisms
  - upper layers authentication based on keying material exporters [RFC-5705]
  - anonymous authentication, no personal data transfered over channel
