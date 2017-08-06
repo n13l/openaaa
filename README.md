@@ -56,7 +56,7 @@
  - TLS Client example: https://github.com/n13l/openaaa/blob/master/test/ssl/tls-client.sh
  - HTTP2/TLS Client example: https://github.com/n13l/openaaa/blob/master/test/ssl/http2-client.sh
  - Java Client example: https://github.com/n13l/http2-pkcs11/blob/master/com/openaaa/tls/Test.java
- - Apache/2.4.25 (Unix) OpenAAA/1.0.0 OpenSSL/1.0.2k : https://aaa.rtfm.cz
+ - Apache/2.4 (Unix) OpenAAA/1.0.0 OpenSSL/1.0.2 : https://aaa.rtfm.cz
 
 **URL References**
 
