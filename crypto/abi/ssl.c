@@ -85,8 +85,10 @@ DEFINE_ABI(SSL_CTX_set_ex_data);
 DEFINE_ABI(SSL_CTX_get_ex_data);
 DEFINE_ABI(SSL_CTX_add_client_custom_ext);
 DEFINE_ABI(SSL_CTX_add_server_custom_ext);
+DEFINE_ABI(SSL_CTX_set_alpn_protos);
 DEFINE_ABI(SSL_new);
 DEFINE_ABI(SSL_free);
+DEFINE_ABI(SSL_get0_alpn_selected);
 DEFINE_ABI(SSL_get_info_callback);
 DEFINE_ABI(SSL_get_rfd);
 DEFINE_ABI(SSL_get_wfd);
@@ -729,6 +731,13 @@ ssl_handshake1(const SSL *ssl)
 
 	ssl_derive_keys(sp);
 
+	const unsigned char *alpn = NULL;
+	unsigned int size = 0;
+	CALL_SSL(get0_alpn_selected)(ssl, &alpn, &size);
+
+	debug("%s checking for application-layer protocol negotiation: %s",
+	      endpoint, size ? strmema(alpn, size) : "No");
+
 	if (sp->endpoint == TLS_EP_SERVER) 
 		sp->cert = CALL_SSL(get_certificate)((SSL *)ssl);
 	else if (sp->endpoint == TLS_EP_CLIENT)
@@ -971,6 +980,14 @@ DEFINE_SSL_CALL(new)(SSL_CTX *ctx)
 }
 
 void
+DEFINE_CTX_CALL(set_alpn_protos)(SSL_CTX *ctx, const unsigned char *data, unsigned int len)
+{
+	debug3("len=%u", len);
+}
+
+//SSL_CTX_set_alpn_protos(c->ctx, c->alpn_proto_data, c->alpn_proto_len);
+
+void
 symbol_print(void)
 {
 	list_for_each(n, openssl_symtab) {
@@ -999,7 +1016,7 @@ lookup_module(struct dl_phdr_info *info, size_t size, void *ctx)
 	sym = (dll && !sym) ? dlsym(dll, "SSLeay") : sym;
 	if (sym) libcrypto = dll;
 
-	if (!sym)
+	if (!ssl & !sym)
 		return 0;
 
 	char *v = ssl ? "framework" : "cryptolib";
@@ -1069,7 +1086,7 @@ init_aaa_env(void)
 	char *role = getenv("OPENAAA_ROLE");
 	aaa.role = role ? role : NULL;
 
-	char *verb = getenv("OPENAAA_VERBOSITY");
+	char *verb = getenv("OPENAAA_VERBOSE");
 	if (verb)
 		log_verbose = atoi(verb);
 
@@ -1110,7 +1127,9 @@ ssl_init(void)
 	IMPORT_ABI(SSL_CTX_get_ex_data);
 	IMPORT_ABI(SSL_CTX_add_client_custom_ext);
 	IMPORT_ABI(SSL_CTX_add_server_custom_ext);
+	IMPORT_ABI(SSL_CTX_set_alpn_protos);
 	IMPORT_ABI(SSL_new);
+	IMPORT_ABI(SSL_get0_alpn_selected);
 	IMPORT_ABI(SSL_ctrl);
 	IMPORT_ABI(SSL_get_info_callback);
 	IMPORT_ABI(SSL_callback_ctrl);
@@ -1195,6 +1214,8 @@ ssl_get_sess_id(SSL *ssl, char *buf, int size)
 int
 crypto_lookup(void)
 {
+	init_aaa_env();
+
 	list_init(&ssl_module_list);
 
 	char ssl_module[255] = {0};
@@ -1212,7 +1233,9 @@ crypto_lookup(void)
 	IMPORT_ABI(SSL_CTX_get_ex_data);
 	IMPORT_ABI(SSL_CTX_add_client_custom_ext);
 	IMPORT_ABI(SSL_CTX_add_server_custom_ext);
+	IMPORT_ABI(SSL_CTX_set_alpn_protos);
 	IMPORT_ABI(SSL_new);
+	IMPORT_ABI(SSL_get0_alpn_selected);
 	IMPORT_ABI(SSL_ctrl);
 	IMPORT_ABI(SSL_get_info_callback);
 	IMPORT_ABI(SSL_callback_ctrl);
