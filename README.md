@@ -21,8 +21,6 @@
  - secure session negotiations and session resumption are based on TLS
  - no more cookies and other state information on application layer
  - multipple network and/or application layers access same encrypted session 
- - distributed, high performance and secure session manager (aaad) daemon
- - easy user tracking over authenticated sessions with user context
  - single point log off can destroys all authenticated sessions and invalidate crypto material
 
 **Authorization**
@@ -30,21 +28,21 @@
  - multipple network and/or application layers access and share same authenticated session
 
 **Interoperability**
- - no additional code on top of popular crypto libraries (openssl, nss, ...)
+ - standard and well defined mechanism with 
  - platform and language independence
- - (SSO) Single sign-on
+
+TLS authentication based on decentralized trust
+ - strong mutual authentication without certificates and centralized authorities
 
 **TLS side channel authentication**
  - equivalent security as hardware-tokens
  - strong mutual authentication without trusted certificates and CAs
- - straightforward bindings to application layer using well-defined mechanism.
 
 **TLS qualities and various attack mitigations features:**
  - cipher negotiations
  - session negotiations and session resumption
- - safe renegotiations [RFC-5746]
- - application-layer protocol negotiation [RFC-7301]
- - strong authentication
+ - safe renegotiations 
+ - application-layer protocol negotiation 
  - cryptographic integrity
  - confidentiality
  - channel binding using secure channel protocols

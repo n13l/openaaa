@@ -1,7 +1,7 @@
 AAA-TLS-SCA                                         Daniel Kubec <niel@rtfm.cz>
                                                                  September 2013
 
-              TLS side channel authentication and straightforward
+       TLS authentication based on decentralized trust and straightforward
                   bindings of AAA information to application
                     layer using well-defined mechanism.
 
