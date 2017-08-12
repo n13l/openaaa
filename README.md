@@ -28,10 +28,9 @@
  - multipple network and/or application layers access and share same authenticated session
 
 **Interoperability**
- - standard and well defined mechanism with 
- - platform and language independence
+ - strong interoperability with centralized and decentralized trust
 
-TLS authentication based on decentralized trust
+*TLS authentication based on decentralized trust*
  - strong mutual authentication without certificates and centralized authorities
 
 **TLS side channel authentication**
