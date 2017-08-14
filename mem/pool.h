@@ -281,13 +281,14 @@ mm_pool_printf(struct mm_pool *p, const char *fmt, ...)
 	return addr;
 }
 
-static char *
+_unused static char *
 mm_pool_strdup(struct mm_pool *p, const char *str)
 {
 	size_t len = strlen(str);
 	char *s = mm_pool_alloc(p, len + 1);
 	memcpy(s, str, len);
 	s[len] = 0;
+	return s;
 }
 
 #endif
