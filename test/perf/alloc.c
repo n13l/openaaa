@@ -40,10 +40,10 @@ void
 alloc_pool(struct mm_pool *pool, size_t size)
 {
 	for (int i = 0; i < operations; i++) {	
-		char *p = mm_alloc(pool, CPU_CACHE_LINE);
+		char *p = mm_pool_alloc(pool, CPU_CACHE_LINE);
 		volatile u8 *u = (u8*)p; *u = 0;
 	}
-	mm_flush(pool);
+	mm_pool_flush(pool);
 }
 
 void

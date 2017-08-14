@@ -30,7 +30,8 @@ endif
 export CROSS32CC CROSS32AR
 
 ifeq ($(CROSS_COMPILE),)
-KBUILD_DEFCONFIG := $(shell uname -m)_defconfig
+#KBUILD_DEFCONFIG := $(shell uname -m)_defconfig
+KBUILD_DEFCONFIG := ppc64_defconfig
 else
 KBUILD_DEFCONFIG := ppc64_defconfig
 endif
@@ -83,7 +84,7 @@ ifeq ($(call cc-option-yn,-mbig-endian),y)
 override CC	+= -mbig-endian
 override AS	+= -mbig-endian
 endif
-override LD	+= -EB
+#override LD	+= -EB
 LDEMULATION	:= ppc
 GNUTARGET	:= powerpc
 MULTIPLEWORD	:= -mmultiple

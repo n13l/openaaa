@@ -22,7 +22,7 @@ aaa_new(enum aaa_endpoint type, int flags)
 	}
 
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
-	struct aaa *aaa = mm_alloc(mp, sizeof(*aaa));
+	struct aaa *aaa = mm_pool_alloc(mp, sizeof(*aaa));
 
 	aaa->mp = mp;
 	aaa->mp_attrs = mm_pool_create(CPU_PAGE_SIZE, 0);
@@ -53,7 +53,7 @@ aaa_bind(struct aaa *aaa)
 void
 aaa_reset(struct aaa *aaa)
 {
-	mm_flush(aaa->mp_attrs);
+	mm_pool_flush(aaa->mp_attrs);
 	dict_init(&aaa->attrs, aaa->mp_attrs);
 	aaa->attrs_it = NULL;
 }

@@ -9,6 +9,7 @@ for arg in $opt ; do
 	*linux*)  printf "linux\n"; ;;
 	*darwin*) printf "darwin\n"; ;;
 	*390)     printf "os390\n"; ;;
+	*aix)     printf "aix\n"; ;;
 	*)
 	esac
 done

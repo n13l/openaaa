@@ -30,8 +30,11 @@
 #define DECLARE_LIST(name)   struct list name = INIT_LIST(name)
 #define DECLARE_NODE(name)   struct node name = INIT_NODE
 
-#define DECLARE_ITEM(type, node,...) \
-        ({ type __o = (type) {.node = INIT_NODE ,## __VA_ARGS__ }; &__o.node;})
+#define DECLARE_ITEM(type1, node, ...) \
+({ \
+	type1 __o = (type1) { .node = INIT_NODE, ## __VA_ARGS__ }; \
+	& __o.node; \
+})
 
 #define LIST_ITEM(item, node) &(item.node)
 #define INIT_NODE            { .next = NULL, .prev = NULL } 

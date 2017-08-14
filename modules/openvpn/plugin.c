@@ -93,7 +93,7 @@ openvpn_plugin_open_v3(const int version,
                        struct openvpn_plugin_args_open_return *ret)
 {
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
-	struct ovpn_ctxt *ovpn = mm_alloc(mp, sizeof(*ovpn));
+	struct ovpn_ctxt *ovpn = mm_pool_alloc(mp, sizeof(*ovpn));
 	ovpn_log = args->callbacks->plugin_log;
 
 	log_custom_set(ovpn_log_write, NULL);
@@ -145,7 +145,7 @@ openvpn_plugin_client_constructor_v1(openvpn_plugin_handle_t handle)
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
 
 	//struct ovpn_ctxt *ovpn = (struct ovpn_ctxt *)handle;
-        struct ovpn_sess *sess = mm_alloc(mp, sizeof(*sess));
+        struct ovpn_sess *sess = mm_pool_alloc(mp, sizeof(*sess));
 
 	sess->mp = mp;
         sess->mp_api = mm_pool_create(CPU_PAGE_SIZE, 0);

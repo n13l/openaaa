@@ -258,7 +258,7 @@ static struct session *
 session_init(const SSL *ssl)
 {
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
-	struct session *sp = mm_zalloc(mp, sizeof(*sp));
+	struct session *sp = mm_pool_zalloc(mp, sizeof(*sp));
 
 	dict_init(&sp->recved, mp);
 	dict_init(&sp->posted, mp);
@@ -296,7 +296,7 @@ export_keying_material(struct session *sp)
 	size_t sz = cf_tls_rfc5705.length;
 
 	sp->keys.binding_key.len = 0;
-	char *key = sp->keys.binding_key.addr = mm_zalloc(sp->mp, sz + 1);
+	char *key = sp->keys.binding_key.addr = mm_pool_zalloc(sp->mp, sz + 1);
         if (!CALL_SSL(export_keying_material)(s, key, sz, lab, len, NULL,0,0))
 		return 1;
 
@@ -357,7 +357,7 @@ ssl_derive_keys(struct session *sp)
 #endif
 	key = sha1_final(&sha1);
 
-	a->binding_id.addr = mm_alloc(sp->mp, SHA1_SIZE);
+	a->binding_id.addr = mm_pool_alloc(sp->mp, SHA1_SIZE);
 	memcpy(a->binding_id.addr, key, SHA1_SIZE / 2);
 	a->binding_id.len  = SHA1_SIZE / 2;
 
@@ -452,7 +452,7 @@ ssl_server_add(SSL *s, uint type, const byte **out, size_t *len, int *al, void *
 		sz += snprintf(bb, sizeof(bb) - sz - 1, "%s=%s\n",attr->key, attr->val);
 	}
 
-	char *b = mm_alloc(mp, sz + 1);
+	char *b = mm_pool_alloc(mp, sz + 1);
 	*len = sz + 1;
 	sz = 0;
 	dict_for_each(attr, sp->posted.list) {
@@ -496,7 +496,7 @@ ssl_client_add(SSL *s, unsigned int type, const byte **out, size_t *len,
 		sz += snprintf(bb + sz, sizeof(bb) - sz, "%s=%s\n",a->key, a->val);
 	}
 
-	char *b = mm_alloc(mp, sz + 1);
+	char *b = mm_pool_alloc(mp, sz + 1);
 	*len = sz + 1;
 	sz = 0;
 	dict_for_each(attr, sp->recved.list) {
@@ -984,8 +984,6 @@ DEFINE_CTX_CALL(set_alpn_protos)(SSL_CTX *ctx, const unsigned char *data, unsign
 {
 	debug3("len=%u", len);
 }
-
-//SSL_CTX_set_alpn_protos(c->ctx, c->alpn_proto_data, c->alpn_proto_len);
 
 void
 symbol_print(void)

@@ -25,7 +25,7 @@ main(int argc, char *argv[])
 	_unused struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
 
 	/* explicit stack allocation */
-	_unused void *addr1 = mm_alloc(mp, 1024);
+	_unused void *addr1 = mm_pool_alloc(mp, 1024);
 	/* implicit stack allocation */
 	//_unused void *addr2 = mm_alloc(1024);
 

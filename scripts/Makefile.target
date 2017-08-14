@@ -32,6 +32,19 @@ so := so
 export COMPILER ARCH HOSTCC HOSTLD CC LD OBJDUMP so
 endif
 
+ifeq ($(HOST),aix)
+ARCH := powerpc
+HOSTCC := $(srctree)/scripts/xlc/xlc-cc
+HOSTLD := $(srctree)/scripts/xlc/xlc-cc
+CC := $(srctree)/scripts/xlc/xlc-cc 
+LD := $(srctree)/scripts/xlc/xlc-ld 
+OBJDUMP := $(srctree)/scripts/xlc/objdump
+COMPILER := xlc
+so := so
+export COMPILER ARCH HOSTCC HOSTLD CC LD OBJDUMP so
+endif
+
+
 TARGET ?= $(shell $(CC) -dumpmachine 2>&1)
 ARCH ?= $(shell echo $(TARGET) | sed -e s/i.86.*/i386/ -e s/x86_64.*/x86_64/ \
                                      -e s/.390.*/s390/ \

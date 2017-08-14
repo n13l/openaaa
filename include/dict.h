@@ -92,7 +92,7 @@ dict_lookup(struct dict *dict, const char *key, int create)
 		return NULL;
 
 	struct attr *a = mm_pool_alloc(dict->mp, sizeof(*a));
-	a->key = mm_strdup(dict->mp, key);
+	a->key = mm_pool_strdup(dict->mp, key);
 	a->node.next = NULL;
 	a->node.prev = NULL;
 	a->flags = 0;
@@ -105,7 +105,7 @@ static inline void
 dict_set(struct dict *dict, const char *key, const char *val)
 {
 	struct attr *a = dict_lookup(dict, key, 1);
-	a->val = val ? mm_strdup(dict->mp, val) : NULL;
+	a->val = val ? mm_pool_strdup(dict->mp, val) : NULL;
 	a->flags |= ATTR_CHANGED;
 }
 
@@ -113,7 +113,7 @@ static inline void
 dict_set_nf(struct dict *dict, const char *key, const char *val)
 {
 	struct attr *a = dict_lookup(dict, key, 1);
-	a->val = val ? mm_strdup(dict->mp, val) : NULL;
+	a->val = val ? mm_pool_strdup(dict->mp, val) : NULL;
 }
 
 static inline const char *

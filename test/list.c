@@ -123,6 +123,7 @@ struct user {
 static void
 test3_list(void)
 {
+	/*
 	DECLARE_LIST(list);
 
 	list_add(&list, DECLARE_ITEM(struct user, n));
@@ -133,6 +134,7 @@ test3_list(void)
 	list_for_each_item(list, user, n) {
 		debug("user name=%s", user->name);
 	};
+	*/
 }
 
 int 

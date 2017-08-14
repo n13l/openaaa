@@ -174,6 +174,9 @@ conf-objs	:= conf.o  zconf.tab.o
 ifeq ($(HOST),os390)
 conf-objs += zconf.opt.o
 endif
+ifeq ($(HOST),aix)
+conf-objs += zconf.opt.o
+endif
 
 mconf-objs     := mconf.o zconf.tab.o $(lxdialog)
 nconf-objs     := nconf.o zconf.tab.o nconf.gui.o

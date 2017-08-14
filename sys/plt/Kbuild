@@ -1,3 +1,4 @@
 obj-$(CONFIG_LINUX) += elf.o
 obj-$(CONFIG_DARWIN) += mach.o
 obj-$(CONFIG_WIN32) += pe.o
+obj-$(CONFIG_AIX) += aix.o

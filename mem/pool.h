@@ -80,6 +80,14 @@ mm_pool_alloc(struct mm_pool *pool, size_t size)
 	return __pool_alloc_block(pool, size);
 }
 
+static inline void *
+mm_pool_zalloc(struct mm_pool *pool, size_t size)
+{
+	void *addr = mm_pool_alloc(pool, size);
+	memset(addr, 0, size);
+	return addr;
+}
+
 static inline void
 mm_pool_destroy(struct mm_pool *pool)
 {
@@ -271,6 +279,15 @@ mm_pool_printf(struct mm_pool *p, const char *fmt, ...)
 	char *addr = mm_pool_vprintf(p, fmt, args);
 	va_end(args);
 	return addr;
+}
+
+static char *
+mm_pool_strdup(struct mm_pool *p, const char *str)
+{
+	size_t len = strlen(str);
+	char *s = mm_pool_alloc(p, len + 1);
+	memcpy(s, str, len);
+	s[len] = 0;
 }
 
 #endif

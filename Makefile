@@ -390,8 +390,7 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 USERINCLUDE    := \
 		-include include/generated/autoconf.h \
-		-I$(srctree)/lib \
-		-Ilib -I$(srctree)/arch \
+		-I$(srctree)/arch \
 		-I$(srctree)/sys \
 		-I$(srctree)/sys/exec \
 		-I$(srctree)/sys/unix \
