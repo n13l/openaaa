@@ -38,8 +38,9 @@ modbuiltin-target  := $(obj)/modules.builtin
 __modbuiltin: $(modbuiltin-target) $(subdir-ym)
 	@:
 
+# this is broken for aix
 $(modbuiltin-target): $(subdir-ym) FORCE
-	$(Q)(for m in $(modbuiltin-mods); do echo kernel/$$m; done;	\
+	$(Q)(for m in "$(modbuiltin-mods)"; do echo kernel/$$m; done;	\
 	cat /dev/null $(modbuiltin-subdirs)) > $@
 
 PHONY += FORCE

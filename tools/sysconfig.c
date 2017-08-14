@@ -60,7 +60,7 @@ info_cpu(void)
 }
 
 static void 
-info_sys(void)
+system_report(void)
 {
 	info("sys.platform=%s", CONFIG_PLATFORM);
 	info("sys.stack.avail=%d", 0);
@@ -77,7 +77,7 @@ main(int argc, char *argv[])
 	       PACKAGE_VERSION, CONFIG_PLATFORM, CONFIG_SRCARCH, CONFIG_ARCH);
 
 	info_cpu();
-	info_sys();
+	system_report();
 
 	return 0;
 }
