@@ -685,11 +685,13 @@ ssl_server_aaa(struct session *sp)
 	debug("%s", WEXITSTATUS(status)? "failed" : "channel binding");
 
 	if (aaa.group && aaa.role)
-		msg = printfa("%s -pr4 -a%s -i%s -k%s -g%s -r%s %s", 
-		         aaa.handler, host, id, key, aaa.group, aaa.role, synch);
+		msg = printfa("%s -pr4 -s%s -a%s -i%s -k%s -g%s -r%s %s", 
+		         aaa.handler, sess_id, host, id, key, aaa.group, aaa.role, synch);
 	else
 		msg = printfa("%s -pr4 -s%s -a%s -i%s -k%s %s", 
 		              aaa.handler, sess_id, host, id, key, synch);
+
+	debug("cmd=%s", msg);
 	
 	status = system(msg);
 	debug("%s", WEXITSTATUS(status)? "forbidden" : "authenticated");
@@ -967,7 +969,6 @@ DEFINE_CTX_CALL(new)(const SSL_METHOD *method)
 	CALL_CTX(set_info_callback)(ctx, ssl_info);
 	CALL_CTX(callback_ctrl)(ctx, SSL_CTRL_SET_TLSEXT_DEBUG_CB, fn);
 
-	debug3("setting up tls supplemental data");
 	CALL_CTX(add_client_custom_ext)(ctx, 1000, ssl_client_add, NULL, NULL,
 	                                ssl_client_get, NULL);
 	CALL_CTX(add_server_custom_ext)(ctx, 1000, ssl_server_add, NULL, NULL, 
@@ -1296,3 +1297,11 @@ crypto_lookup(void)
 	aaa_env_init();
 	return 0;
 }
+
+void
+crypto_handshake_asynch(int yes)
+{
+	server_handshake_synch = yes ? 0 : 1;
+}
+
+

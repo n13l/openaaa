@@ -89,4 +89,7 @@ struct symbol {
 int
 crypto_lookup(void);
 
+void
+crypto_handshake_asynch(int yes);
+
 #endif/*__ABI_SSL_PLATFORM_H__*/
