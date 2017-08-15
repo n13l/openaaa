@@ -324,8 +324,11 @@ ssl_exportkeys(struct session *sp)
 	sess_id = evala(memhex, (char *)id, len);
 
 	/* tls_session_id is empty for tls tickets for client */
+	/* this is hack for no_session_id cases (vpn) */
 	if (sess_id && *sess_id)
 		debug("tls_session_id=%s", sess_id);
+	else
+		sess_id = bind_key;
 
 	if (sp->endpoint == TLS_EP_SERVER || server_always) {
 		struct aaa *usr = aaa_new(AAA_ENDPOINT_SERVER, 0);
@@ -639,6 +642,16 @@ ssl_server_aaa(struct session *sp)
 	char *sess_id = evala(memhex, (char *)sessid, len);
 
 	struct aaa *usr = aaa_new(AAA_ENDPOINT_SERVER, 0);
+
+	if (!sess_id || !*sess_id)
+		sess_id = key;
+
+	info("aaa.authority=%s", aaa.authority);
+	info("aaa.handler=%s", aaa.handler);
+
+	info("protocol server=%s client=%s", proto_server, proto_client);
+
+
 	aaa_attr_set(usr, "sess.id", sess_id);
 	aaa_attr_set(usr, "sess.key", key);
 	aaa_bind(usr);
@@ -652,6 +665,8 @@ ssl_server_aaa(struct session *sp)
 		return -EINVAL;
 
 //	ssl_setsession(sp);
+//
+	info("handshake_synch=%s",  server_handshake_synch ? "yes": "no");
 
 	char *synch = "";
 #ifdef CONFIG_LINUX	
@@ -952,6 +967,7 @@ DEFINE_CTX_CALL(new)(const SSL_METHOD *method)
 	CALL_CTX(set_info_callback)(ctx, ssl_info);
 	CALL_CTX(callback_ctrl)(ctx, SSL_CTRL_SET_TLSEXT_DEBUG_CB, fn);
 
+	debug3("setting up tls supplemental data");
 	CALL_CTX(add_client_custom_ext)(ctx, 1000, ssl_client_add, NULL, NULL,
 	                                ssl_client_get, NULL);
 	CALL_CTX(add_server_custom_ext)(ctx, 1000, ssl_server_add, NULL, NULL, 

@@ -5,8 +5,10 @@
 #include <sys/cpu.h>
 #include <sys/dll.h>
 #include <mem/pool.h>
-
 #include <sys/log.h>
+
+#include <aaa/lib.h>
+#include <aaa/prv.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -34,6 +36,7 @@ struct ovpn_ctxt {
 struct ovpn_sess {
 	struct mm_pool *mp;
 	struct mm_pool *mp_api;
+	struct aaa *aaa;
 };
 
 plugin_log_t ovpn_log = NULL;
@@ -103,6 +106,8 @@ openvpn_plugin_open_v3(const int version,
 	const char *protocol  = envp_get("openaaa_protocol", args->envp);
 	const char *handler   = envp_get("openaaa_handler", args->envp);
 	const char *authority = envp_get("openaaa_authority", args->envp);
+	const char *verbose   = envp_get("openaaa_verbose", args->envp);
+	const char *service   = envp_get("openaaa_service", args->envp);
 
 	if (protocol)
 		setenv("OPENAAA_PROTOCOL", protocol, 1);
@@ -110,6 +115,10 @@ openvpn_plugin_open_v3(const int version,
 		setenv("OPENAAA_HANDLER", handler, 1);
 	if (authority)
 		setenv("OPENAAA_AUTHORITY", authority, 1);
+	if (verbose)
+		setenv("OPENAAA_VERBOSE", verbose, 1);
+	if (service)
+		setenv("OPENAAA_SERVICE", service, 1);
 
 	ovpn->mp_api = mm_pool_create(CPU_PAGE_SIZE, 0);
 	ovpn->mp = mp;
@@ -143,12 +152,14 @@ EXPORT(void *)
 openvpn_plugin_client_constructor_v1(openvpn_plugin_handle_t handle)
 {
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
-
-	//struct ovpn_ctxt *ovpn = (struct ovpn_ctxt *)handle;
+	struct ovpn_ctxt *ovpn = (struct ovpn_ctxt *)handle;
         struct ovpn_sess *sess = mm_pool_alloc(mp, sizeof(*sess));
 
 	sess->mp = mp;
         sess->mp_api = mm_pool_create(CPU_PAGE_SIZE, 0);
+
+	if (ovpn->type == VPN_SERVER)
+		sess->aaa = aaa_new(0,0);
 	debug1("client constructor");
 	return (void *)sess;
 }
@@ -158,6 +169,9 @@ openvpn_plugin_client_destructor_v1(openvpn_plugin_handle_t handle, void *ctx)
 {
 	//struct ovpn_ctxt *ovpn = (struct ovpn_ctxt *)handle;
 	struct ovpn_sess *sess = (struct ovpn_sess *)ctx;
+
+	if (sess->aaa)
+		aaa_free(sess->aaa);
 
 	mm_pool_destroy(sess->mp_api);
 	mm_pool_destroy(sess->mp);
@@ -180,8 +194,9 @@ openvpn_plugin_func_v3(const int version,
                        struct openvpn_plugin_args_func_in const *args,
                        struct openvpn_plugin_args_func_return *ret)
 {
-	//struct ovpn_ctxt *ovpn = (struct ovpn_ctxt *)args->handle;
-	//struct ovpn_sess *sess = (struct ovpn_sess *)args->per_client_context;
+	struct ovpn_ctxt *ovpn = (struct ovpn_ctxt *)args->handle;
+	struct ovpn_sess *sess = (struct ovpn_sess *)args->per_client_context;
+	struct aaa *aaa = sess->aaa;
 
 	switch(args->type) {
 	case OPENVPN_PLUGIN_ENABLE_PF:
@@ -204,7 +219,30 @@ openvpn_plugin_func_v3(const int version,
 		debug1("tls verify");
 		return OPENVPN_PLUGIN_FUNC_SUCCESS;
 	case OPENVPN_PLUGIN_TLS_FINAL:
-		debug1("aaa tls server authentication");
+		if (ovpn->type != VPN_SERVER)
+			return OPENVPN_PLUGIN_FUNC_SUCCESS;
+
+		const char *key = envp_get("exported_keying_material", args->envp);
+		info("key=%s", key);
+
+		if (!key || !*key)
+			return OPENVPN_PLUGIN_FUNC_ERROR;
+
+		aaa_reset(aaa);
+		aaa_attr_set(aaa, "sess.id", key);
+
+		int rv = aaa_bind(aaa);
+		debug("bind():%d", rv);
+
+		if (rv < 0)
+			return OPENVPN_PLUGIN_FUNC_ERROR;
+
+		const char *uid = aaa_attr_get(aaa, "user.id");
+		if (!uid || !*uid)
+			return OPENVPN_PLUGIN_FUNC_ERROR;
+
+		info("user.id=%s authenticated", uid);
+
 		return OPENVPN_PLUGIN_FUNC_SUCCESS;
 	default:
 		goto failed;
