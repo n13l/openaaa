@@ -16,7 +16,6 @@
 #include <unistd.h>
 
 #include <crypto/abi/lib.h>
-
 #include <modules/openvpn/plugin.h>
 
 #define OVPN_MASK OPENVPN_PLUGIN_MASK
@@ -108,6 +107,8 @@ openvpn_plugin_open_v3(const int version,
 	const char *authority = envp_get("openaaa_authority", args->envp);
 	const char *verbose   = envp_get("openaaa_verbose", args->envp);
 	const char *service   = envp_get("openaaa_service", args->envp);
+	const char *group     = envp_get("openaaa_group", args->envp);
+	const char *role      = envp_get("openaaa_role", args->envp);
 
 	if (protocol)
 		setenv("OPENAAA_PROTOCOL", protocol, 1);
@@ -119,6 +120,10 @@ openvpn_plugin_open_v3(const int version,
 		setenv("OPENAAA_VERBOSE", verbose, 1);
 	if (service)
 		setenv("OPENAAA_SERVICE", service, 1);
+	if (group)
+		setenv("OPENAAA_GROUP", group, 1);
+	if (role)
+		setenv("OPENAAA_ROLE", role, 1);
 
 	ovpn->mp_api = mm_pool_create(CPU_PAGE_SIZE, 0);
 	ovpn->mp = mp;
@@ -143,6 +148,8 @@ openvpn_plugin_open_v3(const int version,
 
 	ret->type_mask = ovpn->mask;
 	ret->handle = (void *)ovpn;
+
+	crypto_handshake_asynch(1);
 	crypto_lookup();
 	return OPENVPN_PLUGIN_FUNC_SUCCESS;
 }
@@ -222,28 +229,31 @@ openvpn_plugin_func_v3(const int version,
 		if (ovpn->type != VPN_SERVER)
 			return OPENVPN_PLUGIN_FUNC_SUCCESS;
 
+		const char *uid = NULL;
 		const char *key = envp_get("exported_keying_material", args->envp);
 		info("key=%s", key);
 
 		if (!key || !*key)
 			return OPENVPN_PLUGIN_FUNC_ERROR;
 
-		aaa_reset(aaa);
-		aaa_attr_set(aaa, "sess.id", key);
+		for (int i = 0; i < 10; i++) {
+			aaa_reset(aaa);
+			aaa_attr_set(aaa, "sess.id", key);
+			aaa_bind(aaa);
 
-		int rv = aaa_bind(aaa);
-		debug("bind():%d", rv);
+			uid = aaa_attr_get(aaa, "user.id");
+			info("checking for user %s", uid ? "yes": "no");
+			if (uid && *uid) {
+				const char *vpn = aaa_attr_get(aaa, "vpn");
+				info("attribute vpn=%s", vpn);
+				return vpn ? OPENVPN_PLUGIN_FUNC_SUCCESS: OPENVPN_PLUGIN_FUNC_ERROR;
+			}
 
-		if (rv < 0)
-			return OPENVPN_PLUGIN_FUNC_ERROR;
+			sleep(1);
 
-		const char *uid = aaa_attr_get(aaa, "user.id");
-		if (!uid || !*uid)
-			return OPENVPN_PLUGIN_FUNC_ERROR;
+		}
 
-		info("user.id=%s authenticated", uid);
-
-		return OPENVPN_PLUGIN_FUNC_SUCCESS;
+		return OPENVPN_PLUGIN_FUNC_ERROR;
 	default:
 		goto failed;
 	}
