@@ -62,13 +62,13 @@ test1_list(void)
 	list_add(&list, &robot.node);
 
 	/* iterate over all objects */
-	list_for_each(n, list) {
+	list_for_each(list, n) {
 		struct person *p = __container_of(n, struct person, node);
 		debug("node=%p person=%p name=%s", n, p, p->name);
 	}
 
 	/* iterate and unlink adam */
-	list_for_each_delsafe(n, list) {
+	list_for_each_delsafe(list, n) {
 		struct person *p = __container_of(n, struct person, node);
 		if (!strcmp(p->name, "Adam"))
 			list_del(&p->node);
@@ -110,7 +110,7 @@ test2_list(void)
 	list_add(&list, LIST_ITEM(eve, node));
 	list_add(&list, LIST_ITEM(robot, node));
 
-	list_for_each_delsafe(n, list)
+	list_for_each_delsafe(list, n)
 		list_del(n);
 }
 

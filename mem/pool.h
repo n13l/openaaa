@@ -11,7 +11,6 @@
 #include <mem/block.h>
 #include <mem/generic.h>
 
-#include <unix/timespec.h>
 #include <list.h>
 #include <inttypes.h>
 #include <assert.h>
@@ -285,6 +284,15 @@ _unused static char *
 mm_pool_strdup(struct mm_pool *p, const char *str)
 {
 	size_t len = strlen(str);
+	char *s = mm_pool_alloc(p, len + 1);
+	memcpy(s, str, len);
+	s[len] = 0;
+	return s;
+}
+
+_unused static char *
+mm_pool_strndup(struct mm_pool *p, const char *str, size_t len)
+{
 	char *s = mm_pool_alloc(p, len + 1);
 	memcpy(s, str, len);
 	s[len] = 0;

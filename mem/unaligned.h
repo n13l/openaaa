@@ -23,6 +23,12 @@ put_u32_be(void *p, u32 x) { *(u32 *)p = x; }
 static inline void
 put_u64_be(void *p, u64 x) { *(u64 *)p = x; } 
 
+static inline u16
+cpu_be16(u16 x){return x;}
+
+static inline u16
+be16_cpu(u16 x){return x;}
+ 
 static inline u32
 cpu_be32(u32 x){return x;}
 
@@ -76,9 +82,15 @@ put_u64_be(void *p, u64 x)
 	put_u32_be((byte *)p+4, x);
 }
 
+static inline u16                                                               
+cpu_be16(u16 x){u16 u; put_u16_be(&u, x); return u; }                          
+
 static inline u32                                                               
 cpu_be32(u32 x){u32 u; put_u32_be(&u, x); return u; }                          
-                                                                                
+
+static inline u16
+be16_cpu(u16 x){return get_u16_be(&x); }
+                                                                               
 static inline u32                                                               
 be32_cpu(u32 x){return get_u32_be(&x); }
 
@@ -188,7 +200,7 @@ static inline u64
 get_u40(const void *p) { return get_u40_be(p); }
 
 static inline void
-put_u16(void *p, uns x) { put_u16_be(p, x); }
+put_u16(void *p, u16 x) { put_u16_be(p, x); }
 
 static inline void
 put_u32(void *p, u32 x) { put_u32_be(p, x); }

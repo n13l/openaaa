@@ -30,6 +30,8 @@
 #define DECLARE_LIST(name)   struct list name = INIT_LIST(name)
 #define DECLARE_NODE(name)   struct node name = INIT_NODE
 
+#define DEFINE_LIST(name)    struct list name
+
 #define DECLARE_ITEM(type1, node, ...) \
 ({ \
 	type1 __o = (type1) { .node = INIT_NODE, ## __VA_ARGS__ }; \
@@ -155,7 +157,7 @@ list_del(struct node *node)
 #define __list_walk_first_delsafe(N) (N)
 #define __list_walk_next_delsafe(N) (N)
 
-#define list_for_first(list) (list).head.next
+#define list_for_first(__list) (__list).head.next
 #define list_for_head(list) &(list).head
 #define list_for_last(list, node) &(it->node) != &(list).head
 
@@ -166,23 +168,23 @@ list_del(struct node *node)
 	for (struct node *it, *(n) = (start); it = (n)->next, \
 	     (n) != &list.head; (n) = it)
 
-#define list_for_each(n, list) \
+#define list_for_each(list, n) \
 	for (struct node *(n) = (list).head.next; (n) != &(list).head; (n) = (n)->next)
 
-#define list_for_each_delsafe(n, list) \
+#define list_for_each_delsafe(list, n) \
 	for (struct node *it, *(n) = (list).head.next; \
 		(it) = (n)->next, (n) != &(list).head; (n) = it)
 
-#define list_for_each_item(list, it, node) \
-	for ((it) = __container_of(list_for_first(list), typeof(*it), node); \
-	     &(it->node) != &(list).head; \
-	     (it) = __container_of(it->node.next, typeof(*it), node))
+#define list_for_each_item(__list, __it, __node) \
+	for ((__it) = __container_of(list_for_first(__list), typeof(*__it), __node); \
+	     &(__it->__node) != &(__list).head; \
+	     (__it) = __container_of(__it->__node.next, typeof(*__it), __node))
 
 static inline unsigned int
 list_size(struct list *list)
 {
 	unsigned int size = 0;
-	list_for_each(node, (*list))
+	list_for_each((*list), node)
 		size++;
 
 	return size;

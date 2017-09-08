@@ -37,7 +37,6 @@
 #include <mem/pool.h>
 #include <mem/generic.h>
 
-#include <unix/timespec.h>
 #include <list.h>
 
 #include <assert.h>

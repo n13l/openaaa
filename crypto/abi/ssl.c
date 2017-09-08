@@ -1004,7 +1004,7 @@ DEFINE_CTX_CALL(set_alpn_protos)(SSL_CTX *ctx, const unsigned char *data, unsign
 void
 symbol_print(void)
 {
-	list_for_each(n, openssl_symtab) {
+	list_for_each(openssl_symtab, n) {
 		struct symbol *p = container_of(n, struct symbol, node);
 		debug("name=%s abi=%p plt=%p", p->name, p->abi, p->plt);
 		if (!p->abi)

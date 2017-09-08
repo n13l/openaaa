@@ -63,7 +63,7 @@ struct symbol {
 #define CALL_CTX(fn) plt_SSL_CTX_##fn.plt_SSL_CTX_##fn
 
 #define IMPORT_ABI(fn) \
-	list_for_each(n, ssl_module_list) { \
+	list_for_each(ssl_module_list, n) { \
 		struct ssl_module *ssl_module = __container_of(n, struct ssl_module, node); \
 		if (!ssl_module->dll) continue; \
 		plt_##fn.plt_##fn = dlsym(ssl_module->dll, stringify(fn)); \

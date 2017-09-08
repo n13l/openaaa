@@ -12,6 +12,9 @@ struct mmap_operations {
 };
 
 void *
+mmap_file(const char *name, int flags, mode_t mode, int prot, size_t *rsize);
+
+void *
 mmap_open(const char *name, int mode, u32 shift, u32 pages);
 
 void

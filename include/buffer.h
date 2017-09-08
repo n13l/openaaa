@@ -63,4 +63,13 @@ void bb_strmemcat(struct bb *bb, const char *str, size_t len);
 
 #define bb_strcat(bb, str) bb_strmemcat(bb, str, strlen(str))
 
+static inline void *
+bb_unpack(struct bb *bb, size_t size)
+{
+	byte *p = (byte *)bb->addr;
+	bb->addr += size;
+	bb->len  -= size;
+	return p;
+}
+
 #endif/*__BYTEBUFFER_FILE_LIB_H__*/

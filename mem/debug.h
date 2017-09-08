@@ -28,7 +28,6 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/log.h>
-#include <unix/timespec.h>
 
 #define MM_ADDR_POISON1  ((void *) 0x00100100)
 #define MM_ADDR_POISON2  ((void *) 0x00200200)

@@ -48,6 +48,33 @@ vm_area_file_trunc(int fd, unsigned long size)
 }
 */
 
+void *
+mmap_file(const char *name, int flags, mode_t mode, int prot, size_t *rsize)
+{
+	void *addr = MAP_FAILED;
+	int fd = -1;
+
+	if ((fd = open(name, mode, flags)) == -1)
+		goto failed;
+
+        struct stat st;
+        if (fstat(fd, &st))
+		goto failed;
+        if (!S_ISREG(st.st_mode))
+		goto failed;
+
+	*rsize = align_to(st.st_size, CPU_PAGE_SIZE);
+        if ((addr = mmap(NULL, *rsize, prot, mode, fd, 0)) == MAP_FAILED)
+		goto failed;
+
+failed:
+	if (fd > 0)
+        	close(fd);
+
+	return addr;
+}
+
+
 static inline u64
 vm_area_size(u32 shift, u32 total)
 {

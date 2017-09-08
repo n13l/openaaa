@@ -22,8 +22,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef __GENERIC_ATTR_H__
-#define __GENERIC_ATTR_H__
+#ifndef __GENERIC_DICT_H__
+#define __GENERIC_DICT_H__
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>

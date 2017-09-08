@@ -40,7 +40,23 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 	int len = vsnprintf(msg, sizeof(msg) - 2, fmt, args2);
 	va_end(args2);
 
-	const char *module = printfa("%s:%s", ctx->module, ctx->fn);
+	static struct timeval start = {0};
+	static int started = 1;
+	struct timeval now;
+
+	if (started)
+		gettimeofday(&start, NULL);
+
+	gettimeofday(&now, NULL);
+
+	if (started)
+		started = 0;
+/*
+	const char *module = printfa("%08u.%06u %s:%s", now.tv_sec - start.tv_sec, 
+	                    now.tv_usec, ctx->module, ctx->fn);
+*/
+	const char *module = printfa("%08u.%06u ", now.tv_sec - start.tv_sec, 
+	                    now.tv_usec);
 
 	ctx->user = log_userdata;
 	if (len < 1)
@@ -52,8 +68,12 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 		int pid = getpid();
 		int tid = gettid();
 		byte amsg[512];
+/*
 		snprintf(amsg, sizeof(amsg) - 1, "%.8d:%.8d %s %s\n",
 		         pid, tid, module, msg);
+*/		snprintf(amsg, sizeof(amsg) - 1, "%s %s\n",
+		         module, msg);
+
 #ifdef WIN32
 		fprintf(stdout, "%s", amsg);
 		fflush(stdout);
