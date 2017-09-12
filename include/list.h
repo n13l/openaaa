@@ -27,6 +27,11 @@
 #ifndef __GENERIC_LIST_H__
 #define __GENERIC_LIST_H__
 
+#include <sys/compiler.h>
+#include <sys/decls.h>
+
+__BEGIN_DECLS
+
 #define DECLARE_LIST(name)   struct list name = INIT_LIST(name)
 #define DECLARE_NODE(name)   struct node name = INIT_NODE
 
@@ -320,4 +325,7 @@ hlist_add(struct hnode *hnode, struct hnode *next)
 #define hlist_for_each_delsafe(node, it, list) \
 	for (node = hlist_first(list); it && ({it = pos->next; 1;}); node = it)
 */
+
+__END_DECLS
+
 #endif/*__GENERIC_LIST_H__*/

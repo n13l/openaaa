@@ -4,14 +4,15 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/log.h>
+#include <sys/decls.h>
 
-#include <mem/debug.h>
 #include <mem/alloc.h>
 #include <mem/savep.h>
 #include <mem/block.h>
 #include <mem/generic.h>
 
 #include <list.h>
+
 #include <inttypes.h>
 #include <assert.h>
 #include <string.h>
@@ -45,13 +46,15 @@ struct mm_pool {
 #endif	
 };
 
+__BEGIN_DECLS
+
 static inline void *
 __pool_alloc_block(struct mm_pool *pool, size_t size)
 {
 	struct mm_vblock *block;
 	size_t aligned = align_to(size, CPU_ADDR_ALIGN);
 
-	block = vm_vblock_alloc(aligned);
+	block = (struct mm_vblock *)vm_vblock_alloc(aligned);
 	slist_add((struct snode *)pool->save.final[1], &block->node);
 
 	pool->index = 1;
@@ -93,15 +96,15 @@ mm_pool_destroy(struct mm_pool *pool)
 	struct mm_vblock *it, *block;
 	mem_pool_dbg("pool %p destroyed", pool);
 
-	block = pool->save.final[1];
+	block = (struct mm_vblock *)pool->save.final[1];
 	slist_for_each_delsafe(block, node, it)
 		vm_vblock_free(block);
 
-	block = pool->avail;
+	block = (struct mm_vblock *)pool->avail;
 	slist_for_each_delsafe(block, node, it)
 		vm_vblock_free(block);
 
-	block = pool->save.final[0];
+	block = (struct mm_vblock *)pool->save.final[0];
 	slist_for_each_delsafe(block, node, it)
 		vm_vblock_free(block);
 }
@@ -111,15 +114,15 @@ mm_pool_flush(struct mm_pool *pool)
 {
 	struct mm_vblock *it, *block;
 
-	block = pool->save.final[1];
+	block = (struct mm_vblock *)pool->save.final[1];
 	slist_for_each_delsafe(block, node, it)
 		vm_vblock_free(block);
 
-	block = pool->save.final[0];
+	block = (struct mm_vblock *)pool->save.final[0];
 	slist_for_each_delsafe(block, node, it) {
 		if ((void *)((u8*)block - block->size) == pool)
 			break;
-		slist_add(pool->avail, &block->node);
+		slist_add((struct snode *)pool->avail, &block->node);
 		pool->avail = block;
 	}
 
@@ -141,8 +144,8 @@ mm_pool_create(size_t blocksize, int flags)
 	size = max(blocksize, CPU_CACHE_LINE + aligned);
 	size = align_to(size, CPU_PAGE_SIZE) - aligned;
 
-	block = vm_vblock_alloc(size);
-	struct mm_pool *pool = (void *)((u8 *)block - size);
+	block = (struct mm_vblock *)vm_vblock_alloc(size);
+	struct mm_pool *pool = (struct mm_pool *)((u8 *)block - size);
 
 	mem_pool_dbg("pool %p created with %u bytes", 
 	             pool, (unsigned int)blocksize);
@@ -212,7 +215,7 @@ mm_pool_extend(struct mm_pool *mp, size_t size)
 
 		//size_t aligned = align_addr(sizeof(*block)) + amortized;
 		//ptr = vm_vblock_extend(ptr, aligned);
-		block = ptr + amortized;
+		block = (struct mm_vblock *)(((u8*)ptr) + amortized);
 
 		block->node.next = (struct snode *)next;
 		block->size = amortized;
@@ -238,7 +241,7 @@ mm_pool_extend_one(struct mm_pool *mp)
 static char *
 mm_pool_vprintf_at(struct mm_pool *mp, size_t of, const char *fmt, va_list args)
 {
-	char *b = mm_pool_extend(mp, of + 1) + of;
+	char *b = (char *)mm_pool_extend(mp, of + 1) + of;
 
 	va_list args2;
 	va_copy(args2, args);
@@ -247,13 +250,13 @@ mm_pool_vprintf_at(struct mm_pool *mp, size_t of, const char *fmt, va_list args)
 
 	if (len < 0) {
 		do {
-			b = mm_pool_extend_one(mp) + of;
+			b = (char *)mm_pool_extend_one(mp) + of;
 			va_copy(args2, args);
 			len = vsnprintf(b, mm_pool_avail(mp) - of, fmt, args2);
 			va_end(args2);
 		} while (len < 0);
 	} else if ((unsigned int)len >= mm_pool_avail(mp) - of) {
-		b = mm_pool_extend(mp, of + len + 1) + of;
+		b = (char *)mm_pool_extend(mp, of + len + 1) + of;
 		va_copy(args2, args);
 		vsnprintf(b, len + 1, fmt, args2);
 		va_end(args2);
@@ -284,7 +287,7 @@ _unused static char *
 mm_pool_strdup(struct mm_pool *p, const char *str)
 {
 	size_t len = strlen(str);
-	char *s = mm_pool_alloc(p, len + 1);
+	char *s = (char *)mm_pool_alloc(p, len + 1);
 	memcpy(s, str, len);
 	s[len] = 0;
 	return s;
@@ -293,10 +296,12 @@ mm_pool_strdup(struct mm_pool *p, const char *str)
 _unused static char *
 mm_pool_strndup(struct mm_pool *p, const char *str, size_t len)
 {
-	char *s = mm_pool_alloc(p, len + 1);
+	char *s = (char *)mm_pool_alloc(p, len + 1);
 	memcpy(s, str, len);
 	s[len] = 0;
 	return s;
 }
+
+__END_DECLS
 
 #endif

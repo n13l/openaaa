@@ -29,9 +29,12 @@
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
+#include <sys/decls.h>
 #include <mem/debug.h>
 #include <mem/vm.h>
 #include <list.h>
+
+__BEGIN_DECLS
 
 /* fixed-size memory block    */
 struct mm_block {
@@ -48,7 +51,7 @@ struct mm_vblock {
 static inline void *
 vm_vblock_alloc(size_t size)
 {
-	struct mm_vblock *b = vm_page_alloc(size + align_addr(sizeof(*b)));
+	struct mm_vblock *b = (struct mm_vblock *)vm_page_alloc(size + align_addr(sizeof(*b)));
 	b = (struct mm_vblock *)((u8 *)b + size);
 	b->size = size;
 	snode_init(&b->node);
@@ -65,7 +68,7 @@ vm_vblock_free(struct mm_vblock *b)
 static inline void *
 vm_vblock_extend(void *addr, size_t osize, size_t size)
 {
-	struct mm_vblock *b = vm_page_extend(addr, osize, size + align_addr(sizeof(*b)));
+	struct mm_vblock *b = (struct mm_vblock *)vm_page_extend(addr, osize, size + align_addr(sizeof(*b)));
 	b = (struct mm_vblock *)((u8 *)b + size);
 	b->size = size;
 	snode_init(&b->node);
@@ -76,7 +79,7 @@ vm_vblock_extend(void *addr, size_t osize, size_t size)
 static inline void *
 libc_vblock_alloc(size_t size)
 {
-	struct mm_vblock *b = malloc(size + align_addr(sizeof(*b)));
+	struct mm_vblock *b = (struct mm_vblock *)malloc(size + align_addr(sizeof(*b)));
 	b = (struct mm_vblock *)((u8 *)b + size);
 	b->size = size;
 	snode_init(&b->node);
@@ -99,5 +102,7 @@ mm_vblock_destroy(struct mm_vblock *block)
 		vm_vblock_free(block);
 */		
 }
+
+__END_DECLS
 
 #endif

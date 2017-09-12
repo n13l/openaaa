@@ -19,12 +19,12 @@ typedef unsigned int uint;            /* Shorter type for unsigned int       */
 typedef u64          timestamp_t;     /* Milliseconds since an unknown epoch */
 
 #ifdef __CHECKER__
-#define bitwise __attribute__((bitwise))
+#define __bitwise __attribute__((bitwise))
 #else
-#define bitwise
+#define __bitwise
 #endif
 #ifdef __CHECK_ENDIAN__
-#define endian_bitwise bitwise
+#define endian_bitwise __bitwise
 #else
 #define endian_bitwise
 #endif

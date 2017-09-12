@@ -28,8 +28,10 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/log.h>
-#include <mem/debug.h>
-#include <list.h>
+#include <sys/decls.h>
+#include <include/list.h>
+
+__BEGIN_DECLS
 
 struct mm_savep {
 	size_t avail[2];
@@ -48,4 +50,5 @@ mm_savep_dump(struct mm_savep *savep)
 */		
 }
 
+__END_DECLS
 #endif
