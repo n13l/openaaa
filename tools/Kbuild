@@ -1,1 +1,2 @@
 testprogs-y := sysconfig
+testprogs-y := tnc

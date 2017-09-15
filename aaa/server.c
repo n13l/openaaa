@@ -49,13 +49,13 @@
 
 #include <sys/ev/ev.c>
 
-sig_atomic_t request_shutdown = 0;
-sig_atomic_t request_restart  = 0;
-sig_atomic_t request_info     = 0;
+static sig_atomic_t request_shutdown = 0;
+static sig_atomic_t request_restart  = 0;
+static sig_atomic_t request_info     = 0;
 
-int sched_processes           = 1;
-int sched_workers             = 4;
-int sched_gracefull_timeout   = 15; /* wait maximum 15secs for subprocesses */
+static int sched_processes           = 1;
+static int sched_workers             = 4;
+static int sched_gracefull_timeout   = 15; /* wait maximum 15secs for subprocesses */
 
 enum task_type {
 	TASK_TYPE_NONE    = 0,
