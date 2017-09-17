@@ -50,6 +50,8 @@ env:
       #    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=sid PACK=deb
 matrix:
   allow_failures:
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=win32 PACK=none
+    - env: BUILD_DEPLOY=1 BUILD_TARGET=win64 PACK=none
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=24 PACK=rpm
