@@ -31,6 +31,13 @@ Group: Applications/System
 %description pkcs11
 OpenAAA PKCS#11 Bridge
 
+%package apache2
+Summary: OpenAAA Apache2 Module
+Group: Applications/System
+%description apache2
+OpenAAA Apache2 Module
+
+
 %prep
 %setup -q
 
@@ -66,3 +73,7 @@ rm -rf %{buildroot}
 %files pkcs11
 %defattr(-, root, root)
 %{_libdir}/openaaa/modules/pkcs11*
+
+%files apache2
+%defattr(-, root, root)
+%{_libdir}/openaaa/modules/mod_aaa*
