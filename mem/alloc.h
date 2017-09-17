@@ -97,15 +97,13 @@ extern struct mm_pool  *MM_POOL;
 /*
  * Type-generic macro
  *
- * mm_alloc - allocate memory buffer from stack, pool or heapp
+ * mm_alloc - allocate memory buffer from stack, pool or heap
  * @mm Optional opaque object representing the memory context
  * @size size of buffer
  */
 
 #define mm_alloc(... /* mm, size */) \
 	({ void *_X = mm_alloc_dispatch(__VA_ARGS__); _X; })
-
-#define mm_calloc(mm, size, elems)
 
 #define mm_zalloc(...) /* mm, size */ \
 	({ void *_X = mm_zalloc_dispatch(__VA_ARGS__); _X; })

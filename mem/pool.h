@@ -141,7 +141,7 @@ mm_pool_create(size_t blocksize, int flags)
 	struct mm_vblock *block;
 	size_t size, aligned = align_addr(sizeof(*block));
 
-	size = max(blocksize, CPU_CACHE_LINE + aligned);
+	size = __max(blocksize, CPU_CACHE_LINE + aligned);
 	size = align_to(size, CPU_PAGE_SIZE) - aligned;
 
 	block = (struct mm_vblock *)vm_vblock_alloc(size);
@@ -205,7 +205,7 @@ mm_pool_extend(struct mm_pool *mp, size_t size)
 	void *ptr = mm_pool_addr(mp);
 	if (mp->index) {
 		size_t amortized = avail * 2;
-		amortized = max(amortized, size);
+		amortized = __max(amortized, size);
 		amortized = align_to(amortized, CPU_ADDR_ALIGN);
 
 		struct mm_vblock *block = (struct mm_vblock *)mp->save.final[1];

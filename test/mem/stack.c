@@ -6,7 +6,7 @@
 int 
 main(int argc, char *argv[]) 
 {
-	/* implicit stack allocation */
+	/* explicit stack allocation */
 	_unused void *addr2 = zalloca(1024);
 	_unused const char *v = printfa("hi=%d",1);
 

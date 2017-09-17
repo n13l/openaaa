@@ -23,12 +23,9 @@
 #ifndef __MEM_PAGE_H__
 #define __MEM_PAGE_H__
 
-//#include <stdbool.h>
-//#include <string.h>
-//#include <errno.h>
-
 #include <sys/compiler.h>
 #include <sys/cpu.h>
+#include <sys/decls.h>
 #include <sys/mman.h>
 #include <mem/alloc.h>
 
@@ -37,6 +34,8 @@
 #define PAGE_HDR_MAGIC 0x40000000
 #define PAGE_HDR_FREE  0xffffffff
 #define PAGE_HDR_PART  0x80000000 /* bit mask for page parts */
+
+__BEGIN_DECLS
 
 struct page;
 
@@ -197,5 +196,7 @@ mb2pages(uint32_t shift, unsigned long mb)
 	for (type p   = (type)get_page(map, 0), \
 	       *__x   = (type)get_page(map, map->total); \
 	    p < __x;p = (type)((byte*)p + (1U << map->shift)))
+
+__END_DECLS
 
 #endif/*__MEM_PAGE_H__*/

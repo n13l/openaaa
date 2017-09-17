@@ -27,13 +27,16 @@ main(int argc, char *argv[])
 	/* explicit stack allocation */
 	_unused void *addr1 = mm_pool_alloc(mp, 1024);
 	/* implicit stack allocation */
-	//_unused void *addr2 = mm_alloc(1024);
+	// _unused void *addr2 = mm_alloc(1024);
+/*
+	_unused void *addr3 = mm_zalloc(1024);
+	_unused void *addr4 = mm_zalloc(mp, 1024);
 
-	//debug("stack alloc addr1=%p", addr1);
-	//debug("stack alloc addr2=%p", addr2);
-	
+	char *s = mm_strdup(mp, "hi");
+
 	debug("zero args: %d", macro_args_count());
 	debug("three args: %d", macro_args_count(1, 2, 3, 4));
+	*/
 	//mm_destroy(mp);
 	return 0;
 }

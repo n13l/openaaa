@@ -90,8 +90,7 @@ do { \
 	char *_X = NULL; \
 	size_t _SIZE = strlen(str); \
 	if_pointer_of(mm, struct mm_pool) { \
-		_X = mm_pool_alloc((struct mm_pool *)mm, _SIZE + 1); \
- 	        memcpy(_X, str, _SIZE); _X[_SIZE] = 0; \
+		_X = (char *)mm_pool_strdup((struct mm_pool *)mm, _SIZE); \
 	}\
 	_X; \
 })

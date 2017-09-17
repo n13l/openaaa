@@ -1,10 +1,3 @@
-/*
- * $id: sys/missing.h                                Daniel Kubec <niel@rtfm.cz>
- *
- * This software may be freely distributed and used according to the terms
- * of the GNU Lesser General Public License.
- */
-
 #ifndef __PORTABLE_SYS_MISSING_H__
 #define __PORTABLE_SYS_MISSING_H__
 

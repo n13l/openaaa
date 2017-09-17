@@ -5,6 +5,8 @@
 #include <sys/cpu.h>
 #include <mem/alloc.h>
 
+__BEGIN_DECLS
+
 void *
 vm_page_reserve(void);
 
@@ -19,5 +21,7 @@ vm_page_inquire(void *addr);
 
 void *
 vm_page_extend(void *page, size_t olen, size_t size);
+
+__END_DECLS
 
 #endif

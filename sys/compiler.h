@@ -99,8 +99,8 @@ typedef u32 endian_bitwise wsum;
 #define min(a,b) (((a)<(b))?(a):(b))
 #endif
 
-#ifndef max
-#define max(a,b) (((a)>(b))?(a):(b))
+#ifndef __max
+#define __max(a,b) (((a)>(b))?(a):(b))
 #endif
 
 #define rol(x, bits) \
@@ -289,6 +289,14 @@ typedef u32 endian_bitwise wsum;
 /* IBM XL C/C++ */
 #if defined(__IBMCPP__) || defined(__xlC__) || defined(__xlc__)
 /* http://www-01.ibm.com/support/docview.wss?uid=swg27039015 */
+
+#ifndef __IBM_MACRO_WITH_VA_ARGS
+#error "requires support for variadic macro extensions."
+#endif
+#ifndef __IBM__TYPEOF__
+#error "requires support for the __typeof__ or typeof keyword."
+#endif
+
 #ifdef KBUILD_STR
 #undef KBUILD_STR
 #endif
