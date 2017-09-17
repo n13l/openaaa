@@ -9,6 +9,14 @@
 #include <errno.h>
 #include <time.h>
 
+#if 0
+#define LOG_PID       (1 << 1)
+#define LOG_TID       (1 << 2)
+#define LOG_USER      (1 << 3)
+#define LOG_MODULE    (1 << 4)
+#define LOG_TIMESTAMP (1 << 5)
+#endif
+
 /*
  * https://tools.ietf.org/html/rfc5424
  *
