@@ -52,6 +52,10 @@ for arg in $* ; do
     -Wno-format-security) ;;
     -Wno-char-subscripts) ;;
     -Wstrict-prototypes) ;;
+    -Wno-unused-value) ;;
+    -Wno-unused-function) ;;
+    -Wno-comment) ;; 
+    -Wno-parentheses) ;;
     -print-file-name) ;;
     -dumpmachine)
       printf "aix\n"
