@@ -53,9 +53,9 @@ static sig_atomic_t request_shutdown = 0;
 static sig_atomic_t request_restart  = 0;
 static sig_atomic_t request_info     = 0;
 
-static int sched_processes           = 1;
-static int sched_workers             = 4;
-static int sched_gracefull_timeout   = 15; /* wait maximum 15secs for subprocesses */
+_unused static int sched_processes           = 1;
+_unused static int sched_workers             = 4;
+_unused static int sched_gracefull_timeout   = 15; /* wait maximum 15secs for subprocesses */
 
 enum task_type {
 	TASK_TYPE_NONE    = 0,

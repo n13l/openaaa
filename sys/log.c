@@ -55,8 +55,8 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 	const char *module = printfa("%08u.%06u %s:%s", now.tv_sec - start.tv_sec, 
 	                    now.tv_usec, ctx->module, ctx->fn);
 */
-	const char *module = printfa("%08u.%06u ", now.tv_sec - start.tv_sec, 
-	                    now.tv_usec);
+	const char *module = printfa("%08u.%06u ", (unsigned int)(now.tv_sec - start.tv_sec), 
+	                    (unsigned int)now.tv_usec);
 
 	ctx->user = log_userdata;
 	if (len < 1)
@@ -65,8 +65,8 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 	if (log_write_cb) {
 		log_write_cb(ctx, msg, len);
 	} else {
-		int pid = getpid();
-		int tid = gettid();
+		_unused int pid = getpid();
+		_unused int tid = gettid();
 		byte amsg[512];
 /*
 		snprintf(amsg, sizeof(amsg) - 1, "%.8d:%.8d %s %s\n",

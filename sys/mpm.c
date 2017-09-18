@@ -25,9 +25,10 @@
 #ifndef WIN32
 #include <sys/ev/ev.c>
 #endif
-static sig_atomic_t request_shutdown = 0;
-static sig_atomic_t request_restart  = 0;
-static sig_atomic_t request_info     = 0;
+
+_unused static sig_atomic_t request_shutdown = 0;
+_unused static sig_atomic_t request_restart  = 0;
+_unused static sig_atomic_t request_info     = 0;
 
 /* processes or per_cpu should not be set together */
 int sched_processes                   = 1; 
