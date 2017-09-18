@@ -37,7 +37,7 @@ env:
     - BUILD_DEPLOY=1 BUILD_TARGET=osx PACK=none
     - BUILD_DEPLOY=1 BUILD_TARGET=win32 PACK=none
     - BUILD_DEPLOY=1 BUILD_TARGET=win64 PACK=none
-    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
+      #    - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=24 PACK=rpm
     - BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=25 PACK=rpm
@@ -52,7 +52,7 @@ matrix:
   allow_failures:
     - env: BUILD_DEPLOY=1 BUILD_TARGET=win32 PACK=none
     - env: BUILD_DEPLOY=1 BUILD_TARGET=win64 PACK=none
-    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
+      #    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=24 PACK=rpm
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=25 PACK=rpm
@@ -64,8 +64,8 @@ matrix:
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=stretch PACK=deb
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=sid PACK=deb
   exclude:
-    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
-      compiler: clang
+          #    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
+          #      compiler: clang
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
       compiler: clang
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=24 PACK=rpm
@@ -86,8 +86,8 @@ matrix:
       compiler: clang
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=debian DIST=sid PACK=deb
       compiler: clang
-    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
-      os: osx
+      #    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
+      #      os: osx
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
       os: osx
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=24 PACK=rpm
@@ -120,8 +120,8 @@ matrix:
       compiler: clang
     - env: BUILD_DEPLOY=1 BUILD_TARGET=win64 PACK=none
       compiler: clang
-    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
-      osx_image: xcode7.1
+      #    - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=6 PACK=rpm
+      #      osx_image: xcode7.1
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=el DIST=7 PACK=rpm
       osx_image: xcode7.1
     - env: BUILD_DEPLOY=1 BUILD_TARGET=linux OS=fedora DIST=24 PACK=rpm
