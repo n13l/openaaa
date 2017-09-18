@@ -6,7 +6,7 @@ License:        MIT
 Group:          Applications/System
 Source0:        %{name}-%{version}.tar.gz
 URL:            https://github.com/n13l/openaaa
-BuildRequires:  flex bison gperf pkgconfig swig java-1.8.0-openjdk-devel clang
+BuildRequires:  flex bison gperf pkgconfig swig java-1.8.0-openjdk-devel clang which
 
 %define debug_package %{nil}
 
@@ -47,7 +47,9 @@ make defconfig -j1 CC=clang
 make -j1 CC=clang
 
 %install
-make install INSTALL_PATH="%{buildroot}%" INSTALL_MOD_PATH="%{buildroot}%{_libdir}"
+echo "INSTALL_PATH=%{buildroot}%"
+echo "INSTALL_MOD_PATH=%{buildroot}%{_libdir}"
+make install INSTALL_PATH="%{buildroot}/usr" INSTALL_MOD_PATH="%{buildroot}%{_libdir}"
 make modules_install INSTALL_MOD_PATH="%{buildroot}%{_libdir}"
 find %{buildroot}
 
@@ -62,6 +64,7 @@ rm -rf %{buildroot}
 %files
 %defattr(-, root, root)
 %{_libdir}/*
+%{_bindir}/*
 
 %files java
 %defattr(-, root, root)
