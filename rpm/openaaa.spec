@@ -42,6 +42,7 @@ OpenAAA Apache2 Module
 %setup -q
 
 %build
+./scripts/java/home.sh linux
 make defconfig -j1 CC=clang
 make -j1 CC=clang
 
