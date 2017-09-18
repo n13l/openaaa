@@ -42,8 +42,8 @@ OpenAAA Apache2 Module
 %setup -q
 
 %build
-make defconfig -j1
-make -j1
+make defconfig -j1 CC=clang
+make -j1 CC=clang
 
 %install
 make install INSTALL_PATH="%{buildroot}%" INSTALL_MOD_PATH="%{buildroot}%{_libdir}"

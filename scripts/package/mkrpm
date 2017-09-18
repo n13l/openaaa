@@ -2,6 +2,8 @@
 PHASH=$(git rev-parse --short HEAD)
 VERSION="$(git describe --abbrev=0 --tags).$(git rev-parse --short HEAD)"
 transform="s,^\.,openaaa-$VERSION,"
+export CC=clang
+rpmbuild
 tar --exclude='.git*' --exclude='obj*' --transform $transform \
 	-czf $HOME/rpmbuild/SOURCES/openaaa-$VERSION.tar.gz .
 rpmbuild --define "_builddir $PWD/obj" \

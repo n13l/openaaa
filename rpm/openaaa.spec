@@ -31,12 +31,19 @@ Group: Applications/System
 %description pkcs11
 OpenAAA PKCS#11 Bridge
 
+%package apache2
+Summary: OpenAAA Apache2 Module
+Group: Applications/System
+%description apache2
+OpenAAA Apache2 Module
+
+
 %prep
 %setup -q
 
 %build
-make defconfig -j1
-make -j1
+make defconfig -j1 CC=clang
+make -j1 CC=clang
 
 %install
 make install INSTALL_PATH="%{buildroot}%" INSTALL_MOD_PATH="%{buildroot}%{_libdir}"
@@ -66,3 +73,7 @@ rm -rf %{buildroot}
 %files pkcs11
 %defattr(-, root, root)
 %{_libdir}/openaaa/modules/pkcs11*
+
+%files apache2
+%defattr(-, root, root)
+%{_libdir}/openaaa/modules/mod_aaa*
