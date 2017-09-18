@@ -22,8 +22,9 @@
 #define EV_AVOID_STDIO 0
 #define EV_NO_THREADS 0
 
+#ifndef WIN32
 #include <sys/ev/ev.c>
-
+#endif
 static sig_atomic_t request_shutdown = 0;
 static sig_atomic_t request_restart  = 0;
 static sig_atomic_t request_info     = 0;

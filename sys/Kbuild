@@ -1,3 +1,4 @@
+
 obj-y += $(PLATFORM)/ unix/ plt/ copt/
 obj-y += exit.o units.o log.o irq.o mpm.o
 obj-$(CONFIG_DEBUG_LIST) += list.o
