@@ -56,9 +56,23 @@ INTERFACE_PROLOGUE(libc, MAKE_VERSION(0,0,0))
 	INTERFACE_SYMBOL(libc, system, I_REQUIRE), 
 INTERFACE_EPILOGUE;
 */
+
+/*
+int
+cb(struct dl_phdr_info *dpi, size_t size, void *ptr)
+{
+	info("name=%s", dpi->dlpi_name);
+	return 0;
+}
+*/
+
 int 
 main(int argc, char *argv[]) 
 {
+	/*
+	dl_iterate_phdr(cb, NULL);
+	*/
+
 //	debug("interface: %s", libc.name);
 
 	//linkmap_add_interface();

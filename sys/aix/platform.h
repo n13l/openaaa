@@ -25,11 +25,9 @@ struct dl_phdr_info {
 int
 dladdr(void *addr, Dl_info *info);
 
-static int
-dl_iterate_phdr(int (*cb)(struct dl_phdr_info *, size_t size, void *ptr), void *ctx)
-{
-	return -1;
-}
+int
+dl_iterate_phdr(int (*cb)(struct dl_phdr_info *dpi, 
+		size_t size, void *ptr), void *ctx);
 
 
 #define off64_t off_t
@@ -47,6 +45,5 @@ struct timespec {
 
 int
 posix_clock_gettime(int clock_id, struct timespec *ts);
-
 
 #endif
