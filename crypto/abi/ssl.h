@@ -34,9 +34,12 @@
 #ifndef __ABI_OPENSSL_PLATFORM_H__
 #define __ABI_OPENSSL_PLATFORM_H__
 
-void ssl_init(void);
+#define	SSL_CAP_SCA 0x1
+
+int ssl_init(void);
 void ssl_init_ctxt(SSL_CTX *ctx);
 void ssl_init_conn(SSL *ssl);
+void ssl_set_caps(int cap);
 void ssl_get_sess_id(SSL *ssl, char *buf, int size);
 void ssl_info(const SSL *s, int where, int ret);
 

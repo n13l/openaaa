@@ -6,7 +6,6 @@
 #include <stdio.h>
 
 /*
- *
  * struct ld_xinfo
  *
  * __ptr64     ldinfo_textorg;          start of loaded program image

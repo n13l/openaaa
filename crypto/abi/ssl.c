@@ -62,6 +62,8 @@
 #include <crypto/abi/openssl/tls1.h>
 #include <crypto/abi/openssl/x509.h>
 
+#include <crypto/abi/ssl.h>
+
 #define SSL_USER_IDX 666
 #define SSL_SESS_SET(ssl, data) \
 	CALL_ABI(SSL_set_ex_data)(ssl, SSL_USER_IDX, data)
@@ -199,6 +201,8 @@ void *libcrypto = NULL;
 static int server_handshake_synch = 1;
 static int server_always          = 0;
 
+static int ssl_sca_enabled = 1;
+
 void
 ssl_info(const SSL *s, int where, int ret);
 
@@ -215,7 +219,7 @@ ssl_version(void)
 	byte patch = (version >> 12) & 0XFF;
 	byte dev   = (version >>  4) & 0XFF;
 
-	debug("openssl version=%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
+	debug4("openssl version=%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
 }
 
 static inline const char *
@@ -231,7 +235,7 @@ ssl_extensions(SSL *ssl, int c, int type, byte *data, int len, void *arg)
 	struct session *sp = SSL_SESS_GET(ssl);
 	sp->endpoint = c ? TLS_EP_CLIENT : TLS_EP_SERVER;
 
-	debug("extension name=%s type=%d, len=%d endpoint=%d", 
+	debug2("extension name=%s type=%d, len=%d endpoint=%d", 
 	       tls_strext(type), type, len, sp->endpoint);
 
 	ssl_cb.cb_ext ? ssl_cb.cb_ext(ssl, c, type, data, len, arg):({});
@@ -318,15 +322,15 @@ ssl_exportkeys(struct session *sp)
 	const byte *id = CALL_ABI(SSL_SESSION_get_id)(sess, &len);
 	
 	bind_key = evala(memhex, a->binding_key.addr, a->binding_key.len);
-	debug("tls_binding_key=%s", bind_key);
+	debug3("tls_binding_key=%s", bind_key);
 	bind_id = evala(memhex, a->binding_id.addr, a->binding_id.len);
-	debug("tls_binding_id=%s", bind_id);
+	debug3("tls_binding_id=%s", bind_id);
 	sess_id = evala(memhex, (char *)id, len);
 
 	/* tls_session_id is empty for tls tickets for client */
 	/* this is hack for no_session_id cases (vpn) */
 	if (sess_id && *sess_id)
-		debug("tls_session_id=%s", sess_id);
+		debug3("tls_session_id=%s", sess_id);
 	else
 		sess_id = bind_key;
 
@@ -445,6 +449,9 @@ ssl_server_add(SSL *s, uint type, const byte **out, size_t *len, int *al, void *
 
 	sp->endpoint = TLS_EP_SERVER;
 
+	if (!ssl_sca_enabled)
+		return 0;
+
 	dict_set(&sp->posted, "aaa.authority", aaa.authority);
 	dict_set(&sp->posted, "aaa.protocol",  aaa.protocol);
 	dict_set(&sp->posted, "aaa.version",   "1.0");
@@ -473,7 +480,7 @@ int
 ssl_server_get(SSL *s, uint type, const byte*in, size_t len, int *l, void *a)
 {
 	struct session *sp = session_get0(s);
-	debug("extension name=%s type=%d recv", tls_strext(type), type);
+	debug2("extension name=%s type=%d recv", tls_strext(type), type);
 
 	if (len && (type == TLS_EXT_SUPPLEMENTAL_DATA))
 		ssl_parse_attrs(sp, (char *)in, len);
@@ -489,6 +496,9 @@ ssl_client_add(SSL *s, unsigned int type, const byte **out, size_t *len,
 	struct mm_pool *mp = sp ? sp->mp : NULL;
 
 	sp->endpoint = TLS_EP_CLIENT;
+
+	if (!ssl_sca_enabled)
+		return 0;
 
 	dict_set(&sp->recved, "aaa.protocol", aaa.protocol);
 	dict_set(&sp->recved, "aaa.version",  "1.0");
@@ -519,7 +529,7 @@ ssl_client_get(SSL *ssl, unsigned int type, const byte *in, size_t len,
                  int *al, void *arg)
 {
 	struct session *sp = session_get0(ssl);
-	debug("extension name=%s type=%d recv", tls_strext(type), type);
+	debug2("extension name=%s type=%d recv", tls_strext(type), type);
 
 	if (len && (type == TLS_EXT_SUPPLEMENTAL_DATA))
 		ssl_parse_attrs(sp, (char *)in, len);
@@ -666,7 +676,7 @@ ssl_server_aaa(struct session *sp)
 
 //	ssl_setsession(sp);
 //
-	info("handshake_synch=%s",  server_handshake_synch ? "yes": "no");
+	debug2("handshake_synch=%s",  server_handshake_synch ? "yes": "no");
 
 	char *synch = "";
 #ifdef CONFIG_LINUX	
@@ -737,6 +747,7 @@ ssl_handshake0(const SSL *ssl)
 {
 
 }
+
 /* TLS Handshake phaze 1 */
 static void
 ssl_handshake1(const SSL *ssl)
@@ -746,22 +757,13 @@ ssl_handshake1(const SSL *ssl)
 	X509_NAME *x_subject, *x_issuer;
 	char *subject = NULL, *issuer = NULL;
 
-	ssl_derive_keys(sp);
-
-	const unsigned char *alpn = NULL;
-	unsigned int size = 0;
-	CALL_SSL(get0_alpn_selected)(ssl, &alpn, &size);
-
-	debug("%s checking for application-layer protocol negotiation: %s",
-	      endpoint, size ? strmema(alpn, size) : "No");
-
 	if (sp->endpoint == TLS_EP_SERVER) 
 		sp->cert = CALL_SSL(get_certificate)((SSL *)ssl);
 	else if (sp->endpoint == TLS_EP_CLIENT)
 		sp->cert = CALL_SSL(get_peer_certificate)((SSL *)ssl);
 	else goto cleanup;
 
-	debug("%s checking for server certificate: %s", 
+	debug2("%s checking for server certificate: %s", 
 	      endpoint, sp->cert ? "Yes" : "No");
 	if (!sp->cert)
 		goto cleanup;
@@ -771,8 +773,21 @@ ssl_handshake1(const SSL *ssl)
 	subject   = CALL_ABI(X509_NAME_oneline)(x_subject, NULL, 0);
 	issuer    = CALL_ABI(X509_NAME_oneline)(x_issuer,  NULL, 0);
 
-	debug("checking for subject: %s", subject);
-	debug("checking for issuer:  %s", issuer);
+	debug2("checking for subject: %s", subject);
+	debug2("checking for issuer:  %s", issuer);
+
+	if (!ssl_sca_enabled)
+		return;
+
+	ssl_derive_keys(sp);
+
+	const unsigned char *alpn = NULL;
+	unsigned int size = 0;
+	CALL_SSL(get0_alpn_selected)(ssl, &alpn, &size);
+
+	if (sp->endpoint)
+		debug2("%s checking for application-layer protocol negotiation: %s",
+		       endpoint, size ? strmema(alpn, size) : "No");
 
 	if (sp->endpoint == TLS_EP_SERVER) 
 		ssl_server_aaa(sp);
@@ -799,7 +814,7 @@ ssl_info_state(const SSL *s, const char *str)
 {
 	const char *state = CALL_SSL(state_string_long)(s);
 	char *d = printfa("%s:%s", str, state);
-	debug("msg:%s", d);
+	debug2("msg:%s", d);
 }
 
 static void
@@ -810,7 +825,7 @@ ssl_info_alert(int where, int rv)
 
 	char *v = printfa("alert %s:%s:%s", (where & SSL_CB_READ) ?
 	                    "read" : "write", type, desc);
-	debug("msg:%s", v);
+	debug2("msg:%s", v);
 }
 
 static void
@@ -818,7 +833,7 @@ ssl_info_failed(const SSL *s, const char *str, int rv)
 {
 	char *err = printfa("%s:failed in %s", str, CALL_SSL(state_string_long)(s));
 	const char *desc = ssl_get_value_desc(s, rv);
-	debug("msg:%s %s", err, desc);
+	debug2("msg:%s %s", err, desc);
 }
 
 static void
@@ -826,7 +841,7 @@ ssl_info_default(const SSL *s, const char *str, int rv)
 {
 	char *e = printfa("%s:error in %s", str, CALL_SSL(state_string_long)(s));
 	const char *desc = ssl_get_value_desc(s, rv);
-	debug("msg:%s %s", e, desc);
+	debug2("msg:%s %s", e, desc);
 }
 
 static void
@@ -889,20 +904,20 @@ void
 DEFINE_CTX_CALL(set_info_callback)(SSL_CTX *ctx, ssl_cb_info cb)
 {
 	ssl_cb.cb_info = cb;
-	debug("ctx=%p", ctx);
+	debug4("ctx=%p", ctx);
 }
 
 void
 DEFINE_SSL_CALL(set_info_callback)(SSL *ssl, ssl_cb_info cb)
 {
 	ssl_cb.cb_info = cb;
-	debug("ssl=%p", ssl);
+	debug4("ssl=%p", ssl);
 }
 
 long
 DEFINE_SSL_CALL(callback_ctrl)(SSL *ssl, int cmd, void (*fp)(void))
 {
-	debug("ssl=%p", ssl);
+	debug4("ssl=%p", ssl);
 	switch (cmd) {
 	case SSL_CTRL_SET_TLSEXT_DEBUG_CB:
 		ssl_cb.cb_ext    = (typeof(ssl_cb.cb_ext))fp;
@@ -918,11 +933,11 @@ DEFINE_SSL_CALL(callback_ctrl)(SSL *ssl, int cmd, void (*fp)(void))
 long
 DEFINE_CTX_CALL(callback_ctrl)(SSL_CTX *ctx, int cmd, void (*fp)(void))
 {
-	debug("ctx=%p", ctx);
+	debug4("ctx=%p", ctx);
 
 	switch (cmd) {
 	case SSL_CTRL_SET_TLSEXT_DEBUG_CB:
-		debug("SSL_CTRL_SET_TLSEXT_DEBUG_CB");
+		debug4("SSL_CTRL_SET_TLSEXT_DEBUG_CB");
 		ssl_cb.cb_ext = (typeof(ssl_cb.cb_ext))fp;
 		break;
 	default:
@@ -999,7 +1014,7 @@ DEFINE_SSL_CALL(new)(SSL_CTX *ctx)
 void
 DEFINE_CTX_CALL(set_alpn_protos)(SSL_CTX *ctx, const unsigned char *data, unsigned int len)
 {
-	debug3("len=%u", len);
+	debug4("len=%u", len);
 }
 
 void
@@ -1007,7 +1022,7 @@ symbol_print(void)
 {
 	list_for_each(openssl_symtab, n) {
 		struct symbol *p = container_of(n, struct symbol, node);
-		debug("name=%s abi=%p plt=%p", p->name, p->abi, p->plt);
+		debug4("name=%s abi=%p plt=%p", p->name, p->abi, p->plt);
 		if (!p->abi)
 			die("required symbol not found");
 	}
@@ -1036,7 +1051,7 @@ lookup_module(struct dl_phdr_info *info, size_t size, void *ctx)
 
 	char *v = ssl ? "framework" : "cryptolib";
 
-	debug("module type=%-9s name=%s", v, info->dlpi_name);
+	debug4("module type=%-9s name=%s", v, info->dlpi_name);
 
 	struct ssl_module *ssl_module = malloc(sizeof(*ssl_module));
 	ssl_module->dll = dll;
@@ -1105,7 +1120,7 @@ init_aaa_env(void)
 	if (verb)
 		log_verbose = atoi(verb);
 
-	debug("checking for aaa environment");
+	//debug("checking for aaa environment");
 	if (aaa.authority)
 		debug("env aaa.authority=%s",aaa.authority);
 	if (aaa.protocol)
@@ -1185,6 +1200,7 @@ ssl_init(void)
 
 	init_aaa_env();
 	aaa_env_init();
+
 	return 0;
 }
 
@@ -1226,6 +1242,14 @@ ssl_get_sess_id(SSL *ssl, char *buf, int size)
 	memcpy(buf, sess_id, strlen(sess_id));
 }
 
+void
+ssl_set_caps(int cap)
+{
+	if ((cap & SSL_CAP_SCA))
+		ssl_sca_enabled = 1; else ssl_sca_enabled = 0;
+
+}
+
 int
 crypto_lookup(void)
 {
@@ -1236,7 +1260,7 @@ crypto_lookup(void)
 	char ssl_module[255] = {0};
 	find_module(ssl_module);
 
-	debug3("module %s", *ssl_module ? "framework" : "target");
+	debug4("module %s", *ssl_module ? "framework" : "target");
 	void *dll = *ssl_module ? dlopen(ssl_module, RTLD_LAZY | RTLD_NOLOAD): NULL;
 
 	IMPORT_ABI(SSLeay);
