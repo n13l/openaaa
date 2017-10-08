@@ -230,7 +230,6 @@ ssl_require(int a, int b, int c)
 	byte major = (version >> 28) & 0xFF;
 	byte minor = (version >> 20) & 0xFF;
 	byte patch = (version >> 12) & 0XFF;
-	byte dev   = (version >>  4) & 0XFF;
 
 	if (a >= major && b >= minor && c >= patch)
 		return 1;
