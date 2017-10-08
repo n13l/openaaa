@@ -209,8 +209,8 @@ ssl_info(const SSL *s, int where, int ret);
 static void
 ssl_handshake0(const SSL *ssl);
 
-static void
-ssl_version(void)
+void
+ssl_version(char *str, int size)
 {
 	long version = CALL_ABI(SSLeay)();
 
@@ -219,7 +219,22 @@ ssl_version(void)
 	byte patch = (version >> 12) & 0XFF;
 	byte dev   = (version >>  4) & 0XFF;
 
-	debug4("openssl version=%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
+	snprintf(str, size, "%d.%d.%d%c", major, minor, patch, 'a' + dev - 1);
+}
+
+int
+ssl_require(int a, int b, int c)
+{
+	long version = CALL_ABI(SSLeay)();
+
+	byte major = (version >> 28) & 0xFF;
+	byte minor = (version >> 20) & 0xFF;
+	byte patch = (version >> 12) & 0XFF;
+	byte dev   = (version >>  4) & 0XFF;
+
+	if (a >= major && b >= minor && c >= patch)
+		return 1;
+	return 0;
 }
 
 static inline const char *
@@ -1315,7 +1330,6 @@ crypto_lookup(void)
 
 	import_target(dll);
 
-	ssl_version();
 	init_aaa_env();
 
 	aaa_env_init();

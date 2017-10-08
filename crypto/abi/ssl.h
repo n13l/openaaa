@@ -42,5 +42,7 @@ void ssl_init_conn(SSL *ssl);
 void ssl_set_caps(int cap);
 void ssl_get_sess_id(SSL *ssl, char *buf, int size);
 void ssl_info(const SSL *s, int where, int ret);
+void ssl_version(char *str, int size);
+int ssl_require(int a, int b, int c);
 
 #endif/*__ABI_OPENSSL_PLATFORM_H__*/
