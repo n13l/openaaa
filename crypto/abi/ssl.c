@@ -232,8 +232,8 @@ ssl_require(int a, int b, int c)
 	byte patch = (version >> 12) & 0XFF;
 
 	if (a >= major && b >= minor && c >= patch)
-		return 1;
-	return 0;
+		return 0;
+	return 1;
 }
 
 static inline const char *
