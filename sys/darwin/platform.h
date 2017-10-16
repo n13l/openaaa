@@ -2,6 +2,7 @@
 #define __SYS_PLATFORM_H__
 
 #include <sys/compiler.h>
+#include <sys/time.h>
 
 #define SHLIB_EX           "dylib"
 
