@@ -7,6 +7,10 @@
 #define __USE_MINGW_ANSI_STDIO 1
 #endif
 */
+#include <time.h>
+#include <sys/time.h>
+#include <sys/timeb.h>
+#include <errno.h>
 
 #ifndef RTLD_NOLOAD
 #define RTLD_NOLOAD 0
