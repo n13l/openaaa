@@ -86,22 +86,27 @@ acct_init(void)
 
 	hash_init_shared(htable_sid, shift);
 
+/*
 	debug3("mm area=%p shift=%d pages=%d table %d MB", htable_sid, 
 		HTABLE_BITS, htab_pages, (int)pages2mb(HTABLE_BITS, htab_pages));
-	
+*/	
 	pagemap = mmap_open(NULL, MAP_SHARED | MAP_ANON, shift, pages);
 	if (!pagemap)
 		die("mm_open() failed reason=%s", strerror(errno));
-
+/*
 	debug3("mm area=%p shift=%d pages=%d size=%lu MB(s)", 
 		pagemap, shift, pages, pages2mb(shift, pages));
+*/
 
+	debug1("remap memory for sessions, transactions and indexes.");
 	return 0;
 }
 
 int
 acct_fini(void)
 {
+	debug1("unmap memory for sessions, transactions and indexes.");
+	
 	if (pagemap)
 		mmap_close(pagemap);
 	return 0;
@@ -156,14 +161,14 @@ session_parse(struct aaa *aaa, byte *buf, unsigned int len)
 			return -1;
 		b = buf;
 		*buf++ = 0;
-                
-                struct attr *attr = dict_lookup(&aaa->attrs, key, 0);
-                if (attr && (attr->flags & ATTR_CHANGED)) {
-                        debug2("%s:%s changed", attr->key, attr->val);
-                } else {
-		        debug2("%s:%s", key, value);
-                        dict_set_nf(&aaa->attrs, key, value);
-                }
+
+		struct attr *attr = dict_lookup(&aaa->attrs, key, 0);
+		if (attr && (attr->flags & ATTR_CHANGED)) {
+			debug2("%s:%s changed", attr->key, attr->val);
+		} else {
+			debug2("%s:%s", key, value);
+			dict_set_nf(&aaa->attrs, key, value);
+		}
 		*a = ':';
 		*b = '\n';
 
@@ -332,11 +337,11 @@ commit(struct aaa *aaa, struct cursor *sid)
 		if (strcmp(sid->id.addr, session->attrs.sid))
 			continue;
 
-                const char *modified = aaa_attr_get(aaa, "sess.modified");
-                const char *expires  = aaa_attr_get(aaa, "sess.expires");
+		const char *modified = aaa_attr_get(aaa, "sess.modified");
+		const char *expires  = aaa_attr_get(aaa, "sess.expires");
 
-                if (!modified || !expires)
-                        continue;
+		if (!modified || !expires)
+			continue;
 
 		session->modified = strtol(modified, NULL, 10);
 		session->expires  = strtol(expires, NULL, 10);
@@ -356,9 +361,9 @@ session_commit(struct aaa *aaa, const char *id)
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
 	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
 
-        debug2("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
+	debug2("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
 
-        if (lookup(aaa, &csid))
+	if (lookup(aaa, &csid))
 		return -EINVAL;
 
 	return commit(aaa, &csid);
@@ -371,8 +376,8 @@ session_touch(struct aaa *aaa, const char *id)
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
 	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
 
-        debug2("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
-        if (lookup(aaa, &csid))
+	debug2("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
+	if (lookup(aaa, &csid))
 		return -EINVAL;
 
 	return commit(aaa, &csid);

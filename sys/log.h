@@ -8,14 +8,23 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <time.h>
+#include <syslog.h>
 
-#if 0
-#define LOG_PID       (1 << 1)
-#define LOG_TID       (1 << 2)
-#define LOG_USER      (1 << 3)
-#define LOG_MODULE    (1 << 4)
-#define LOG_TIMESTAMP (1 << 5)
-#endif
+#define LOG_CAP_LEVEL     1
+#define LOG_CAP_TIME      2
+#define LOG_CAP_TIMESTAMP 4
+#define LOG_CAP_PID       8
+#define LOG_CAP_TID       16 
+#define LOG_CAP_USER      32
+#define LOG_CAP_MODULE    64
+#define LOG_CAP_FN        128
+
+enum log_type_e {
+	LOG_TYPE_SYSLOG = 1,
+	LOG_TYPE_STDOUT = 2,
+	LOG_TYPE_STDERR = 3,
+	LOG_TYPE_FILE   = 4,
+};
 
 /*
  * https://tools.ietf.org/html/rfc5424
@@ -31,31 +40,31 @@
  */
 
 #ifndef LOG_ERROR
-#define LOG_ERROR 1
-#endif
-
-#ifndef LOG_INFO
-#define LOG_INFO 2
+#define LOG_ERROR 3
 #endif
 
 #ifndef LOG_WARN
-#define LOG_WARN 3
+#define LOG_WARN 4
+#endif
+
+#ifndef LOG_INFO
+#define LOG_INFO 6
 #endif
 
 #ifndef LOG_DEBUG
-#define LOG_DEBUG 4
+#define LOG_DEBUG 7
 #endif
 #ifndef LOG_DEBUG1
-#define LOG_DEBUG1 5
+#define LOG_DEBUG1 8
 #endif
 #ifndef LOG_DEBUG2
-#define LOG_DEBUG2 6
+#define LOG_DEBUG2 9
 #endif
 #ifndef LOG_DEBUG3
-#define LOG_DEBUG3 7
+#define LOG_DEBUG3 10
 #endif
 #ifndef LOG_DEBUG4
-#define LOG_DEBUG4 8
+#define LOG_DEBUG4 11
 #endif
 
 #ifndef CLOCK_REALTIME
@@ -104,53 +113,53 @@ struct log_ctx {
 #define debug(fmt, ...) \
 do { \
   if (log_verbose < 1) break; \
-  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__, .level = LOG_DEBUG}; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
 #define debug1(fmt, ...) \
 do { \
   if (log_verbose < 1) break; \
-  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__, .level = LOG_DEBUG1 }; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
 #define debug2(fmt, ...) \
 do { \
   if (log_verbose < 2) break; \
-  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__, .level = LOG_DEBUG2 }; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
 #define debug3(fmt, ...) \
 do { \
   if (log_verbose < 3) break; \
-  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__, .level = LOG_DEBUG3 }; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
 #define debug4(fmt, ...) \
 do { \
   if (log_verbose < 4) break; \
-  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__, .level = LOG_DEBUG4 }; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
 #define info(fmt, ...) \
 do { \
-  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ , .level = LOG_INFO}; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
 #define error(fmt, ...) \
 do { \
-  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ , .level = LOG_ERROR}; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
 #define warning(fmt, ...) \
 do { \
-  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ }; \
+  struct log_ctx log_ctx = { .module = KBUILD_MODNAME, .fn = __func__ , .level = LOG_WARN}; \
   log_printf(&log_ctx, log_fmt(fmt), ## __VA_ARGS__); \
 } while(0)
 
@@ -178,10 +187,16 @@ void
 giveup(const char *fmt, ...);
 
 void
-log_open(void);
+log_open(const char *file);
 
 void
 log_close(void);
+
+void
+log_setcaps(int caps);
+
+int
+log_getcaps(void);
 
 typedef void (*log_write_fn)(struct log_ctx *, const char *, int );
 

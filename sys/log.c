@@ -6,6 +6,51 @@
 #include <string.h>
 #include <unix/timespec.h>
 
+#include <syslog.h>
+#ifndef LOG_ERROR
+#define LOG_ERROR 1
+#endif
+
+#ifndef LOG_INFO
+#define LOG_INFO 2
+#endif
+
+#ifndef LOG_WARN
+#define LOG_WARN 3
+#endif
+
+#ifndef LOG_DEBUG
+#define LOG_DEBUG 4
+#endif
+#ifndef LOG_DEBUG1
+#define LOG_DEBUG1 5
+#endif
+#ifndef LOG_DEBUG2
+#define LOG_DEBUG2 6
+#endif
+#ifndef LOG_DEBUG3
+#define LOG_DEBUG3 7
+#endif
+#ifndef LOG_DEBUG4
+#define LOG_DEBUG4 8
+#endif
+
+
+static const char *log_lnames[] = {
+	[LOG_ERROR]  = "error",
+	[LOG_INFO]   = "info",
+	[LOG_WARN]   = "warn",
+	[LOG_DEBUG]  = "debug",
+	[LOG_DEBUG]  = "debug",
+	[LOG_DEBUG1] = "debug1",
+	[LOG_DEBUG2] = "debug2",
+	[LOG_DEBUG3] = "debug3",
+	[LOG_DEBUG4] = "debug4",
+};
+
+int log_caps = 0;
+int log_type = 0;
+
 void *log_userdata = NULL;
 int log_verbose = 0;
 char progname[256] = {0};
@@ -13,15 +58,28 @@ char progname[256] = {0};
 void (*log_write_cb)(struct log_ctx *ctx, const char *msg, int len) = NULL;
 
 void
-log_open(void)
+log_open(const char *file)
 {
-	//openlog(progname, LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+	if (!strcmp(file, "syslog")) 
+		log_type = LOG_TYPE_SYSLOG;
+
+	strcpy(progname,"aaa");
+
+	switch (log_type) {
+	case LOG_TYPE_SYSLOG: 
+		openlog(progname, LOG_CONS | LOG_PID | LOG_NDELAY, LOG_DAEMON);
+		break;
+	}
 }
 
 void
 log_close(void)
 {
-	///closelog();
+	switch (log_type) {
+	case LOG_TYPE_SYSLOG:
+		closelog();
+		break;
+	}
 }
 
 void
@@ -32,13 +90,29 @@ log_custom_set(log_write_fn fn, void *ctx)
 }
 
 void
+log_setcaps(int caps)
+{
+	log_caps = caps;
+}
+
+int
+log_getcaps(void)
+{
+	return log_caps;
+}
+
+void
 log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 {
-	byte msg[512];
+	char line[2048], *pline;
+	byte msg[1024];
 	va_list args2;
 	va_copy(args2, args);
 	int len = vsnprintf(msg, sizeof(msg) - 2, fmt, args2);
 	va_end(args2);
+
+	int size = sizeof(line) - 2;
+	pline = line;
 
 	static struct timeval start = {0};
 	static int started = 1;
@@ -48,15 +122,27 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 		gettimeofday(&start, NULL);
 
 	gettimeofday(&now, NULL);
-
 	if (started)
 		started = 0;
-/*
-	const char *module = printfa("%08u.%06u %s:%s", now.tv_sec - start.tv_sec, 
-	                    now.tv_usec, ctx->module, ctx->fn);
-*/
-	const char *module = printfa("%08u.%06u ", (unsigned int)(now.tv_sec - start.tv_sec), 
-	                    (unsigned int)now.tv_usec);
+
+	if (log_caps & LOG_CAP_LEVEL)
+		pline += snprintf(pline, size, "%6s: ", log_lnames[ctx->level]);
+
+	if (log_caps & LOG_CAP_TIMESTAMP)
+		pline += snprintf(pline, size, "%08u.%06u ", 
+		                 (unsigned int)(now.tv_sec - start.tv_sec), 
+		                 (unsigned int)now.tv_usec);
+
+	if (log_caps & LOG_CAP_PID)
+		pline += snprintf(pline, size, "%d ", (int)getpid());
+
+	if (log_caps & LOG_CAP_MODULE)
+		pline += snprintf(pline, size, "%s ", ctx->module);
+
+	if (log_caps & LOG_CAP_FN)
+		pline += snprintf(pline, size, "%s ", ctx->fn);
+
+	*pline = 0;
 
 	ctx->user = log_userdata;
 	if (len < 1)
@@ -64,23 +150,24 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 
 	if (log_write_cb) {
 		log_write_cb(ctx, msg, len);
-	} else {
-		_unused int pid = getpid();
-		_unused int tid = gettid();
-		byte amsg[512];
-/*
-		snprintf(amsg, sizeof(amsg) - 1, "%.8d:%.8d %s %s\n",
-		         pid, tid, module, msg);
-*/		snprintf(amsg, sizeof(amsg) - 1, "%s %s\n",
-		         module, msg);
-
-#ifdef WIN32
-		fprintf(stdout, "%s", amsg);
-		fflush(stdout);
-#else
-		write(0, amsg, strlen(amsg));
-#endif
 	}
+
+	byte amsg[4096];
+	snprintf(amsg, sizeof(amsg) - 1, "%s%s\n",
+	         line, msg);
+#ifdef WIN32
+	fprintf(stdout, "%s", amsg);
+	fflush(stdout);
+#else
+	switch (log_type) {
+	case LOG_TYPE_SYSLOG:
+		syslog(ctx->level > 4 ? 4 : ctx->level, "%s", amsg);
+		break;
+	default:
+		write(0, amsg, strlen(amsg));
+		break;
+	}
+#endif
 }
 
 void

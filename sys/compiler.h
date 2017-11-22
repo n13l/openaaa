@@ -303,4 +303,10 @@ typedef u32 endian_bitwise wsum;
 #define KBUILD_STR(s) #s
 #endif
 
+int
+pid_read(const char *file);
+
+int
+pid_write(const char *file);
+
 #endif

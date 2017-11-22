@@ -2,8 +2,8 @@ progs-y := aaa
 LIBS_aaa = aaa/built-in.o
 
 # lib ev warning cleanup
-CFLAGS_server.o += -Wno-unused-value -Wno-unused-function 
-CFLAGS_server.o += -Wno-comment -Wno-parentheses 
+CFLAGS_srv.o += -Wno-unused-value -Wno-unused-function 
+CFLAGS_srv.o += -Wno-comment -Wno-parentheses 
 
 lib                   := aaa
 libname               := lib$(lib)-$(PACKAGEVERSION)
@@ -25,7 +25,7 @@ endif
 install-y             += $(install-bin-y) $(install-lib-y)
 
 obj-y                 += acc.o env.o cnf.o api.o proto.o
-obj-$(CONFIG_LINUX)   += server.o
+obj-$(CONFIG_LINUX)   += srv.o
 obj-$(CONFIG_JNI)     += built-jni.o
 
 ccflags-$(CONFIG_JNI) += -I$(JDK_HOME)/include -I$(JDK_HOME)/include/$(PLATFORM)

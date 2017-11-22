@@ -7,8 +7,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/socket.h>                                                         
-#include <netinet/in.h>                                                         
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sched.h>
 
@@ -575,7 +575,7 @@ task_init(struct task *task)
 		sig_enable(SIGUSR1);
 		break;
 	case TASK_TYPE_WORK:
-		setproctitle("aaad-worker");
+		setproctitle("aaa/%d", task->index);
 		sig_action(SIGHUP, huphandler);
 		sig_disable(SIGTERM);
 		sig_disable(SIGINT);
@@ -590,11 +590,9 @@ task_init(struct task *task)
 		die("unexpected task type");
 		break;
 	}
-	const char *type = task_gettypename(task);
-	const char *state = task_getstatename(task);
-	int cpu = sched_getcpu();
-	info("process started index=%.2d cpu=%d state=%s type=%s", 
-	     task->pid == task->ppid ? 0: task->index, cpu, state, type);
+
+	if (task->pid != task->ppid)
+		info("mpm process aaa/%d started", task->index);
 }
 
 int
@@ -667,7 +665,7 @@ task_fini(struct task *task)
 	list_for_each_item(task->list, child, node) {
 		kill(child->pid, SIGHUP);
 		int status = 0;
-		debug3("waiting for the subprocess pid=%d", child->pid);
+		debug1("waiting for the subprocess pid=%d", child->pid);
 		int rv = waitpid(child->pid, &status, 0);
 		if (rv == -1)
 			die("waitpid() failed reason=%s", strerror(errno));
@@ -686,12 +684,9 @@ task_fini(struct task *task)
 		die("task type broken");
 		break;
 	}
-	
-	const char *type = task_gettypename(task);
-	const char *state = task_getstatename(task);
-	int cpu = sched_getcpu();
-	info("process stopped index=%.2d cpu=%d state=%s type=%s", 
-	      task->pid == task->ppid ? 0: task->index, cpu, state, type);
+
+	if (task->pid != task->ppid)	
+		info("mpm process aaa/%d stopped", task->index);
 }
 
 int
@@ -749,11 +744,9 @@ sched_init(void)
 {
 	task_init(&task_disp);
 	task_disp.workers = 4;
-	info("started");
+	
 	udp_init();
-
 	configure();
-	debug("udp port=%d", port);
 }
 
 void
@@ -774,7 +767,6 @@ void
 sched_fini(void)
 {
 	task_fini(&task_disp);
-	info("stopped");
 }
 
 int
@@ -782,6 +774,19 @@ aaa_server1(int argc, char *argv[])
 {
 	irq_init();
 	irq_disable();
+
+	const char *file = "/var/run/aaa/daemon.pid";
+	int pid;
+
+	if ((pid = pid_read(file)))
+		die("process already running pid: %d\n", pid);
+
+	if (!pid_write(file))
+		die("can't write pid file: %s\n", file);
+
+	info("OpenAAA/%s Daemon %s %s", PACKAGE_VERSION, __DATE__, __TIME__);
+	debug1("pid file: %s", file);
+
 	acct_init();
 	setproctitle_init(argc, argv);
 
@@ -796,6 +801,9 @@ aaa_server1(int argc, char *argv[])
 	sched_fini();
 
 	acct_fini();
+
+	info("Shut down gracefully");
+
 	return 0;
 }
 
