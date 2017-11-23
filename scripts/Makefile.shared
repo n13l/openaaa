@@ -18,7 +18,7 @@ so                    := so
 export so
 endif
 ifeq ($(PLATFORM),aix)
-SHLIB_LDFLAGS          += -qmkshrobj
+SHLIB_LDFLAGS          += -qmkshrobj -lbsd
 export SHLIB_LDFLAGS
 endif
 ifeq ($(PLATFORM),darwin)

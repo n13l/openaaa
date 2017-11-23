@@ -88,11 +88,17 @@ cpu_be16(u16 x){u16 u; put_u16_be(&u, x); return u; }
 static inline u32                                                               
 cpu_be32(u32 x){u32 u; put_u32_be(&u, x); return u; }                          
 
+static inline u32                                                               
+cpu_be64(u64 x){u64 u; put_u64_be(&u, x); return u; }                          
+
 static inline u16
 be16_cpu(u16 x){return get_u16_be(&x); }
                                                                                
 static inline u32                                                               
 be32_cpu(u32 x){return get_u32_be(&x); }
+
+static inline u64                                                               
+be64_cpu(u64 x){return get_u64_be(&x); }
 
 #endif
 
