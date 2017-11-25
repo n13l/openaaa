@@ -30,11 +30,26 @@ aaa_env_init(void)
                 return;
 #endif
 */
-        info("aaa.service.ip=%s", aaad_host);
+        debug1("aaa.service.ip=%s", aaad_host);
         aaad_ip = strdup(aaad_host);
+
+	const char *logf = getenv("OPENAAA_LOG_FILE");
+	const char *logc = getenv("OPENAAA_LOG_CAPS");
+	const char *logv = getenv("OPENAAA_VERBOSE");
+
+	logf = logf ? logf: "syslog";
+
+	if (logc)
+		log_setcaps(atoi(logc));
+
+	if (logv)
+		log_verbose = atoi(logv);
+
+	log_open(logf);	
 }
 
 void
 aaa_env_fini(void)
 {
+	log_close();
 }
