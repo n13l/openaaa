@@ -65,3 +65,8 @@ void syslog(int priority, const char *fmt, ...)
 	ReportEventA(event, type, 0, 0, NULL, 1, 0, (const char **)&str, NULL);
 	free(str);
 }
+
+void
+closelog(void)
+{
+}

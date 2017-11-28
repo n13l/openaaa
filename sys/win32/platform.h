@@ -27,6 +27,11 @@
 
 #define F_GETFL 4
 
+#define LOCK_EX F_LOCK
+#define LOCK_NB F_TLOCK
+
+#define LOCK_UN F_ULOCK
+
 #if defined(__MINGW32__) || defined(__MINGW64__) 
 
 #ifndef WIFEXITED
@@ -57,6 +62,12 @@ fsync(int fd);
 
 int
 fcntl(int fd, int cmd, ... /* arg */ );
+
+int
+flock(int fd, int cmd);
+
+int
+kill(int pid, int signo);
 
 #else
 

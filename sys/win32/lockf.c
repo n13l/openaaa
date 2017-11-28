@@ -51,3 +51,34 @@ lockf(int fd, int cmd, off_t len)
 		return -1;
 	}
 }
+
+int
+flock(int fd, int cmd)
+{
+	struct stat st;
+	if (fstat(fd, &st) < 0)
+		return EINVAL;
+
+	off_t len = st.st_size;
+
+	int stat;
+	switch (cmd) {
+	case F_LOCK:
+		do     stat = _locking(fd, _LK_LOCK, len);
+		while (stat == -1 && errno == EDEADLOCK);
+		return stat;
+	case F_TLOCK:
+		return _locking(fd, _LK_NBLCK, len);
+	case F_ULOCK:
+		return _locking(fd, _LK_UNLCK, len);
+	default:
+		errno = EINVAL;
+		return -1;
+	}
+}
+
+int
+kill(int pid, int signo)
+{
+	return -1;
+}
