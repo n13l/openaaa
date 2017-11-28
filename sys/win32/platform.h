@@ -108,4 +108,8 @@ void win32_stacktrace(void *ctx);
 
 #include <sys/win32/sigbits.h>
 
+#ifndef sleep
+#define sleep(a) Sleep(a * 1000)
+#endif
+
 #endif
