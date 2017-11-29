@@ -203,7 +203,7 @@ post_read_request(request_rec *r)
 	if (aaa_bind(aaa) < 0)
 		return DECLINED;
 
-	const char *uid = aaa_attr_get(aaa, "user.name");
+	const char *uid = aaa_attr_get(aaa, "user.id");
 	if (!uid || !*uid)
 		return DECLINED;
 
@@ -233,7 +233,11 @@ check_authn(request_rec *r)
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct aaa *aaa = srv->aaa;
 
+	const char *id   = aaa_attr_get(aaa, "user.id");
 	const char *name = aaa_attr_get(aaa, "user.name");
+	if (!name || !*name)
+		name = id;
+
 	if (!name || !*name) {
 		r_info(r, "%s() HTTP_UNAUTHORIZED", __func__);
 		return HTTP_UNAUTHORIZED;
@@ -540,12 +544,12 @@ register_hooks(apr_pool_t *p)
 	APR_OPTIONAL_HOOK(ssl, proxy_post_handshake, proxy_post_handshake, NULL, NULL, APR_HOOK_MIDDLE);
 
 	ap_register_auth_provider(p, 
-	                          AUTHZ_PROVIDER_GROUP, "group",
+	                          AUTHZ_PROVIDER_GROUP, "role",
 	                          AUTHZ_PROVIDER_VERSION,
 	                          &authz_provider_require_group,
 	                          AP_AUTH_INTERNAL_PER_CONF);
 
-	ap_register_provider(p, AP_SOCACHE_PROVIDER_GROUP, "aaa",
+	ap_register_provider(p, AP_SOCACHE_PROVIDER_GROUP, "OpenAAA",
 	                     AP_SOCACHE_PROVIDER_VERSION, &socache_tls_aaa);
 
 };
