@@ -775,7 +775,7 @@ aaa_server1(int argc, char *argv[])
 	irq_init();
 	irq_disable();
 
-	const char *file = "/var/run/aaa/daemon.pid";
+	const char *file = "/var/run/aaad.pid";
 	int pid;
 
 	if ((pid = pid_read(file)))

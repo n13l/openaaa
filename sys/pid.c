@@ -10,12 +10,35 @@
 #include <signal.h>
 #include <fcntl.h>
 
+static int
+mk_subdirs(const char *dir, mode_t flags)
+{
+	size_t len = strlen(dir);
+	char path[FILENAME_MAX];
+	memset(path, 0, sizeof(path));
+	snprintf(path, sizeof(path) - 1, "%s", dir);
+
+	char *p = path + len;
+	if (*p == '/') *p = 0;
+	for (p = path + 1; *p; p++) if (*p == '/') {
+		*p = 0;
+		int err = mkdir(path, flags);
+		debug4("mkdir(%s): %s", path, strerror(errno));
+		if (err != 0 && errno != EEXIST)
+			return err;
+		*p = '/';
+	}
+	return 0;
+}
+
 int
 pid_write(const char *file)
 {
 	FILE *f;
 	int fd;
 	int pid;
+
+	mk_subdirs(file, 0644);
 
 	if ((fd = open(file, O_RDWR | O_CREAT, 0644)) == -1) {
 		error("Can't open or create %s.", file);
