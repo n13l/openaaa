@@ -55,7 +55,9 @@ static sig_atomic_t request_info     = 0;
 
 _unused static int sched_processes           = 1;
 _unused static int sched_workers             = 4;
-_unused static int sched_gracefull_timeout   = 15; /* wait maximum 15secs for subprocesses */
+_unused static int sched_gracefull_timeout   = 5; /* wait maximum secs for subprocesses */
+
+const char *pidfile = "/var/run/aaad.pid";
 
 enum task_type {
 	TASK_TYPE_NONE    = 0,
@@ -248,7 +250,7 @@ static int fd = -1;
 static int port = 8888;
 
 static void 
-udp_init(void)
+udp_init(int index)
 {
 	if ((fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
 		die("Cannot create UDP socket: %s", strerror(errno));
@@ -263,13 +265,21 @@ udp_init(void)
 
 	struct sockaddr_in in = {
 		.sin_family = AF_INET,
-		.sin_port = htons(port),
+		.sin_port = htons(port + index),
 		.sin_addr.s_addr = INADDR_ANY
 	};
 
 	if (bind(fd, (struct sockaddr *) &in, sizeof(in)) < 0)
 		die("Cannot bind udp socket: %s", strerror(errno));
 
+}
+
+void
+udp_fini(void)
+{
+	if (fd != -1)
+		close(fd);
+	fd = -1;
 }
 
 int
@@ -583,8 +593,11 @@ task_init(struct task *task)
 		sig_disable(SIGUSR2);
 		sig_ignore(SIGINT);
 		sig_ignore(SIGTERM);
+		udp_init(task->index - 1);
+		acct_init();
 		struct aaa *aaa = aaa_new(AAA_ENDPOINT_SERVER, 0);
 		task_user_set(task, aaa);
+
 		break;
 	default:
 		die("unexpected task type");
@@ -658,19 +671,40 @@ init:
 	}
 }
 
+int
+wait_subprocess(pid_t pid, int secs)
+{
+	debug1("waiting for the subprocess pid=%d", pid);
+
+	int status = 0, id = 0;
+again:
+	for (int i = secs; id == 0 && i; i--) {
+		if ((id = waitpid(pid, &status, WNOHANG)) == -1)
+			error("wait() reason=%s", strerror(errno));
+		else if (id == 0)
+			sleep(1);
+		else
+			task_status(pid, status);
+	}
+
+	if (id == 0) {
+		info("process pid=%d did not respond within the expected timeframe",
+		     pid);
+		kill(pid, SIGKILL);
+		goto again;
+	}
+
+	return status;
+}
+
 void
 task_fini(struct task *task)
 {
 	struct task *child;
 	list_for_each_item(task->list, child, node) {
 		kill(child->pid, SIGHUP);
-		int status = 0;
-		debug1("waiting for the subprocess pid=%d", child->pid);
-		int rv = waitpid(child->pid, &status, 0);
-		if (rv == -1)
-			die("waitpid() failed reason=%s", strerror(errno));
-
-	};
+		wait_subprocess(child->pid, sched_gracefull_timeout);
+	}
 
 	struct aaa *aaa;
 	switch (task->type) {
@@ -679,6 +713,8 @@ task_fini(struct task *task)
 	case TASK_TYPE_WORK:
 		aaa = (struct aaa *)task_user_get(task);
 		aaa_free(aaa);
+		acct_fini();
+		udp_fini();
 		break;
 	default:
 		die("task type broken");
@@ -723,11 +759,9 @@ static void
 configure(void)
 {
 	info("configuring from ~/.aaa/");
-	/* configure etc */
 	request_restart = 0;
 	timestamp_t now = get_timestamp();
 	task_disp.version = now;
-
 }
 
 static void
@@ -735,17 +769,23 @@ restart(void)
 {
 	configure();
 	struct task *child;
-	list_for_each_item(task_disp.list, child, node)
+
+	list_for_each_item(task_disp.list, child, node) {
 		kill(child->pid, SIGHUP);
+		int status = wait_subprocess(child->pid, sched_gracefull_timeout);
+		if (WIFEXITED(status) || WIFSIGNALED(status)) {
+			task_disp.running--;
+			child->state = TASK_STATE_NONE;
+		}
+	}
 }
 
 void
 sched_init(void)
 {
 	task_init(&task_disp);
-	task_disp.workers = 4;
+	task_disp.workers = sched_workers;
 	
-	udp_init();
 	configure();
 }
 
@@ -775,19 +815,15 @@ aaa_server1(int argc, char *argv[])
 	irq_init();
 	irq_disable();
 
-	const char *file = "/var/run/aaad.pid";
 	int pid;
-
-	if ((pid = pid_read(file)))
+	if ((pid = pid_read(pidfile)))
 		die("process already running pid: %d\n", pid);
 
-	if (!pid_write(file))
-		die("can't write pid file: %s\n", file);
+	if (!pid_write(pidfile))
+		die("can't write pid file: %s\n", pidfile);
 
-	info("OpenAAA/%s Daemon %s %s", PACKAGE_VERSION, __DATE__, __TIME__);
-	debug1("pid file: %s", file);
+	info("OpenAAA/%s Server %s %s", PACKAGE_VERSION, __DATE__, __TIME__);
 
-	acct_init();
 	setproctitle_init(argc, argv);
 
 	_unused struct sched_class sched_class = {
@@ -799,8 +835,6 @@ aaa_server1(int argc, char *argv[])
 	sched_init();
 	sched_wait();
 	sched_fini();
-
-	acct_fini();
 
 	info("Shut down gracefully");
 

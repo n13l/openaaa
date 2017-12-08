@@ -29,6 +29,7 @@
 #endif
 
 static int port = 8888;
+static int sched_workers = 4;
 
 static int
 attr_enc(byte *buf, int len, int maxlen, char *key, char *val)
@@ -96,7 +97,6 @@ udp_parse(struct aaa *aaa, byte *packet, unsigned int len)
 	return len;
 }
 
-
 int
 udp_bind(struct aaa *aaa)
 {
@@ -105,7 +105,6 @@ udp_bind(struct aaa *aaa)
         memset(packet, 0, sizeof(packet));
 
         int size = udp_build(aaa, "bind", packet, sizeof(packet) - 1);
-
 	if ((fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
 		die("Cannot create UDP socket: %s", strerror(errno));
 
@@ -117,9 +116,13 @@ udp_bind(struct aaa *aaa)
 	if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const void *)&tv,sizeof(tv)) < 0)
 		die("SO_RCVTIMEO");
 
+	u32 hash = hash_string(aaa->sid);
+	int index = hash % sched_workers;
+	debug4("id=%s hash=%d index=%d", aaa->sid, (int)hash, index);
+
 	struct sockaddr_in in = {
 		.sin_family = AF_INET,
-		.sin_port = htons(port),
+		.sin_port = htons(port + index),
 		.sin_addr.s_addr = inet_addr(aaad_ip)
 	};
 
@@ -160,7 +163,6 @@ udp_commit(struct aaa *aaa)
         memset(packet, 0, sizeof(packet));
 
         int size = udp_build(aaa, "commit", packet, sizeof(packet) - 1);
-
 	if ((fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
 		die("Cannot create UDP socket: %s", strerror(errno));
 
@@ -172,14 +174,17 @@ udp_commit(struct aaa *aaa)
 	if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const void *)&tv,sizeof(tv)) < 0)
 		die("SO_RCVTIMEO");
 
+	u32 hash = hash_string(aaa->sid);
+	int index = hash % sched_workers;
+	debug4("id=%s hash=%d index=%d", aaa->sid, (int)hash, index);
+
 	struct sockaddr_in in = {
 		.sin_family = AF_INET,
-		.sin_port = htons(port),
+		.sin_port = htons(port + index),
 		.sin_addr.s_addr = inet_addr(aaad_ip)
 	};
 
 	socklen_t len = sizeof(in);
-	
         int sent = sendto(fd, packet, size, 0, (struct sockaddr *)&in, len);
 	if (sent < 0)
 	        error("sendto failed: reason=%s ", strerror(errno));

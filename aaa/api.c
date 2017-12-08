@@ -47,6 +47,7 @@ aaa_bind(struct aaa *aaa)
 	if (!sid || !*sid)
 		return -EINVAL;
 
+	aaa->sid = sid;
 	return udp_bind(aaa);
 }
 
@@ -170,6 +171,7 @@ aaa_commit(struct aaa *aaa)
 	if (!sid || !*sid)
 		return -EINVAL;
 
+	aaa->sid = sid;
 	dict_sort(&aaa->attrs);
 	return udp_commit(aaa);
 }

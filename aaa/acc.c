@@ -86,27 +86,16 @@ acct_init(void)
 
 	hash_init_shared(htable_sid, shift);
 
-/*
-	debug3("mm area=%p shift=%d pages=%d table %d MB", htable_sid, 
-		HTABLE_BITS, htab_pages, (int)pages2mb(HTABLE_BITS, htab_pages));
-*/	
 	pagemap = mmap_open(NULL, MAP_SHARED | MAP_ANON, shift, pages);
 	if (!pagemap)
 		die("mm_open() failed reason=%s", strerror(errno));
-/*
-	debug3("mm area=%p shift=%d pages=%d size=%lu MB(s)", 
-		pagemap, shift, pages, pages2mb(shift, pages));
-*/
 
-	debug1("remap memory for sessions, transactions and indexes.");
 	return 0;
 }
 
 int
 acct_fini(void)
 {
-	debug1("unmap memory for sessions, transactions and indexes.");
-	
 	if (pagemap)
 		mmap_close(pagemap);
 	return 0;

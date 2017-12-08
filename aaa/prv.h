@@ -37,6 +37,7 @@ struct aaa {
 	struct dict attrs;
         struct node *attrs_it;
 	const char *config;
+	const char *sid;           /* used internally only */
 };
 
 struct msg {
