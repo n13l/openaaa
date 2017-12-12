@@ -36,7 +36,7 @@
 
 __BEGIN_DECLS
 
-/* fixed-size memory block    */
+/* fixed-size memory block */
 struct mm_block {
 	byte page[CPU_PAGE_SIZE];
 };

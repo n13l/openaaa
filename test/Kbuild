@@ -1,2 +1,9 @@
 subdir-y := crypto/ perf/ mem/
 testprogs-y += array sandbox hash list dict 
+
+ifneq ($(PLATFORM),windows)
+testprogs-y += mpm
+#mpm-y := -Wunused-value
+endif
+
+

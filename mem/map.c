@@ -139,19 +139,16 @@ vm_area_init(const char *name, int mode, u32 shift, u32 total)
 	}
 
         u64 size = vm_area_size(shift, total);
-
         struct stat st;
-/*	
-        if (fstat(fd, &st))
-		goto failed;
-*/
-	if (name) {
+	if (fd != -1 && name) {
+	        if (fstat(fd, &st))
+			goto failed;
 	        if (!S_ISREG(st.st_mode))
 			goto failed;
-
         	if (st.st_size != size && ftruncate(fd, size) == -1)
 			goto failed;
 	}
+
 /*
         if (fstat(fd, &st) || st.st_size != size)
 		goto failed;
