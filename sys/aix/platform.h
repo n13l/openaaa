@@ -46,4 +46,9 @@ struct timespec {
 int
 posix_clock_gettime(int clock_id, struct timespec *ts);
 
+void
+setproctitle_init(int argc, char *argv[]);
+
+void
+setproctitle(const char *fmt, ...);
 #endif
