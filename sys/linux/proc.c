@@ -96,14 +96,14 @@ setproctitle_init(int argc, char *argv[])
 	 */
 
 	if (argc == 0 || argv[0] == NULL)
-		return;
+		return argv;
 
 	/* Fail if we can't allocate room for the new environment */
 	for (i = 0; envp[i] != NULL; i++)
 		;
 	if ((environ = calloc(i + 1, sizeof(*environ))) == NULL) {
 		environ = envp;	/* put it back */
-		return;
+		return argv;
 	}
 
 	/*
