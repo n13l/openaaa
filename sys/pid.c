@@ -22,7 +22,11 @@ mk_subdirs(const char *dir, mode_t flags)
 	if (*p == '/') *p = 0;
 	for (p = path + 1; *p; p++) if (*p == '/') {
 		*p = 0;
+#ifdef CONFIG_WIN32
+		int err = mkdir(path);
+#else
 		int err = mkdir(path, flags);
+#endif
 		debug4("mkdir(%s): %s", path, strerror(errno));
 		if (err != 0 && errno != EEXIST)
 			return err;

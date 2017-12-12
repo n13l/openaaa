@@ -5,7 +5,10 @@
 #include <sys/mpm.h>
 
 #include <sys/types.h>
+
+#ifndef CONFIG_WIN32
 #include <sys/socket.h>
+#endif
 
 #include <mem/stack.h>
 #include <net/proto.h>
@@ -36,6 +39,8 @@
 _unused static sig_atomic_t request_shutdown = 0;
 _unused static sig_atomic_t request_restart  = 0;
 _unused static sig_atomic_t request_info     = 0;
+
+#ifndef CONFIG_WIN32
 
 /* processes or per_cpu should not be set together */
 int max_process = 8;
@@ -489,3 +494,20 @@ _sched_fini(void)
 	do_shutdown();
 	do_dtor(&task_disp);
 }
+#else
+void
+_sched_init(void)
+{
+}
+
+void
+_sched_wait(void)
+{
+}
+
+void
+_sched_fini(void)
+{
+}
+
+#endif

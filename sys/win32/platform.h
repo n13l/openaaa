@@ -112,4 +112,7 @@ void win32_stacktrace(void *ctx);
 #define sleep(a) Sleep(a * 1000)
 #endif
 
+static inline char **setproctitle_init(int argc, char *argv[]) {return argv; };
+static inline void setproctitle(const char *fmt, ...) { };
+
 #endif
