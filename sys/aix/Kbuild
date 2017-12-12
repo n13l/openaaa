@@ -1,1 +1,1 @@
-obj-y := clock.o getopt_long.o dladdr.o dliterate.o setproctitle.o
+obj-y := clock.o getopt_long.o dladdr.o dliterate.o proc.o

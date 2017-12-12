@@ -79,7 +79,7 @@ static size_t argv_len = 0;
 
 #endif /* HAVE_SETPROCTITLE */
 
-void
+char **
 setproctitle_init(int argc, char *argv[])
 {
 #if defined(SPT_TYPE) && SPT_TYPE == SPT_REUSEARGV
@@ -129,6 +129,7 @@ setproctitle_init(int argc, char *argv[])
 		environ[i] = strdup((const char *)envp[i]);
 	environ[i] = NULL;
 #endif /* SPT_REUSEARGV */
+	return argv;
 }
 
 #ifndef HAVE_SETPROCTITLE
