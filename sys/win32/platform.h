@@ -87,8 +87,6 @@ kill(int pid, int signo);
 #define getpid _getpid
 #endif
 
-#define sleep(a) Sleep(a * 1000)
-
 int
 setenv(const char *name, const char *value, int overwrite);
 
@@ -109,7 +107,7 @@ void win32_stacktrace(void *ctx);
 #include <sys/win32/sigbits.h>
 
 #ifndef sleep
-#define sleep(a) Sleep(a * 1000)
+//void sleep(unsigned int mseconds);
 #endif
 
 static inline char **setproctitle_init(int argc, char *argv[]) {return argv; };

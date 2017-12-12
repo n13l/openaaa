@@ -3,8 +3,9 @@
 #include <sys/log.h>
 #include <sys/irq.h>
 #include <sys/mpm.h>
-
 #include <sys/types.h>
+
+#include <unistd.h>
 
 #ifndef CONFIG_WIN32
 #include <sys/socket.h>
