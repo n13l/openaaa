@@ -45,5 +45,7 @@ int
 dl_iterate_phdr(int (*cb) (struct dl_phdr_info *info, 
                 size_t size, void *data), void *data);
 
+static inline char **setproctitle_init(int argc, char *argv[]) {return argv; };
+static inline void setproctitle(const char *fmt, ...) { };
 
 #endif
