@@ -57,7 +57,8 @@ int per_cpu_proc    = 2;
 int per_cpu_threads = 2;
 
 int timeout_job      = 1800; /* 30 minutes maximum for any job */
-int timeout_killable = 15;   /* timeout for gracefull shutdown */
+int timeout_killable = 5;    /* timeout for gracefull shutdown */
+int timeout_interuptible = 5;
 
 int (*ctor_task)(struct task *) = NULL;
 int (*dtor_task)(struct task *) = NULL;
@@ -99,7 +100,6 @@ struct mpm_task {
 	struct mpm_task_time time;
 	struct mpm_task_libev libev;
 	struct task self;
-	int type;
 };
 
 struct mpm_task task_disp;
@@ -150,8 +150,8 @@ process_status(int pid, int status)
 int
 process_wait(pid_t pid, int secs)
 {
-	debug1("waiting for the process pid=%d (timeout: %d secs)", pid, secs);
-	for (int status, v;;) {
+	debug3("waiting for the process pid=%d (timeout: %d secs)", pid, secs);
+	for (int status, v; secs;) {
 		for (v = 0; v == 0 && secs > 0; secs--) {
 			if ((v = waitpid(pid, &status, WNOHANG)) == -1)
 				error("wait() reason=%s", strerror(errno));
@@ -164,6 +164,7 @@ process_wait(pid_t pid, int secs)
 		info("process pid=%d did not respond within " 
 		     "the expected timeframe", pid);
 		kill(pid, SIGKILL);
+		info("process pid=%d killed by signal %d", pid, 9);
 	} 
 
 	return -1;
@@ -184,12 +185,12 @@ sig_handler(struct ev_loop *loop, ev_signal *w, int revents)
 		request_info = 1;
 		info("workers=%d running=%d", task_disp.total, task_disp.running);
 	}
-
+/*
 	if (w->signum == SIGSEGV) {
 		signal(w->signum, SIG_DFL);
 		kill(getpid(), w->signum);
 	}
-
+*/
 	ev_break(loop, EVBREAK_ALL);
 }
 
@@ -207,6 +208,9 @@ chld_handler(EV_P_ ev_child *w, int revents)
 		if (WIFEXITED(w->rstatus) || WIFSIGNALED(w->rstatus)) {
 			task_disp.running--;
 			c->self.state = TASK_INACTIVE;
+			//close(c->self.ipc[0]);
+			//close(c->self.ipc[1]);
+	
 		}
 	}
 
@@ -290,7 +294,7 @@ do_ctor_disp(struct mpm_task *task)
 	c->loop = ev_default_loop(0);
 	signal_norace(task);
 
-	ev_timer_init(&c->timer, timer, 5, 0.);
+	ev_timer_init(&c->timer, timer, timeout_interuptible, 0.);
 	ev_timer_start(c->loop, &c->timer);  
 
 	ev_signal_init(&c->sigs[SIGINT],  sig_handler, SIGINT);
@@ -304,6 +308,7 @@ do_ctor_disp(struct mpm_task *task)
 
 	sig_enable(SIGTERM);
 	sig_enable(SIGINT);
+	sig_enable(SIGHUP);
 	sig_enable(SIGCHLD);
 	sig_enable(SIGUSR1);
 }
@@ -326,14 +331,13 @@ do_ctor_proc(struct mpm_task *task)
 static void
 do_ctor(struct mpm_task *task)
 {
-	node_init(&task->node);
-	list_init(&task->list);
-
 	task->self.state = TASK_INACTIVE;
-	task->type = task == &task_disp ? TASK_TYPE_DISP: TASK_TYPE_PROC;
+	if (task == &task_disp) {
+		node_init(&task->node);
+		list_init(&task->list);
 
-	if (task == &task_disp)
 		do_ctor_disp(task);
+	}
 	else
 		do_ctor_proc(task);
 }
@@ -342,12 +346,11 @@ static void
 do_dtor(struct mpm_task *proc)
 {
 	struct task *task = &proc->self;
-
-	if (proc!= &task_disp)
+	if (proc != &task_disp) {
 		dtor_task(task);
-
-	close(task->ipc[0]);
-	close(task->ipc[1]);
+		//close(task->ipc[0]);
+		//close(task->ipc[1]);
+	}
 }
 
 int
@@ -378,18 +381,13 @@ do_process_init(struct mpm_task *parent, struct mpm_task *proc)
 	struct task *t1 = &parent->self;
 	struct task *t2 = &proc->self;
 
-	node_init(&proc->node);
-	list_init(&proc->list);
-
-	proc->type  = TASK_TYPE_PROC;
 	t2->version = t1->version;
 	t2->ppid    = t1->pid;
 
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, proc->self.ipc))
-		error("Can not create ipc anonymous unix socket");
+//	if (socketpair(AF_UNIX, SOCK_STREAM, 0, proc->self.ipc))
+//		error("Can not create ipc anonymous unix socket");
 
-	debug2("ipc %d:%d", proc->self.ipc[0], proc->self.ipc[1]);
-
+//	debug2("ipc %d:%d", proc->self.ipc[0], proc->self.ipc[1]);
 	t2->state   = TASK_RUNNING;
 }
 
@@ -428,6 +426,9 @@ do_balance(struct mpm_task *task)
 		child->self.state = TASK_INACTIVE;
 		task->self.index++;
 		child->self.index = task->self.index;
+		node_init(&child->node);
+		list_init(&child->list);
+
 init:
 		do_process_init(task, child);
 
@@ -485,8 +486,12 @@ _sched_init(void)
 void
 _sched_wait(void)
 {
-	while (!request_shutdown)
+	while (!request_shutdown) {
 		do_wait(&task_disp);
+
+		if (request_restart)
+			do_restart();
+	}
 }
 
 void

@@ -68,7 +68,7 @@ main(int argc, char *argv[])
 	main_task = entry;
 
 	log_setcaps(15);
-	log_verbose = 1;	
+	log_verbose = 3;	
 
 	info("scheduler started.");
 	_sched_init();

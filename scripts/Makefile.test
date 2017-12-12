@@ -25,7 +25,7 @@ test-cmulti  := $(addprefix $(__obj_fixed)/,$(test-cmulti))
 test-cobjs   := $(addprefix $(__obj_fixed)/,$(test-cobjs))
 
 # Options to testcc.
-testc_flags = -Wp,-MD,$(depfile) $(KBUILD_CFLAGS) $(KBUILD_CPPFLAGS) \
+testc_flags = -g -O0 -Wp,-MD,$(depfile) $(KBUILD_CFLAGS) $(KBUILD_CPPFLAGS) \
 	      $(USERINCLUDE) $(TEST_CFLAGS) -I. -I../ -I../include \
 	      -include $(srctree)/sys/$(PLATFORM)/platform.h
 
