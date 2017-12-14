@@ -110,7 +110,7 @@ sig_ignore(int sig)
 {
 	signal(sig, SIG_DFL);
 	signal(sig, SIG_IGN);
-	debug4("%.2d %s", sig, strsignal(sig));
+	debug4("irq ignore %.2d %s", sig, strsignal(sig));
 }
 
 void
@@ -153,7 +153,7 @@ sig_disable(int sig)
 	sigemptyset(&mask);
 	sigaddset(&mask, sig);
 	irqmask(SIG_BLOCK, &mask, NULL);
-	debug4("%.2d %s", sig, strsignal(sig));
+//	debug4("%.2d %s", sig, strsignal(sig));
 }
 
 void
@@ -163,7 +163,7 @@ sig_enable(int sig)
 	sigemptyset(&mask);
 	sigaddset(&mask, sig);
 	irqmask(SIG_UNBLOCK, &mask, NULL);
-	debug4("%.2d %s", sig, strsignal(sig));
+//	debug4("%.2d %s", sig, strsignal(sig));
 }
 
 void

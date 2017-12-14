@@ -133,7 +133,7 @@ main(int argc, char *argv[])
 	main_task = entry;
 
 	log_setcaps(15);
-	log_verbose = 3;	
+	log_verbose = 4;	
 
 	socket_init();
 

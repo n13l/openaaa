@@ -11,22 +11,18 @@
 #endif
 
 #ifdef CONFIG_LINUX
-
 /* workarround missing types */
 #define __u64 u64
 #define __u32 u32
 #define __u16 u16
-
 #include <linux/types.h>
 #include <sys/prctl.h>
-
 #endif
 
 #include <mem/stack.h>
 #include <net/proto.h>
 #include <list.h>
 #include <copt/lib.h>
-
 #include <unix/timespec.h>
 	
 #define EV_API_STATIC 1
@@ -160,7 +156,7 @@ process_status(int pid, int status)
 }
 
 int
-process_wait_exit(pid_t pid, int secs)
+subprocess_wait(pid_t pid, int secs)
 {
 	debug3("waiting for the process pid=%d", pid);
 	int v, status;
@@ -207,9 +203,6 @@ sig_handler(struct ev_loop *loop, ev_signal *w, int revents)
 static void
 chld_handler(EV_P_ ev_child *w, int revents)
 {
-	if ((WIFEXITED(w->rstatus)) || (WIFSIGNALED(w->rstatus)))
-		ev_child_stop (EV_A_ w);
-
 	process_status(w->rpid, w->rstatus);
 	struct mpm_task *c;
 	list_for_each_item(task_disp.list, c, node) {
@@ -223,8 +216,6 @@ chld_handler(EV_P_ ev_child *w, int revents)
 
 			struct mpm_task_libev *e = &c->libev;
 			ev_child_stop(EV_DEFAULT_ &e->child);
-			debug1("process pid=%d %p unregistered", w->rpid, &e->child);
-
 		}
 	}
 
@@ -279,7 +270,7 @@ do_restart(void)
 	struct mpm_task *c;
 	list_for_each_item(task_disp.list, c, node) {
 		kill(c->self.pid, SIGHUP);
-		int status = process_wait_exit(c->self.pid, timeout_killable);
+		int status = subprocess_wait(c->self.pid, timeout_killable);
 		if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			task_disp.running--;
 			c->self.state = TASK_INACTIVE;
@@ -288,8 +279,6 @@ do_restart(void)
 		
 			struct mpm_task_libev *e = &c->libev;
 			ev_child_stop(EV_DEFAULT_ &e->child);
-			debug3("process pid=%d %p unregistered", c->self.pid, &e->child);
-
 		}
 	}
 }
@@ -300,7 +289,7 @@ do_shutdown(void)
 	struct mpm_task *c;
 	list_for_each_item(task_disp.list, c, node) {
 		kill(c->self.pid, SIGHUP);
-		process_wait_exit(c->self.pid, timeout_killable);
+		subprocess_wait(c->self.pid, timeout_killable);
 		c->self.state = TASK_EXITING;
 		task_disp.running--;
 		close(c->self.ipc[0]);
@@ -308,8 +297,6 @@ do_shutdown(void)
 
 		struct mpm_task_libev *e = &c->libev;
 		ev_child_stop(EV_DEFAULT_ &e->child);
-		debug3("process pid=%d %p unregistered", c->self.pid, &e->child);
-
 	}
 }
 
@@ -378,7 +365,7 @@ do_dtor(struct mpm_task *proc)
 		dtor_task(task);
 		close(task->ipc[0]);
 		close(task->ipc[1]);
-		info("process pid=%d exiting", task->pid);
+		debug1("process pid=%d exiting", task->pid);
 	}
 }
 
@@ -411,6 +398,7 @@ do_subprocess_alloc(struct mpm_task *root)
 
 	proc->self.state = TASK_INACTIVE;
 	proc->self.index = ++root->self.index;
+	proc->self.created = get_timestamp();
 
 	node_init(&proc->node);
 	list_init(&proc->list);
@@ -425,12 +413,25 @@ do_subprocess_ctor(struct mpm_task *root, struct mpm_task *proc)
 	struct task *t1 = &root->self;
 	struct task *t2 = &proc->self;
 
-	t2->version = t1->version;
-	t2->ppid    = t1->pid;
-	t2->state   = TASK_RUNNING;
+	t2->version  = t1->version;
+	t2->ppid     = t1->pid;
+	t2->state    = TASK_RUNNING;
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, proc->self.ipc))
 		error("Can not create ipc anonymous unix socket");
+}
+
+static inline void
+do_subprocess_register(struct mpm_task *proc)
+{
+	ev_child_init(&proc->libev.child, chld_handler, proc->self.pid, 1);
+	ev_child_start(EV_DEFAULT_ &proc->libev.child);
+}
+
+static inline void
+do_subprocess_unregister(struct mpm_task *proc)
+{
+	ev_child_stop(EV_DEFAULT_ &proc->libev.child);
 }
 
 /* subprocess destructor running in parent context yet */
@@ -462,42 +463,43 @@ do_subprocess(struct mpm_task *proc)
 	exit(0);
 }
 
-static void
-do_balance(struct mpm_task *task)
-{                                                                               
-	pid_t pid;
-	while (task->running < task->total && !request_shutdown) {
-		struct mpm_task *child = NULL;
-		int spawned = 1;
-		list_for_each_item(task->list, child, node) {
-			if (child->self.state != TASK_INACTIVE)
-				continue;
-			spawned = 0;
-			goto init;
-		}
-
-		child = do_subprocess_alloc(task);
-init:
-		do_subprocess_ctor(task, child);
-
-		pid = fork();
-		if (pid == 0)
-			do_subprocess(child);
-		else if (pid < 0)
-			die("Can not fork()");
-
-		struct mpm_task_libev *c = &child->libev;
-		ev_child_init(&c->child, chld_handler, pid, 1);
-		ev_child_start(EV_DEFAULT_ &c->child);
-
-		debug3("process pid=%d %p registered", pid, &c->child);
-
-		task->running++;
-		child->self.pid = pid; 
-		if (!spawned)
+static struct mpm_task *
+get_inactive_subprocess(struct mpm_task *root)
+{
+	struct mpm_task *proc = NULL;
+	list_for_each_item(root->list, proc, node) {
+		if (proc->self.state != TASK_INACTIVE)
 			continue;
+		return proc;
+	}
 
-		list_add(&task->list, &child->node);	
+	proc = do_subprocess_alloc(root);
+	list_add(&root->list, &proc->node);	
+	return proc;
+}
+
+static void
+do_subprocess_fail(struct mpm_task *proc)
+{
+	proc->self.state = TASK_INACTIVE;
+	error("Can not fork()");
+}
+
+static void
+do_balance(struct mpm_task *root)
+{
+	while (root->running < root->total && !request_shutdown) {
+		struct mpm_task *proc = get_inactive_subprocess(root);
+		do_subprocess_ctor(root, proc);
+
+		proc->self.pid = fork();
+		if (proc->self.pid == 0)
+			do_subprocess(proc);
+		else if (proc->self.pid < 0) 
+			do_subprocess_fail(proc);
+
+		do_subprocess_register(proc);
+		root->running++;
 	}
 }
 
