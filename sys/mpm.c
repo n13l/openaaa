@@ -207,7 +207,6 @@ sig_handler(struct ev_loop *loop, ev_signal *w, int revents)
 static void
 chld_handler(EV_P_ ev_child *w, int revents)
 {
-	debug1("chld_handler pid=%d status=%d", w->rpid, w->rstatus);
 	if ((WIFEXITED(w->rstatus)) || (WIFSIGNALED(w->rstatus)))
 		ev_child_stop (EV_A_ w);
 
