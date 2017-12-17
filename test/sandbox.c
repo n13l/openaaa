@@ -22,7 +22,7 @@ struct symbol {
 	int flags;
 };
 
-struct interface {
+struct interface1 {
 	const char *name;
 	struct version version;
 	struct symbol symbols[];

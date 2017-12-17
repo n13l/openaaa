@@ -21,6 +21,8 @@
  * THE SOFTWARE.
  */
 
+#ifndef CONFIG_WIN32
+
 #include <signal.h>
 #include <sys/compiler.h>
 #include <sys/cpu.h>
@@ -187,3 +189,10 @@ main(int argc, char *argv[])
 
 	return 0;
 }
+#else
+int
+main(int argc, char *argv[])
+{
+	return 0;
+}
+#endif

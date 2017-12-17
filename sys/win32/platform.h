@@ -1,6 +1,8 @@
 #ifndef __SYS_PLATFORM_H__
 #define __SYS_PLATFORM_H__
 
+#include <sys/compiler.h>
+
 /* https://sourceforge.net/p/mingw-w64/wiki2/gnu%20printf/ */
 /*
 #ifndef __SWIG__
@@ -11,6 +13,8 @@
 #include <sys/time.h>
 #include <sys/timeb.h>
 #include <errno.h>
+
+#include <ws2tcpip.h>
 
 #ifndef RTLD_NOLOAD
 #define RTLD_NOLOAD 0
@@ -113,4 +117,20 @@ void win32_stacktrace(void *ctx);
 static inline char **setproctitle_init(int argc, char *argv[]) {return argv; };
 static inline void setproctitle(const char *fmt, ...) { };
 
+#ifndef INET6_ADDRSTRLEN
+#define INET6_ADDRSTRLEN 46
+#endif
+/*
+struct in6_addr {
+	unsigned char   s6_addr[16];
+};
+
+struct sockaddr_in6 {
+	unsigned short  sin6_family;
+	unsigned short  sin6_port; 
+	u32             sin6_flowinfo;
+	struct in6_addr sin6_addr;   
+	u32             sin6_scope_id;
+};
+*/
 #endif
