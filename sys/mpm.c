@@ -5,10 +5,8 @@
 #include <sys/irq.h>
 #include <sys/mpm.h>
 #include <sys/types.h>
-
-#ifndef CONFIG_WIN32
 #include <sys/socket.h>
-#endif
+#include <buffer.h>
 
 #ifdef CONFIG_LINUX
 /* workarround missing types */
@@ -24,32 +22,17 @@
 #include <list.h>
 #include <copt/lib.h>
 #include <unix/timespec.h>
-	
-#define EV_API_STATIC 1
-#define EV_STANDALONE 1
-#define EV_MINIMAL 1
-#define EV_CHILD_ENABLE 1
-#define EV_IDLE_ENABLE 1
-#define EV_EMBED_ENABLE 1
-#define EV_USE_POLL 0
-#define EV_MULTIPLICITY 1
-#define EV_PERIODIC_ENABLE 0
-#define EV_STAT_ENABLE 0
-#define EV_FORK_ENABLE 1
-#define EV_GENWRAP 0
-#define EV_AVOID_STDIO 0
-#define EV_NO_THREADS 0
 
 #ifndef WIN32
+#include <sys/ev/model.h>
 #include <sys/ev/ev.c>
 #endif
 
-_unused static sig_atomic_t request_shutdown = 0;
-_unused static sig_atomic_t request_restart  = 0;
-_unused static sig_atomic_t request_info     = 0;
+static sig_atomic_t request_shutdown = 0;
+static sig_atomic_t request_restart  = 0;
+static sig_atomic_t request_info     = 0;
 
 #ifndef CONFIG_WIN32
-
 /* processes or per_cpu should not be set together */
 int max_process = 8;
 int max_threads = 8;
@@ -57,14 +40,13 @@ int max_workers = 6;
 int max_runjobs = 2;
 int max_quejobs = 8;
 
-int job_parallel = 2;
-int job_queued   = 8;
-
+int job_parallel    = 2;
+int max_job_queue   = 4;
 int per_cpu_proc    = 2;
 int per_cpu_threads = 2;
 
-int timeout_job      = 1800; /* 30 minutes maximum for any job */
-int timeout_killable = 5;    /* timeout for gracefull shutdown */
+int timeout_job          = 1800; /* 30 minutes maximum for any job */
+int timeout_killable     = 5;    /* timeout for gracefull shutdown */
 int timeout_interuptible = 5;
 
 int (*ctor_task)(struct task *) = NULL;
@@ -72,24 +54,31 @@ int (*dtor_task)(struct task *) = NULL;
 int (*main_task)(struct task *) = NULL;
 
 struct mpm_workqueue {
-	struct list running;
-	struct list queued;
-};
+	struct list run;
+	struct list que;
+	sig_atomic_t running;
+	sig_atomic_t waiting;
+} workque = { .running = 0, .waiting = 0};
 
-struct mpm_task_node {
-	struct node node;
+struct mpm_workers {
 	struct list list;
 	sig_atomic_t running;
-	unsigned int total;
-};
+	sig_atomic_t total;
+} workers = { .running = 0, .total = 0};
 
-struct mpm_task_time {
+struct process_time {
 	timestamp_t created;
 	timestamp_t expires;
 	timestamp_t exited;
 };
 
-struct mpm_task_libev {
+struct process_status {
+	u32 id;
+	u32 hash;
+	u16 type;
+};
+
+struct process_ev {
 	struct ev_loop *loop;
 	struct ev_timer timer;
 	struct ev_idle *idle;
@@ -97,47 +86,79 @@ struct mpm_task_libev {
 	struct ev_check check;
 	struct ev_signal sigs[32];
 	struct ev_child child;
+	struct ev_io ipc;
 };
 
-struct mpm_task {
+struct process {
 	struct node node;
-	struct list list;
-	unsigned int running;
-	unsigned int total;
-	struct mpm_task_time time;
-	struct mpm_task_libev libev;
+	struct node queued;
+	struct process_time time;
+	struct process_ev ev;
 	struct task self;
 	int caps;
+	int type;
+	int ipc[2];
 };
 
-struct mpm_task task_disp;
+enum ipc_type {
+	IPC_WORKQUE_ADD   = 1,
+	IPC_WORKQUE_DEL   = 2,
+	IPC_STATUS        = 3,
+	IPC_CUSTOM        = 4,
+};
+
+enum ipc_dir {
+	IPC_REQUEST       = 1,
+	IPC_RESPONSE      = 2
+};
+
+static const char *s_ipc_msg[] = {
+	[IPC_WORKQUE_ADD] = "workque-add",
+	[IPC_WORKQUE_DEL] = "workque-del",
+	[IPC_STATUS]      = "status",
+	[IPC_CUSTOM]      = "custom",
+};
+
+static const char *s_ipc_dir[] = {
+	[IPC_REQUEST]     = "request",
+	[IPC_RESPONSE]    = "response"
+};
+
+struct ipc_msg {
+	u16 type; u16 dir; u32 mid; u32 sid; u32 did; u32 size;
+};
+
+struct process root;
 
 static void
-do_balance(struct mpm_task *task);
+chld_handler(EV_P_ ev_child *w, int revents);
+
+static void
+do_balance(struct process *task);
 
 static void
 process_exited(int pid, int status)
 {
-	info("process pid=%d exited, status=%d", pid, WEXITSTATUS(status));
+	info("process pid: %d exited, status: %d", pid, WEXITSTATUS(status));
 }
 
 static void
 process_signaled(int pid, int status)
 {
-	info("process pid=%d killed by signal %d (%s)", 
+	info("process pid: %d killed by signal %d (%s)", 
 	     pid, WTERMSIG(status), strsignal(WTERMSIG(status)));
 }
 
 static void
 process_stopped(int pid, int status)
 {
-	info("process pid=%d stopped by signal %d", pid, WSTOPSIG(status));
+	info("process pid: %d stopped by signal %d", pid, WSTOPSIG(status));
 }
 
 static void
 process_continued(int pid, int status)
 {
-	info("process pid=%d continued", pid);
+	info("process pid: %d continued", pid);
 }
 
 static int
@@ -158,7 +179,7 @@ process_status(int pid, int status)
 int
 subprocess_wait(pid_t pid, int secs)
 {
-	debug3("waiting for the process pid=%d", pid);
+	info("waiting for the process pid: %d", pid);
 	int v, status;
 	for (v = 0; v == 0 && secs > 0; secs--) {
 		if ((v = waitpid(pid, &status, WNOHANG)) == -1)
@@ -169,11 +190,139 @@ subprocess_wait(pid_t pid, int secs)
 			return process_status(pid, status);
 	}
 
-	info("process pid=%d did not respond within " 
-	     "the expected timeframe", pid);
+	info("process pid: %d did not respond within the timeframe", pid);
 	kill(pid, SIGKILL);
-	info("process pid=%d killed by signal %d", pid, 9);
+	info("process pid: %d killed by signal %d", pid, 9);
 	return v;
+}
+
+static inline struct process *
+subprocess_alloc(void)
+{
+	struct process *proc = malloc(sizeof(*proc));
+	memset(proc, 0, sizeof(*proc));
+
+	proc->self.state = TASK_INACTIVE;
+	proc->self.created = get_timestamp();
+
+	node_init(&proc->node);
+	node_init(&proc->queued);
+	return proc;
+}
+
+static u32 id_counter = 1;
+
+int
+sched_workque_add(void)
+{
+	if (workque.waiting > max_job_queue)
+		return -1;
+
+	struct process *proc = subprocess_alloc();
+	if (id_counter > 8192)
+		id_counter = 0;
+
+	proc->self.id = id_counter++;
+	proc->type = TASK_WORKQUE;
+	list_add(&workque.que, &proc->queued);
+	workque.waiting++;
+	return proc->self.id;
+}
+
+int
+sched_workque_del(void)
+{
+	return -1;
+}
+
+static void
+ipc_handler(EV_P_ struct ev_io *w, int revents)
+{
+	if (!(revents & EV_READ))
+		return;
+
+	char buffer[8192] = {0};
+	int rv = read(w->fd, buffer, sizeof(buffer));
+	if (rv < 0) {
+		error("result=%d %d:%s", rv, errno, strerror(errno));
+		return;
+	} else if (rv == 0) {
+		error("ipc disconnected");
+		return;
+	}
+
+	buffer[rv] = 0;
+	struct ipc_msg *req = (struct ipc_msg *)buffer;
+	if (rv < sizeof(*req)) {
+		error("ipc msg malformed");
+		return;
+	}
+
+	debug3("ipc msg recv %s:%s", 
+	       s_ipc_msg[req->type], s_ipc_dir[req->dir]);
+	switch (req->type) {
+	case IPC_WORKQUE_ADD: {
+		int id = sched_workque_add();
+		struct ipc_msg res = { 
+			.type = IPC_WORKQUE_ADD, .dir  = IPC_RESPONSE, 
+			.size = sizeof(res), .sid  = id
+		};
+
+		debug3("ipc msg send %s:%s", 
+		       s_ipc_msg[res.type], s_ipc_dir[res.dir]);
+		if ((rv = write(w->fd, &res, res.size)) < res.size)
+			error("result=%d %d:%s", rv, errno, strerror(errno));
+
+		ev_break(loop, EVBREAK_ALL);
+	}
+	break;
+	}
+}
+
+int
+sched_workque(struct task *proc, const char *arg)
+{
+	struct process *p = __container_of(proc, struct process, self);
+
+	struct ipc_msg msg = { 
+		.type = IPC_WORKQUE_ADD, .dir = IPC_REQUEST, .size = sizeof(msg)
+	};
+
+	debug3("ipc msg send %s:%s", s_ipc_msg[msg.type], s_ipc_dir[msg.dir]);
+
+	int rv;
+	if ((rv = write(p->ipc[1], &msg, msg.size)) < msg.size)
+		goto error;
+	if ((rv = read(p->ipc[1], &msg, sizeof(msg))) < sizeof(msg))
+		goto error;
+
+	debug3("ipc msg recv %s:%s", s_ipc_msg[msg.type], s_ipc_dir[msg.dir]);
+	return msg.sid;
+
+error:
+	error("%d:%s", errno, strerror(errno));
+	return -1;	
+}
+
+static inline void
+subprocess_attach(struct process *proc)
+{
+	ev_child_init(&proc->ev.child, chld_handler, proc->self.pid, 1);
+	ev_child_start(EV_DEFAULT_ &proc->ev.child);
+
+	ev_io_init(&proc->ev.ipc, ipc_handler,  proc->ipc[0], EV_READ);
+	ev_io_start(EV_DEFAULT_ &proc->ev.ipc);
+}
+
+static inline void
+subprocess_detach(struct process *proc)
+{
+	proc->self.state = TASK_INACTIVE;
+
+	ev_child_stop(EV_DEFAULT_ &proc->ev.child);
+	ev_io_stop(EV_DEFAULT_ &proc->ev.ipc);
+	close(proc->ipc[0]);
+	close(proc->ipc[1]);
 }
 
 static void
@@ -182,14 +331,15 @@ sig_handler(struct ev_loop *loop, ev_signal *w, int revents)
 	if (w->signum == SIGINT)
 		write(1, "\n", 1);
 
-	debug3("signum=%d reason=%s processed", w->signum, strsignal(w->signum));
+	debug3("%s (%d) processed", strsignal(w->signum), w->signum);
 	if (w->signum == SIGTERM || w->signum == SIGINT)
 		request_shutdown = 1;
 	if (w->signum == SIGHUP)
 		request_restart = 1;
 	if (w->signum == SIGUSR1) {
 		request_info = 1;
-		info("workers=%d running=%d", task_disp.total, task_disp.running);
+		info("workers=%d running=%d", workers.total, workers.running);
+		info("workque=%d running=%d", workque.waiting, workque.running);
 	}
 
 	if (w->signum == SIGSEGV) {
@@ -204,18 +354,24 @@ static void
 chld_handler(EV_P_ ev_child *w, int revents)
 {
 	process_status(w->rpid, w->rstatus);
-	struct mpm_task *c;
-	list_for_each_item(task_disp.list, c, node) {
+	struct process *c;
+	list_for_each_item(workers.list, c, node) {
 		if (w->rpid != c->self.pid)
 			continue;
 		if (WIFEXITED(w->rstatus) || WIFSIGNALED(w->rstatus)) {
-			task_disp.running--;
-			c->self.state = TASK_INACTIVE;
-			close(c->self.ipc[0]);
-			close(c->self.ipc[1]);
+			workers.running--;
+			subprocess_detach(c);
+		}
+	}
 
-			struct mpm_task_libev *e = &c->libev;
-			ev_child_stop(EV_DEFAULT_ &e->child);
+	list_for_each_delsafe(workque.run, node) {
+		c = __container_of(node, struct process, queued);
+		if (w->rpid != c->self.pid)
+			continue;
+		if (WIFEXITED(w->rstatus) || WIFSIGNALED(w->rstatus)) {
+			workque.running--;
+			subprocess_detach(c);
+			list_del(&c->queued);
 		}
 	}
 
@@ -225,7 +381,7 @@ chld_handler(EV_P_ ev_child *w, int revents)
 static void
 hup_handler(int signo, siginfo_t *info, void *context)
 {
-	debug3("signum=%d reason=%s processed", signo, strsignal(signo));
+	debug3("%s (%d) processed", strsignal(signo), signo);
 	request_restart = 1;
 }
 
@@ -252,9 +408,9 @@ check(struct ev_loop *loop, ev_check *w, int revents)
 }
 
 static void
-signal_norace(struct mpm_task *task)
+signal_norace(struct process *task)
 {
-	struct mpm_task_libev *c = &task->libev;
+	struct process_ev *c = &task->ev;
 	ev_prepare_init(&c->prepare, prepare);
 	ev_prepare_start(c->loop, &c->prepare);
 	ev_check_init(&c->check, check);
@@ -265,20 +421,15 @@ static void
 do_restart(void)
 {
 	request_restart = 0;
-	task_disp.self.version = get_timestamp();
+	root.self.version = get_timestamp();
 
-	struct mpm_task *c;
-	list_for_each_item(task_disp.list, c, node) {
+	struct process *c;
+	list_for_each_item(workers.list, c, node) {
 		kill(c->self.pid, SIGHUP);
 		int status = subprocess_wait(c->self.pid, timeout_killable);
 		if (WIFEXITED(status) || WIFSIGNALED(status)) {
-			task_disp.running--;
-			c->self.state = TASK_INACTIVE;
-			close(c->self.ipc[0]);
-			close(c->self.ipc[1]);
-		
-			struct mpm_task_libev *e = &c->libev;
-			ev_child_stop(EV_DEFAULT_ &e->child);
+			workers.running--;
+			subprocess_detach(c);
 		}
 	}
 }
@@ -286,24 +437,26 @@ do_restart(void)
 static void
 do_shutdown(void)
 {
-	struct mpm_task *c;
-	list_for_each_item(task_disp.list, c, node) {
+	struct process *c;
+	list_for_each_item(workers.list, c, node) {
 		kill(c->self.pid, SIGHUP);
 		subprocess_wait(c->self.pid, timeout_killable);
-		c->self.state = TASK_EXITING;
-		task_disp.running--;
-		close(c->self.ipc[0]);
-		close(c->self.ipc[1]);
+		workers.running--;
+		subprocess_detach(c);
+	}
 
-		struct mpm_task_libev *e = &c->libev;
-		ev_child_stop(EV_DEFAULT_ &e->child);
+	list_for_each_item(workque.run, c, queued) {
+		kill(c->self.pid, SIGHUP);
+		subprocess_wait(c->self.pid, timeout_killable);
+		workque.running--;
+		subprocess_detach(c);
 	}
 }
 
 static void
-do_ctor_disp(struct mpm_task *task)
+do_ctor_disp(struct process *task)
 {
-	struct mpm_task_libev *c = &task->libev;
+	struct process_ev *c = &task->ev;
 	task->self.ppid = task->self.pid = getpid();
 
 	c->loop = ev_default_loop(0);
@@ -329,7 +482,7 @@ do_ctor_disp(struct mpm_task *task)
 }
 
 static void
-do_ctor_proc(struct mpm_task *task)
+do_ctor_proc(struct process *task)
 {
 	sig_action(SIGHUP, hup_handler);
 	sig_disable(SIGTERM);
@@ -344,12 +497,11 @@ do_ctor_proc(struct mpm_task *task)
 }
 
 static void
-do_ctor(struct mpm_task *task)
+do_ctor(struct process *task)
 {
 	task->self.state = TASK_INACTIVE;
-	if (task == &task_disp) {
+	if (task == &root) {
 		node_init(&task->node);
-		list_init(&task->list);
 
 		do_ctor_disp(task);
 	}
@@ -358,25 +510,27 @@ do_ctor(struct mpm_task *task)
 }
 
 static void
-do_dtor(struct mpm_task *proc)
+do_dtor(struct process *proc)
 {
-	struct task *task = &proc->self;
-	if (proc != &task_disp) {
-		dtor_task(task);
-		close(task->ipc[0]);
-		close(task->ipc[1]);
-		debug1("process pid=%d exiting", task->pid);
-	}
+	if (proc == &root) 
+		goto exit;
+
+	dtor_task(&proc->self);
+	close(proc->ipc[0]);
+	close(proc->ipc[1]);
+exit:	
+	debug3("process pid: %d exiting", proc->self.pid);
+	return;
 }
 
 int
-do_wait(struct mpm_task *proc)
+do_wait(struct process *proc)
 {
 	struct task *task = &proc->self;
-	struct mpm_task_libev *c = &proc->libev;
+	struct process_ev *c = &proc->ev;
 	task->state = TASK_RUNNING;
 
-	if (proc == &task_disp) {
+	if (proc == &root) {
 		do_balance(proc);
 		ev_loop(c->loop, 0);
 	} else {	
@@ -390,10 +544,10 @@ do_wait(struct mpm_task *proc)
 	return 0;
 }
 
-static inline struct mpm_task *
-do_subprocess_alloc(struct mpm_task *root)
+static inline struct process *
+do_subprocess_alloc(struct process *root)
 {
-	struct mpm_task *proc = malloc(sizeof(*proc));
+	struct process *proc = malloc(sizeof(*proc));
 	memset(proc, 0, sizeof(*proc));
 
 	proc->self.state = TASK_INACTIVE;
@@ -401,14 +555,14 @@ do_subprocess_alloc(struct mpm_task *root)
 	proc->self.created = get_timestamp();
 
 	node_init(&proc->node);
-	list_init(&proc->list);
+	node_init(&proc->queued);
 
 	return proc;
 }
 
 /* subprocess constructor running in parent context yet */
 static inline void
-do_subprocess_ctor(struct mpm_task *root, struct mpm_task *proc)
+do_subprocess_ctor(struct process *root, struct process *proc)
 {
 	struct task *t1 = &root->self;
 	struct task *t2 = &proc->self;
@@ -417,35 +571,24 @@ do_subprocess_ctor(struct mpm_task *root, struct mpm_task *proc)
 	t2->ppid     = t1->pid;
 	t2->state    = TASK_RUNNING;
 
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, proc->self.ipc))
+	if (socketpair(PF_UNIX, SOCK_STREAM, 0, proc->ipc))
 		error("Can not create ipc anonymous unix socket");
-}
 
-static inline void
-do_subprocess_register(struct mpm_task *proc)
-{
-	ev_child_init(&proc->libev.child, chld_handler, proc->self.pid, 1);
-	ev_child_start(EV_DEFAULT_ &proc->libev.child);
-}
-
-static inline void
-do_subprocess_unregister(struct mpm_task *proc)
-{
-	ev_child_stop(EV_DEFAULT_ &proc->libev.child);
 }
 
 /* subprocess destructor running in parent context yet */
 static inline void
-do_subprocess_dtor(struct mpm_task *proc)
+do_subprocess_dtor(struct process *proc)
 {
 }
 
 static inline void
-do_subprocess(struct mpm_task *proc)
+do_subprocess(struct process *proc)
 {
 	struct task *task = &proc->self;
 	task->pid = getpid();
 
+	close(proc->ipc[0]);
 	ev_loop_fork(EV_DEFAULT);
 
 #ifdef CONFIG_LINUX
@@ -455,52 +598,110 @@ do_subprocess(struct mpm_task *proc)
 	if (kill(proc->self.ppid, 0))
 		request_shutdown = request_restart = 1;
 #endif
-
 	do_ctor(proc);
 	sig_enable(SIGHUP);
 	do_wait(proc);
 	do_dtor(proc);
+	close(proc->ipc[1]);
 	exit(0);
 }
 
-static struct mpm_task *
-get_inactive_subprocess(struct mpm_task *root)
+static inline void
+do_workque(struct process *proc)
 {
-	struct mpm_task *proc = NULL;
-	list_for_each_item(root->list, proc, node) {
+	struct task *task = &proc->self;
+	task->pid = getpid();
+
+	close(proc->ipc[0]);
+	ev_loop_fork(EV_DEFAULT);
+
+#ifdef CONFIG_LINUX
+	if (!prctl(PR_SET_PDEATHSIG, SIGHUP))
+		proc->caps |= TASK_PDEATHSIGHUP;
+	/* avoid race between parent death and prctl() */
+	if (kill(proc->self.ppid, 0))
+		request_shutdown = request_restart = 1;
+#endif
+	sig_enable(SIGHUP);
+	do_ctor(proc);
+	info("workque process");
+	sleep(5);
+	do_dtor(proc);
+	close(proc->ipc[1]);
+	exit(0);
+}
+
+
+static struct process *
+get_inactive_subprocess(struct process *root)
+{
+	struct process *proc = NULL;
+	list_for_each_item(workers.list, proc, node) {
 		if (proc->self.state != TASK_INACTIVE)
 			continue;
 		return proc;
 	}
 
 	proc = do_subprocess_alloc(root);
-	list_add(&root->list, &proc->node);	
+	list_add(&workers.list, &proc->node);	
 	return proc;
 }
 
-static void
-do_subprocess_fail(struct mpm_task *proc)
+static inline void
+do_subprocess_fail(struct process *proc)
 {
 	proc->self.state = TASK_INACTIVE;
 	error("Can not fork()");
+	sleep(1);
 }
 
 static void
-do_balance(struct mpm_task *root)
+do_balance(struct process *root)
 {
-	while (root->running < root->total && !request_shutdown) {
-		struct mpm_task *proc = get_inactive_subprocess(root);
+	while ((workers.running < workers.total) && !request_shutdown) {
+		struct process *proc = get_inactive_subprocess(root);
 		do_subprocess_ctor(root, proc);
 
 		proc->self.pid = fork();
 		if (proc->self.pid == 0)
 			do_subprocess(proc);
-		else if (proc->self.pid < 0) 
+		else if (proc->self.pid < 0) {
 			do_subprocess_fail(proc);
+			continue;
+		} else {
 
-		do_subprocess_register(proc);
-		root->running++;
+		subprocess_attach(proc);
+		proc->self.state = TASK_RUNNING;
+		workers.running++;
+		}
 	}
+
+	while(workque.waiting > 0 && (workque.running < job_parallel)) {
+		struct node *node = list_first(&workque.que);
+		struct process *proc = __container_of(node, struct process, queued);
+		do_subprocess_ctor(root, proc);
+
+		proc->self.pid = fork();
+		if (proc->self.pid == 0)
+			do_workque(proc);
+		else if (proc->self.pid < 0) {
+			do_subprocess_fail(proc);
+			continue;
+		}
+
+		subprocess_attach(proc);
+		proc->self.state = TASK_RUNNING;
+
+		workque.running++;
+		workque.waiting--;
+
+		list_del(&proc->queued);
+		node_init(&proc->queued);
+		list_add(&workque.run, &proc->queued);
+	}
+
+	debug4("workers running=%d total=%d workque running=%d waiting=%d", 
+	     workers.running, workers.total, workque.running, workque.waiting);
 }
 
 void
@@ -528,41 +729,58 @@ void sched_info_show(void)
 }
 
 void
-_sched_init(void)
+_sched_start(const struct mpm_module *mpm_module)
 {
-	do_ctor(&task_disp);
-	task_disp.total = 2;
+	list_init(&workers.list);
+	list_init(&workque.run);
+	list_init(&workque.que);
+
+	const struct sched_params *params = mpm_module->sched_params;
+	if ((params->max_processes - params->max_job_parallel) < 1 )
+		die("increase max_processes parameter");
+
+	workers.total = params->max_processes - params->max_job_parallel;
+	do_ctor(&root);
+
+	debug3("scheduler limits  processes: %d (workers: %d, job_parallel: %d) queue: %d", 
+		params->max_processes, workers.total, 
+		params->max_job_parallel, params->max_job_queue);
+	debug3("scheduler timeout interuptible: %d, killable: %d, throttled: %d, status: %d",
+	       params->timeout_interuptible, params->timeout_killable,
+	       params->timeout_throttled, params->timeout_status);
+
+	debug1("status cache hash table entries: %d (order: %d, %d bytes)", 0, 0, 0);
 }
 
 void
-_sched_wait(void)
+_sched_wait(const struct mpm_module *mpm_module)
 {
 	while (!request_shutdown) {
-		do_wait(&task_disp);
+		do_wait(&root);
 		if (request_restart)
 			do_restart();
 	}
 }
 
 void
-_sched_fini(void)
+_sched_stop(const struct mpm_module *mpm_module)
 {
 	do_shutdown();
-	do_dtor(&task_disp);
+	do_dtor(&root);
 }
 #else
 void
-_sched_init(void)
+_sched_start(const struct mpm_module *mpm_module)
 {
 }
 
 void
-_sched_wait(void)
+_sched_wait(const struct mpm_module *mpm_module)
 {
 }
 
 void
-_sched_fini(void)
+_sched_stop(const struct mpm_module *mpm_module)
 {
 }
 

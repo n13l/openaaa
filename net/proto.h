@@ -27,6 +27,14 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <errno.h>
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
@@ -42,5 +50,14 @@ struct protocol {
 	int (*close)(void);
 	struct node node;
 };
+
+void 
+socket_blocking(int sd);
+
+void 
+socket_nblocking(int sd);
+
+void
+socket_reuseaddr(int sd);
 
 #endif

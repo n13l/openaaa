@@ -1,2 +1,2 @@
-obj-y := sctp/dec.o
+obj-y += sctp/dec.o
 obj-y += tls/

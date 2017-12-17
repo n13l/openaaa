@@ -1,0 +1,19 @@
+#ifndef __EV_DEFINE_MODEL_H__
+#define __EV_DEFINE_MODEL_H__
+
+#define EV_API_STATIC 1
+#define EV_STANDALONE 1
+#define EV_MINIMAL 1
+#define EV_CHILD_ENABLE 1
+#define EV_IDLE_ENABLE 1
+#define EV_EMBED_ENABLE 1
+#define EV_USE_POLL 0
+#define EV_MULTIPLICITY 1
+#define EV_PERIODIC_ENABLE 0
+#define EV_STAT_ENABLE 0
+#define EV_FORK_ENABLE 1
+#define EV_GENWRAP 0
+#define EV_AVOID_STDIO 0
+#define EV_NO_THREADS 0
+
+#endif

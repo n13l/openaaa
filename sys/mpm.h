@@ -51,6 +51,9 @@
 #define CPU_DEDICATED    0x0002 /* processes does not share anything         */
 #define CPU_AFFINITY     0x0004 /* processes are binded to specified CPUs    */
 
+#define NET_ROUNDROBIN   0x0001 /* kernel scheduler doing round robin        */
+#define NET_PORTRANGE    0x0002 /* dedicated port ranges for workers         */
+
 #define TASK_INACTIVE    0x0001 /* task is not active but resource are there */
 #define TASK_STOPPED     0x0002 /* task has been stopped */
 #define TASK_RUNNING     0x0004 /* task is running */
@@ -59,25 +62,22 @@
 
 /* subprocess is interupted with SIGHUP when parent dies based on PDEATHSIG  */
 #define TASK_PDEATHSIGHUP 0x0001 
-/* subprocess is interupted with SIGHUP when parent dies based on custom irq */
-#define TASK_PDEATHIRQHUP 0x0002
 
 struct task {
 	timestamp_t created;
 	timestamp_t expires;
-	int ppid, pid, index;
+	int ppid, pid, index, id;
 	volatile int state;
 	int version;
 	int status;
-	int ipc[2];
 };
 
-struct mpm_callbacks {
-	int (*init)(void);
-	int (*fini)(void);
+struct sched_calls {
+	void (*init)(void);
+	void (*fini)(void);
 	int (*ctor)(struct task *);
 	int (*dtor)(struct task *);
-	int (*entry)(struct task *, int argc, char *argv[]);
+	int (*entry)(struct task *);
 };
 
 /* scheduling parameters */
@@ -88,28 +88,36 @@ struct sched_params {
 	int per_cpu_thread;
 	int max_job_parallel;
 	int max_job_queue;
+	int max_job_unique;
 	int timeout_interuptible;
 	int timeout_uninteruptible;
 	int timeout_killable;
 	int timeout_throttled;
+	int timeout_status;
+};
+
+struct mpm_module {
+	int mpm_model;
+	int cpu_model;
+	int net_model;
+	const struct sched_params *sched_params;
+	const struct sched_calls *sched_calls;
 };
 
 void sched_timeout_interuptible(int timeout);
 void sched_timeout_uninteruptible(int timeout);
 void sched_timeout_killable(int timeout);
 void sched_timeout_throttled(int timeout);
-void sched_info_show(void);
 
-int  sched_getcaps(void);
-int  sched_setcaps(int caps);
-
-void _sched_init(void);
-void _sched_wait(void);
-void _sched_fini(void);
-
+int sched_getcaps(void);
+int sched_setcaps(int caps);
 int sched_sendmsg(int id, void *addr, size_t size);
 int sched_recvmsg(int id, void *addr, size_t size);
-int sched_workque(struct task *);
+int sched_workque(struct task *, const char *arg);
+
+void _sched_start(const struct mpm_module *);
+void _sched_wait(const struct mpm_module *);
+void _sched_stop(const struct mpm_module *);
 
 int (*ctor_task)(struct task *);
 int (*main_task)(struct task *);

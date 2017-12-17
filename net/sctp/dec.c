@@ -22,6 +22,9 @@
  * THE SOFTWARE.
  */
 
+#include <sys/socket.h>
+#include <arpa/inet.h>
+
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <crypto/crc.h>

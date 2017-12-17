@@ -37,35 +37,30 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
-int fd;
+#include <net/proto.h>
+#include <net/ip/proto.h>
 
-static void 
-socket_blocking(int sock)
-{
-	int opts;
-	if ((opts = fcntl(sock,F_GETFL)) < 0)
-		die("fcntl(F_GETFL)");
-	if (fcntl(sock,F_SETFL, (opts & (~O_NONBLOCK))) < 0)
-		die("fcntl(F_SETFL)");
-	return;
-}
+int fd;
 
 static void
 socket_init(void)
 {
-	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-		die("Can not create socket");
-
-	struct sockaddr_in addr = {
-		.sin_port = htons(6666), .sin_addr.s_addr = 0,
-		.sin_addr.s_addr = INADDR_ANY, .sin_family = AF_INET
+	struct sockaddr_in6 sa = {
+		.sin6_family = AF_INET6,
+		.sin6_port   = htons(6666),  
+		.sin6_addr   = in6addr_any
 	};
 
-	if(bind(fd, (struct sockaddr *)&addr,sizeof(addr)) == -1)
-		die("Error binding socket");
+	if ((fd = socket(AF_INET6, SOCK_STREAM, 0)) == -1)
+		die("Can not create socket");
 
+	socket_reuseaddr(fd);
 	socket_blocking(fd);
-	listen(fd, 16);
+
+	if (bind(fd, (struct sockaddr *)&sa,sizeof(sa)) == -1)
+		die("Error binding socket");
+	if (listen(fd, 16) == -1)
+		die("Error listen socket");
 }
 
 static void
@@ -75,11 +70,21 @@ socket_fini(void)
 		close(fd);
 }
 
+void
+main_init(void)
+{
+}
+
+void
+main_fini(void)
+{
+}
+
 static int
 ctor(struct task *task)
 {
 	setproctitle("mpm/%d", task->index);
-	info("process:%d pid=%d started", task->index, task->pid);
+	debug1("process pid: %d started", task->pid);
 	return 0;
 }
 
@@ -90,40 +95,75 @@ dtor(struct task *task)
 }
 
 static int
-entry(struct task *task)
+entry(struct task *proc)
 {
-	info("listening tcp://0.0.0.0:6666");
-	struct sockaddr_in sa;
-	socklen_t len = sizeof(sa);
-	int c = accept(fd, (struct sockaddr *)&sa, &len);
-	if (c < 0) {
-		debug1("accept():%d:%s", errno, strerror(errno));
+	struct ip_peer ip = { .len = sizeof(ip.sa) };
+
+	do {
+
+	if ((ip.fd = accept(fd, NULL, NULL)) < 0) {
+		debug3("accept():%d:%s", errno, strerror(errno));
 		return errno;
 	}
 
-	socket_blocking(c);
+	socket_blocking(ip.fd);
+	getpeername(ip.fd, (struct sockaddr *)&ip.sa, &ip.len);
+	if(inet_ntop(AF_INET6, &ip.sa.sin6_addr, ip.name, sizeof(ip.name)))
+		info("Accepted connection from %s:%d", 
+		     ip.name, htons(ip.sa.sin6_port));
 
-	info("accepted connection from %s:%d", 
-	     inet_ntoa(sa.sin_addr), htons(sa.sin_port));
-	close(c);
+	const char *arg = "test";
+	int id = sched_workque(proc, arg);
+	info("workque id=%d", id);
 
+	close(ip.fd);
+	info("Connection closed with %s:%d", ip.name, htons(ip.sa.sin6_port));
+
+	} while(1);
 	return 0;
 }
 
-_unused static const struct sched_params params = {
-	.max_processes        = 4,
-	.max_job_parallel     = 2,
-	.max_job_queue        = 16,
-	.timeout_interuptible = 5,
-	.timeout_killable     = 5,
-	.timeout_throttled    = 1,
+static const struct sched_params sched_params = {
+	.max_processes        = 4,     /* number of processes                */
+	.max_job_parallel     = 2,     /* number of running queued processes */
+	.max_job_queue        = 8,     /* size of the workqueue              */
+	.max_job_unique       = 1,     /* maximum unique jobs                */
+	.timeout_interuptible = 5,     /* timeout for interuptible code area */
+	.timeout_killable     = 5,     /* timeout before process is killed   */
+	.timeout_throttled    = 1,     /* slowdown on trashing / fatal errors */
+	.timeout_status       = 360,   /* 5 minutes for process status       */
 };
 
+static const struct sched_calls sched_calls = {
+	.init = main_init,
+	.fini = main_fini,
+	.ctor = ctor,
+	.dtor = dtor,
+	.entry = entry
+};
+
+static const struct mpm_module mpm_module = {
+	.mpm_model    = MPM_HYBRID,    /* threads in dedicated processes     */
+	.cpu_model    = CPU_DEDICATED, /* dedicated process workers          */
+	.net_model    = NET_ROUNDROBIN,
+	.sched_params = &sched_params,
+	.sched_calls  = &sched_calls
+};
+
+const char *pidfile = "/var/run/mpmd.pid";
+
 int 
-main(int argc, char *argv[]) 
+main(int argc, char *argv[])
 {
 	irq_init();
 	irq_disable();
+
+	int pid;
+	if ((pid = pid_read(pidfile)))
+		die("process already running pid: %d\n", pid);
+
+	if (!pid_write(pidfile))
+		die("can't write pid file: %s\n", pidfile);
 
 	argv = setproctitle_init(argc, argv);
 	setproctitle("mpmd");
@@ -133,14 +173,14 @@ main(int argc, char *argv[])
 	main_task = entry;
 
 	log_setcaps(15);
-	log_verbose = 4;	
+	log_verbose = 2;
 
 	socket_init();
 
 	info("scheduler started.");
-	_sched_init();
-	_sched_wait();
-	_sched_fini();
+	_sched_start(&mpm_module);
+	_sched_wait(&mpm_module);
+	_sched_stop(&mpm_module);
 	info("scheduler stopped.");
 
 	socket_fini();
