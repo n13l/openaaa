@@ -187,6 +187,9 @@ void
 giveup(const char *fmt, ...);
 
 void
+log_name(const char *name);
+
+void
 log_open(const char *file);
 
 void

@@ -63,13 +63,17 @@ log_open(const char *file)
 	if (!strcmp(file, "syslog")) 
 		log_type = LOG_TYPE_SYSLOG;
 
-	strcpy(progname,"aaa");
-
 	switch (log_type) {
 	case LOG_TYPE_SYSLOG: 
 		openlog(progname, LOG_CONS | LOG_PID | LOG_NDELAY, LOG_DAEMON);
 		break;
 	}
+}
+
+void
+log_name(const char *name)
+{
+	strcpy(progname, name);
 }
 
 void
