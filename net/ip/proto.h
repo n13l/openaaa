@@ -40,11 +40,4 @@
 #define IP6_HEADER_SIZE 40
 #endif
 
-struct ip_peer {
-	struct sockaddr_in6 sa;
-	socklen_t len;
-	char name[INET6_ADDRSTRLEN];
-	int fd;
-};
-
 #endif

@@ -40,9 +40,16 @@
 #include <errno.h>
 
 #include <net/proto.h>
-#include <net/ip/proto.h>
 
 int fd;
+
+struct ip_peer {
+	struct sockaddr_in6 sa;
+	socklen_t len;
+	char name[INET6_ADDRSTRLEN];
+	int fd;
+};
+
 
 static void
 socket_init(void)
@@ -72,32 +79,43 @@ socket_fini(void)
 		close(fd);
 }
 
-void
-main_init(void)
-{
-}
-
-void
-main_fini(void)
-{
-}
-
 static int
-ctor(struct task *task)
+worksvc_ctor(struct task *proc)
 {
-	setproctitle("mpm/%d", task->index);
-	debug1("process pid: %d started", task->pid);
+	debug1("worksvc pid: %d started", proc->pid);
 	return 0;
 }
 
 static int
-dtor(struct task *task)
+worksvc_dtor(struct task *proc)
+{
+	debug1("worksvc pid: %d exiting", proc->pid);
+	return 0;
+}
+
+static int
+worksvc_entry(struct task *proc)
 {
 	return 0;
 }
 
 static int
-entry(struct task *proc)
+process_ctor(struct task *proc)
+{
+	setproctitle("mpm/%d", proc->index);
+	debug1("process pid: %d started", proc->pid);
+	return 0;
+}
+
+static int
+process_dtor(struct task *proc)
+{
+	debug1("process pid: %d exiting", proc->pid);
+	return 0;
+}
+
+static int
+process_entry(struct task *proc)
 {
 	struct ip_peer ip = { .len = sizeof(ip.sa) };
 
@@ -111,17 +129,52 @@ entry(struct task *proc)
 	socket_blocking(ip.fd);
 	getpeername(ip.fd, (struct sockaddr *)&ip.sa, &ip.len);
 	if(inet_ntop(AF_INET6, &ip.sa.sin6_addr, ip.name, sizeof(ip.name)))
-		info("Accepted connection from %s:%d", 
+		debug1("Accepted connection from %s:%d", 
 		     ip.name, htons(ip.sa.sin6_port));
 
-	const char *arg = "test";
-	int id = sched_workque(proc, arg);
-	info("workque id=%d", id);
+	char buffer[8192] = {0};
+	int rv = read(ip.fd, buffer, sizeof(buffer));
+	if (rv < 0) {
+		error("result=%d %d:%s", rv, errno, strerror(errno));
+		return -1;
+	} else if (rv == 0) {
+		debug1("disconnected");
+		return -1;
+	}
+
+	buffer[rv] = 0;
+
+	for (u8 *u = (u8*)buffer; rv; rv--, u++) if (*u == '\n') *u = 0;
+	const char *arg = buffer;
+	_unused int id = sched_workque(proc, arg);
 
 	close(ip.fd);
-	info("Connection closed with %s:%d", ip.name, htons(ip.sa.sin6_port));
+	debug1("Connection closed with %s:%d", ip.name, htons(ip.sa.sin6_port));
 
 	} while(1);
+	return 0;
+}
+static int
+workque_ctor(struct task *proc)
+{
+	setproctitle("mpm-%d", proc->id);
+	debug1("workque pid: %d started", proc->pid);
+	return 0;
+}
+
+static int
+workque_dtor(struct task *proc)
+{
+	debug1("workque pid: %d exiting", proc->pid);
+	return 0;
+}
+
+static int
+workque_entry(struct task *proc)
+{
+	const char *arg = task_arg(proc);
+	debug1("workque pid: %d id=%d arg=%s", proc->pid, proc->id, arg);
+	sleep(2);
 	return 0;
 }
 
@@ -129,27 +182,37 @@ static const struct sched_params sched_params = {
 	.max_processes        = 4,     /* number of processes                */
 	.max_job_parallel     = 2,     /* number of running queued processes */
 	.max_job_queue        = 8,     /* size of the workqueue              */
-	.max_job_unique       = 1,     /* maximum unique jobs                */
+	.max_job_unique       = -1,    /* maximum unique jobs                */
 	.timeout_interuptible = 5,     /* timeout for interuptible code area */
 	.timeout_killable     = 5,     /* timeout before process is killed   */
 	.timeout_throttled    = 1,     /* slowdown on trashing / fatal errors */
 	.timeout_status       = 360,   /* 5 minutes for process status       */
 };
 
-static const struct sched_calls sched_calls = {
-	.init = main_init,
-	.fini = main_fini,
-	.ctor = ctor,
-	.dtor = dtor,
-	.entry = entry
+static const struct sched_callbacks sched_callbacks = {
+	.worksvc = {
+		.ctor  = worksvc_ctor, 
+		.dtor  = worksvc_dtor, 
+		.entry = worksvc_entry
+	},
+	.workque = {
+		.ctor  = workque_ctor, 
+		.dtor  = workque_dtor, 
+		.entry = workque_entry
+	},
+	.process = {
+		.ctor  = process_ctor, 
+		.dtor  = process_dtor, 
+		.entry = process_entry
+	},
 };
 
 static const struct mpm_module mpm_module = {
-	.mpm_model    = MPM_HYBRID,    /* threads in dedicated processes     */
-	.cpu_model    = CPU_DEDICATED, /* dedicated process workers          */
-	.net_model    = NET_ROUNDROBIN,
-	.sched_params = &sched_params,
-	.sched_calls  = &sched_calls
+	.mpm_model       = MPM_HYBRID,    /* threads in dedicated processes  */
+	.cpu_model       = CPU_DEDICATED, /* dedicated process workers       */
+	.net_model       = NET_ROUNDROBIN,
+	.params    = &sched_params,
+	.callbacks = &sched_callbacks
 };
 
 const char *pidfile = "/var/run/mpmd.pid";
@@ -169,10 +232,6 @@ main(int argc, char *argv[])
 
 	argv = setproctitle_init(argc, argv);
 	setproctitle("mpmd");
-
-	ctor_task = ctor;
-	dtor_task = dtor;
-	main_task = entry;
 
 	log_setcaps(15);
 	log_verbose = 2;

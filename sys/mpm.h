@@ -72,12 +72,16 @@ struct task {
 	int status;
 };
 
-struct sched_calls {
-	void (*init)(void);
-	void (*fini)(void);
+struct task_callbacks {
 	int (*ctor)(struct task *);
 	int (*dtor)(struct task *);
 	int (*entry)(struct task *);
+};
+
+struct sched_callbacks {
+	struct task_callbacks worksvc; /* multi-processing root dispatcher   */
+	struct task_callbacks workque; /* multi-processing workque processes */
+	struct task_callbacks process; /* multi-processing workers processes */
 };
 
 /* scheduling parameters */
@@ -100,8 +104,8 @@ struct mpm_module {
 	int mpm_model;
 	int cpu_model;
 	int net_model;
-	const struct sched_params *sched_params;
-	const struct sched_calls *sched_calls;
+	const struct sched_params *params;
+	const struct sched_callbacks *callbacks;
 };
 
 void sched_timeout_interuptible(int timeout);
@@ -119,12 +123,9 @@ void _sched_start(const struct mpm_module *);
 void _sched_wait(const struct mpm_module *);
 void _sched_stop(const struct mpm_module *);
 
-int (*ctor_task)(struct task *);
-int (*main_task)(struct task *);
-int (*dtor_task)(struct task *);
-
 int task_is_inactive(struct task *);
 int task_is_running(struct task *);
 int task_is_workque(struct task *);
+const char *task_arg(struct task *);
 
 #endif

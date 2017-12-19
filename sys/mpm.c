@@ -49,9 +49,8 @@ int timeout_job          = 1800; /* 30 minutes maximum for any job */
 int timeout_killable     = 5;    /* timeout for gracefull shutdown */
 int timeout_interuptible = 5;
 
-int (*ctor_task)(struct task *) = NULL;
-int (*dtor_task)(struct task *) = NULL;
-int (*main_task)(struct task *) = NULL;
+static const struct sched_callbacks *callback;
+static const struct sched_params *params;
 
 struct mpm_workqueue {
 	struct list run;
@@ -95,6 +94,7 @@ struct process {
 	struct process_time time;
 	struct process_ev ev;
 	struct task self;
+	char *arg;
 	int caps;
 	int type;
 	int ipc[2];
@@ -125,10 +125,27 @@ static const char *s_ipc_dir[] = {
 };
 
 struct ipc_msg {
-	u16 type; u16 dir; u32 mid; u32 sid; u32 did; u32 size;
+	int type; int dir; int mid; int sid; int did; unsigned int size;
 };
 
 struct process root;
+
+int
+task_is_workque(struct task *proc)
+{
+	struct process *p = __container_of(proc, struct process, self);
+
+	if (p->type & TASK_WORKQUE)
+		return 1;
+	return 0;
+}
+
+const char *
+task_arg(struct task *proc)
+{
+	struct process *p = __container_of(proc, struct process, self);
+	return p->arg;
+}
 
 static void
 chld_handler(EV_P_ ev_child *w, int revents);
@@ -139,26 +156,26 @@ do_balance(struct process *task);
 static void
 process_exited(int pid, int status)
 {
-	info("process pid: %d exited, status: %d", pid, WEXITSTATUS(status));
+	debug1("process pid: %d exited, status: %d", pid, WEXITSTATUS(status));
 }
 
 static void
 process_signaled(int pid, int status)
 {
-	info("process pid: %d killed by signal %d (%s)", 
+	debug1("process pid: %d killed by signal %d (%s)", 
 	     pid, WTERMSIG(status), strsignal(WTERMSIG(status)));
 }
 
 static void
 process_stopped(int pid, int status)
 {
-	info("process pid: %d stopped by signal %d", pid, WSTOPSIG(status));
+	debug1("process pid: %d stopped by signal %d", pid, WSTOPSIG(status));
 }
 
 static void
 process_continued(int pid, int status)
 {
-	info("process pid: %d continued", pid);
+	debug1("process pid: %d continued", pid);
 }
 
 static int
@@ -179,7 +196,7 @@ process_status(int pid, int status)
 int
 subprocess_wait(pid_t pid, int secs)
 {
-	info("waiting for the process pid: %d", pid);
+	debug1("waiting for the process pid: %d", pid);
 	int v, status;
 	for (v = 0; v == 0 && secs > 0; secs--) {
 		if ((v = waitpid(pid, &status, WNOHANG)) == -1)
@@ -190,9 +207,9 @@ subprocess_wait(pid_t pid, int secs)
 			return process_status(pid, status);
 	}
 
-	info("process pid: %d did not respond within the timeframe", pid);
+	error("process pid: %d did not respond within the timeframe", pid);
 	kill(pid, SIGKILL);
-	info("process pid: %d killed by signal %d", pid, 9);
+	debug1("process pid: %d killed by signal %d", pid, 9);
 	return v;
 }
 
@@ -210,10 +227,18 @@ subprocess_alloc(void)
 	return proc;
 }
 
+static inline void
+subprocess_free(struct process *proc)
+{
+	if (proc->arg)
+		free(proc->arg);
+	free(proc);
+}
+
 static u32 id_counter = 1;
 
 int
-sched_workque_add(void)
+sched_workque_add(const char *arg)
 {
 	if (workque.waiting > max_job_queue)
 		return -1;
@@ -224,6 +249,7 @@ sched_workque_add(void)
 
 	proc->self.id = id_counter++;
 	proc->type = TASK_WORKQUE;
+	proc->arg  = arg ? strdup(arg) : NULL;
 	list_add(&workque.que, &proc->queued);
 	workque.waiting++;
 	return proc->self.id;
@@ -239,65 +265,74 @@ static void
 ipc_handler(EV_P_ struct ev_io *w, int revents)
 {
 	if (!(revents & EV_READ))
-		return;
+		goto exit;
 
 	char buffer[8192] = {0};
 	int rv = read(w->fd, buffer, sizeof(buffer));
 	if (rv < 0) {
 		error("result=%d %d:%s", rv, errno, strerror(errno));
-		return;
+		goto exit;
 	} else if (rv == 0) {
 		error("ipc disconnected");
-		return;
+		goto exit;
 	}
 
 	buffer[rv] = 0;
 	struct ipc_msg *req = (struct ipc_msg *)buffer;
 	if (rv < sizeof(*req)) {
 		error("ipc msg malformed");
-		return;
+		goto exit;
 	}
 
-	debug3("ipc msg recv %s:%s", 
+	int len = req->size - sizeof(*req);
+	char *arg = len > 0 ? strndupa((u8*)req + sizeof(*req), len) : NULL;
+
+	debug4("ipc msg recv %s:%s", 
 	       s_ipc_msg[req->type], s_ipc_dir[req->dir]);
 	switch (req->type) {
 	case IPC_WORKQUE_ADD: {
-		int id = sched_workque_add();
+		int id = sched_workque_add(arg);
 		struct ipc_msg res = { 
 			.type = IPC_WORKQUE_ADD, .dir  = IPC_RESPONSE, 
 			.size = sizeof(res), .sid  = id
 		};
 
-		debug3("ipc msg send %s:%s", 
+		debug4("ipc msg send %s:%s", 
 		       s_ipc_msg[res.type], s_ipc_dir[res.dir]);
 		if ((rv = write(w->fd, &res, res.size)) < res.size)
 			error("result=%d %d:%s", rv, errno, strerror(errno));
 
-		ev_break(loop, EVBREAK_ALL);
 	}
 	break;
 	}
+exit:
+	ev_break(loop, EVBREAK_ALL);
 }
 
 int
 sched_workque(struct task *proc, const char *arg)
 {
 	struct process *p = __container_of(proc, struct process, self);
+	struct bb bb = { .addr = alloca(PIPE_BUF), .len = PIPE_BUF};
+	int rv, len = strlen(arg);
 
-	struct ipc_msg msg = { 
-		.type = IPC_WORKQUE_ADD, .dir = IPC_REQUEST, .size = sizeof(msg)
-	};
+	struct ipc_msg *m = (struct ipc_msg *)bb.addr;
+	m->type = IPC_WORKQUE_ADD; 
+	m->dir  = IPC_REQUEST; 
+	m->size = sizeof(*m) + len;
+	memcpy(((byte *)m) + sizeof(*m), arg, len);
 
-	debug3("ipc msg send %s:%s", s_ipc_msg[msg.type], s_ipc_dir[msg.dir]);
+	debug4("ipc msg send %s:%s %d bytes", 
+	     s_ipc_msg[m->type], s_ipc_dir[m->dir], m->size);
 
-	int rv;
-	if ((rv = write(p->ipc[1], &msg, msg.size)) < msg.size)
+	if ((rv = write(p->ipc[1], m, m->size)) < m->size)
 		goto error;
-	if ((rv = read(p->ipc[1], &msg, sizeof(msg))) < sizeof(msg))
+	if ((rv = read(p->ipc[1], m, sizeof(*m))) < sizeof(*m))
 		goto error;
 
-	debug3("ipc msg recv %s:%s", s_ipc_msg[msg.type], s_ipc_dir[msg.dir]);
-	return msg.sid;
+	debug4("ipc msg recv %s:%s %d bytes",
+	     s_ipc_msg[m->type], s_ipc_dir[m->dir], rv);
+	return m->sid;
 
 error:
 	error("%d:%s", errno, strerror(errno));
@@ -312,6 +347,7 @@ subprocess_attach(struct process *proc)
 
 	ev_io_init(&proc->ev.ipc, ipc_handler,  proc->ipc[0], EV_READ);
 	ev_io_start(EV_DEFAULT_ &proc->ev.ipc);
+	debug4("subprocess pid=%d attach: %p", proc->self.pid, &proc->ev.ipc);
 }
 
 static inline void
@@ -323,6 +359,7 @@ subprocess_detach(struct process *proc)
 	ev_io_stop(EV_DEFAULT_ &proc->ev.ipc);
 	close(proc->ipc[0]);
 	close(proc->ipc[1]);
+	debug4("subprocess pid=%d detach: %p", proc->self.pid, &proc->ev.ipc);
 }
 
 static void
@@ -372,6 +409,7 @@ chld_handler(EV_P_ ev_child *w, int revents)
 			workque.running--;
 			subprocess_detach(c);
 			list_del(&c->queued);
+			subprocess_free(c);
 		}
 	}
 
@@ -482,7 +520,7 @@ do_ctor_disp(struct process *task)
 }
 
 static void
-do_ctor_proc(struct process *task)
+do_ctor_proc(struct process *proc)
 {
 	sig_action(SIGHUP, hup_handler);
 	sig_disable(SIGTERM);
@@ -492,8 +530,12 @@ do_ctor_proc(struct process *task)
 	sig_ignore(SIGINT);
 	sig_ignore(SIGTERM);
 
-	task->self.pid = getpid();
-	ctor_task(&task->self);
+	proc->self.pid = getpid();
+
+	if (task_is_workque(&proc->self))
+		callback->workque.ctor(&proc->self);
+	else
+		callback->process.ctor(&proc->self);
 }
 
 static void
@@ -502,7 +544,6 @@ do_ctor(struct process *task)
 	task->self.state = TASK_INACTIVE;
 	if (task == &root) {
 		node_init(&task->node);
-
 		do_ctor_disp(task);
 	}
 	else
@@ -515,7 +556,9 @@ do_dtor(struct process *proc)
 	if (proc == &root) 
 		goto exit;
 
-	dtor_task(&proc->self);
+	if (callback->process.dtor)
+		callback->process.dtor(&proc->self);
+
 	close(proc->ipc[0]);
 	close(proc->ipc[1]);
 exit:	
@@ -535,8 +578,8 @@ do_wait(struct process *proc)
 		ev_loop(c->loop, 0);
 	} else {	
 		while(!request_restart && !request_shutdown) {
-			if (main_task)
-				main_task(task);
+			if (callback->process.entry)
+				callback->process.entry(task);
 		}
 		do_dtor(proc);
 		exit(0);
@@ -611,6 +654,7 @@ do_workque(struct process *proc)
 {
 	struct task *task = &proc->self;
 	task->pid = getpid();
+	proc->type = TASK_WORKQUE;
 
 	close(proc->ipc[0]);
 	ev_loop_fork(EV_DEFAULT);
@@ -624,8 +668,10 @@ do_workque(struct process *proc)
 #endif
 	sig_enable(SIGHUP);
 	do_ctor(proc);
-	info("workque process");
-	sleep(5);
+
+	if (callback->workque.entry)
+		callback->workque.entry(&proc->self);
+
 	do_dtor(proc);
 	close(proc->ipc[1]);
 	exit(0);
@@ -735,7 +781,9 @@ _sched_start(const struct mpm_module *mpm_module)
 	list_init(&workque.run);
 	list_init(&workque.que);
 
-	const struct sched_params *params = mpm_module->sched_params;
+	params   = mpm_module->params;
+	callback = mpm_module->callbacks;
+
 	if ((params->max_processes - params->max_job_parallel) < 1 )
 		die("increase max_processes parameter");
 

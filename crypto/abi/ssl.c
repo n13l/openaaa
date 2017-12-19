@@ -1274,7 +1274,7 @@ crypto_lookup(void)
 	char ssl_module[255] = {0};
 	find_module(ssl_module);
 
-	debug4("module %s", *ssl_module ? "framework" : "target");
+	//debug4("module %s", *ssl_module ? "framework" : "target");
 	void *dll = *ssl_module ? dlopen(ssl_module, RTLD_LAZY | RTLD_NOLOAD): NULL;
 
 	IMPORT_ABI(SSLeay);
