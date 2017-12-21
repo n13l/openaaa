@@ -196,7 +196,7 @@ process_status(int pid, int status)
 int
 subprocess_wait(pid_t pid, int secs)
 {
-	debug1("waiting for the process pid: %d", pid);
+	debug1("process pid: %d waiting", pid);
 	int v, status;
 	for (v = 0; v == 0 && secs > 0; secs--) {
 		if ((v = waitpid(pid, &status, WNOHANG)) == -1)

@@ -1,46 +1,17 @@
 #include <sys/compiler.h>
 #include <sys/log.h>
 #include <mem/stack.h>
-
 #include <unistd.h>
 #include <string.h>
 #include <unix/timespec.h>
 
 #include <syslog.h>
-#ifndef LOG_ERROR
-#define LOG_ERROR 1
-#endif
-
-#ifndef LOG_INFO
-#define LOG_INFO 2
-#endif
-
-#ifndef LOG_WARN
-#define LOG_WARN 3
-#endif
-
-#ifndef LOG_DEBUG
-#define LOG_DEBUG 4
-#endif
-#ifndef LOG_DEBUG1
-#define LOG_DEBUG1 5
-#endif
-#ifndef LOG_DEBUG2
-#define LOG_DEBUG2 6
-#endif
-#ifndef LOG_DEBUG3
-#define LOG_DEBUG3 7
-#endif
-#ifndef LOG_DEBUG4
-#define LOG_DEBUG4 8
-#endif
-
+#include <sys/log.h>
 
 static const char *log_lnames[] = {
 	[LOG_ERROR]  = "error",
 	[LOG_INFO]   = "info",
 	[LOG_WARN]   = "warn",
-	[LOG_DEBUG]  = "debug",
 	[LOG_DEBUG]  = "debug",
 	[LOG_DEBUG1] = "debug1",
 	[LOG_DEBUG2] = "debug2",
