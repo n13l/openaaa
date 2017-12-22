@@ -136,7 +136,7 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 #else
 	switch (log_type) {
 	case LOG_TYPE_SYSLOG:
-		syslog(ctx->level > 4 ? 4 : ctx->level, "%s", amsg);
+		syslog(ctx->level > 7 ? 7 : ctx->level, "%s", amsg);
 		break;
 	default:
 		write(0, amsg, strlen(amsg));
