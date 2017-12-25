@@ -166,12 +166,13 @@ list_del(struct node *node)
 #define list_for_head(list) &(list).head
 #define list_for_last(list, node) &(it->node) != &(list).head
 
-#define list_walk(start, n, list) \
-	for (struct node *(n) = (start); (n) != &list.head; (n) = (n)->next)
+#define list_walk(__list, __node, __it) \
+	for (struct node *(__it) = (__node); (__it) != &__list.head; \
+	     (__it) = (__it)->next)
 
-#define list_walk_delsafe(start, n, list) \
-	for (struct node *it, *(n) = (start); it = (n)->next, \
-	     (n) != &list.head; (n) = it)
+#define list_walk_delsafe(list, __node, __it) \
+	for (struct node *it, *(__it) = (__node); it = (__it)->next, \
+	     (__it) != &list.head; (__it) = it)
 
 #define list_for_each(list, n) \
 	for (struct node *(n) = (list).head.next; (n) != &(list).head; (n) = (n)->next)
@@ -303,12 +304,13 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 #define hlist_for_next(___node) ({___node->next;})
 
 #define hlist_for_each(__list, __node) \
-	for (__node = hlist_for_first((__list)); __node; \
+	for (struct hnode * __node = hlist_for_first((__list)); __node; \
 	     __node = hlist_for_next(__node))
 
-#define hlist_for_each_delsafe(__list, __node, it) \
-	for (__node = hlist_first((__list)); it && ({it = __node->next;1;}); \
-	     __node = it)
+#define hlist_for_each_delsafe(__list, __node) \
+	for (struct hnode *__node, *__it = hlist_for_first((__list)); \
+	     __it && ({it = __node->next;1;}); \
+	     __node = __it)
 
 #define hlist_for_each_item_delsafe(item, n, list, member)                 \
 	for (item = __container_of_safe((list)->head, typeof(*item), member);\

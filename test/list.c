@@ -11,6 +11,7 @@
 struct person {
 	const char *name;
 	struct node node;
+	struct hnode hnode;
 };
 
 _unused static void
@@ -48,6 +49,7 @@ static void
 test1_list(void)
 {
 	DECLARE_LIST(list);
+	DECLARE_HLIST(hlist);
 
 	struct person daniel  = {.name = "Daniel",  .node = INIT_NODE};
 	struct person daniela = {.name = "Daniela", .node = INIT_NODE};
@@ -77,16 +79,27 @@ test1_list(void)
 
 	struct node *cursor = &daniela.node;
 	/* iterate over rest: starts at daniela node */
-	list_walk(cursor, n, list) {
+	list_walk(list, cursor, n) {
 		struct person *p = __container_of(n, struct person, node);
 		debug("node=%p person=%p name=%s", n, p, p->name);
 		break;
 	}
 	/* iterate over rest with del safety: starts at daniel node */
-	list_walk_delsafe(cursor, n, list) {
+	list_walk_delsafe(list, cursor, n) {
 		struct person *p = __container_of(n, struct person, node);
 		debug("node=%p person=%p name=%s", n, p, p->name);
 		list_del(&p->node);
+	}
+
+	hlist_add(&hlist, &daniel.hnode);
+	hlist_add(&hlist, &daniela.hnode);
+	hlist_add(&hlist, &adam.hnode);
+	hlist_add(&hlist, &eve.hnode);
+	hlist_add(&hlist, &robot.hnode);
+
+	hlist_for_each(&hlist, it) {
+		struct person *p = __container_of(it, struct person, hnode);
+		printf("name: %s\n", p->name);
 	}
 
 

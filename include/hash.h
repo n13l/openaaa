@@ -71,6 +71,10 @@ hash_buffer(const char *ptr, int size)
 #define hash_entries(name) array_size(name)
 #define hash_data(name, key) (u32)hash_u32(key, hash_bits(name))
 #define hash_data_shared(key, bts) (u32)hash_u32(key, bits)
+#define hash_skey(name, key) \
+	(u32)hash_u32(hash_string(key), hash_bits(name))
+#define hash_sbuf(name, key, len) \
+	(u32)hash_u32(hash_buffer(key, len), hash_bits(name))
 
 #define hash_init(table) \
 	for (unsigned __i = 0; __i < array_size(table); __i++) \
@@ -86,7 +90,16 @@ hash_buffer(const char *ptr, int size)
 #define hash_del(node) hlist_del_init(node);
 #define hash_get(table, key) &name[hash_data(key, hash_bits(name))]
 
+#define hash_for_each(__table, __it, __key)        \
+	hlist_for_each(&__table[__key], __it)
+
+#define hash_for_each_delsafe(__table, __it, __key)        \
+	hlist_for_each_delsafe(&__table[__key], __it)
+
 #define hash_for_each_item_delsafe(htable, obj, tmp, member, slot)        \
 	hlist_for_each_item_delsafe(obj, tmp, &htable[slot], member)
+
+#define hash_for_each_slot(__table, __it)
+#define hash_for_each_list(__table, __it)
 
 #endif
