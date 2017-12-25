@@ -213,8 +213,8 @@ mm_pool_extend(struct mm_pool *mp, size_t size)
 
 		mp->total_bytes = mp->total_bytes - block->size + amortized;
 
-		//size_t aligned = align_addr(sizeof(*block)) + amortized;
-		//ptr = vm_vblock_extend(ptr, aligned);
+		size_t aligned = align_addr(sizeof(*block)) + amortized;
+		ptr = vm_vblock_extend(ptr, avail, aligned);
 		block = (struct mm_vblock *)(((u8*)ptr) + amortized);
 
 		block->node.next = (struct snode *)next;

@@ -24,66 +24,71 @@
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
+#include <sys/log.h>
 #include <mem/alloc.h>
 #include <mem/cache.h>
 #include <mem/page.h>
-#include <unix/list.h>
-#include <unix/hash.h>
+#include <list.h>
+#include <hash.h>
 
-DECLARE_HASHTABLE(person_name, 9);
-DECLARE_HASHTABLE(person_age,  9);
+#define HASHTABLE_BITS 9
+
+DEFINE_HASHTABLE(person_name, HASHTABLE_BITS);
+DEFINE_HASHTABLE(person_age,  HASHTABLE_BITS);
+
+DEFINE_HLIST(person_list);
 
 struct person {
 	char *name;
 	unsigned int age;
-	struct hnode node_name;
-	struct hnode node_age;
+	struct { struct hnode name; struct hnode age; struct hnode node; } n;
 };
 
-static struct person *
-person(struct mm_pool *mp, char *name, unsigned int age)
-{
-	struct person *person = mm_alloc(mp, sizeof(*person));
-
-	person->name = mm_strdup(mp, name);
-	person->age  = age;
-
-	hnode_init(&person->node_name);
-	hnode_init(&person->node_age);
-	return person;
-}
+struct person daniel  = {.name = "Daniel",  .n.node = INIT_NODE};
+struct person daniela = {.name = "Daniela", .n.node = INIT_NODE};
+struct person adam    = {.name = "Adam",    .n.node = INIT_NODE};
+struct person eve     = {.name = "Eve",     .n.node = INIT_NODE};
+struct person robot   = {.name = "Robot",   .n.node = INIT_NODE};
 
 int
 main(void)
 {
-	struct mm_pool *mp = mm_create(MM_POOL, CPU_PAGE_SIZE, MM_FAST_ALIGN);
+	log_open("stdout");
+
+	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, MM_FAST_ALIGN);
 
 	hash_init(person_name);
 	hash_init(person_age);
 
-	_unused struct person *myself = person(mp, "Daniel", 15);
+	hlist_add(&person_list, &daniel.n.node);
+	hlist_add(&person_list, &daniela.n.node);
+	hlist_add(&person_list, &adam.n.node);
+	hlist_add(&person_list, &eve.n.node);
+	hlist_add(&person_list, &robot.n.node);
 
-	_unused u32 hash1 = hash_data(person_name, "daniel");
-	_unused u32 hash2 = hash_data(person_age, 15);
+	struct hnode *it;
+	hlist_for_each(&person_list, it) {
+		struct person *p = __container_of(it, struct person, n.node);
 
-	debug("hash data=%u", (unsigned int)hash1);
+		u32 hash = hash_buffer(p->name, strlen(p->name));
+		u32 slot = hash_u32(hash, HASHTABLE_BITS);
 
-	/*
-	for (int i = 0; i < 10; i++) {
-		_unused struct person *person = person(mp, "Daniel", 1979);
-		hash_add(htable, (u32)person->id, key);
+		hash_add(person_name, &p->n.name, slot);
+
+		printf("name=%s hash=%d slot=%d\n", 
+		       p->name, (int)hash, (int)slot);
 	}
 
-	// hash_for_each(object, name, "Daniel);
-*/
-	/*
-	hash_for_each(person_name, person, n_name, "Daniel") {
-		struct person *it = __container_of(node, n_name);
+/*
+	struct person *person= NULL;
+	struct hnode *it = NULL;
+	hash_for_each_item_delsafe(htable_sid, person, it, sid, sid->slot) {
+		debug2("session id=%s attached.", session->attrs.sid);
 	}
 */
 	//hash_for_each_slot()
 	//hash_for_each_object()
 
-	mm_destroy(mp);
+	mm_pool_destroy(mp);
 	return 0;
 }

@@ -102,29 +102,9 @@ acct_fini(void)
 }
 
 int
-page_lock(struct page *page)
-{
-	return 0;
-}
-
-int
-page_trylock(struct page *page)
-{
-	return 0;
-}
-
-int
-page_unlock(struct page *page)
-{
-	return 0;
-}
-
-int
 page_copy(struct page *page, struct page *from)
 {
-	page_lock(page);
 	memcpy(page, from, 1 << shift);
-	page_unlock(page);
 	return 0;
 }
 

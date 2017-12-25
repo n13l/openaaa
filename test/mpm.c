@@ -40,6 +40,7 @@
 #include <errno.h>
 
 #include <net/proto.h>
+#include <net/stack.h>
 
 int fd;
 
@@ -121,16 +122,14 @@ process_entry(struct task *proc)
 
 	do {
 
-	if ((ip.fd = accept(fd, NULL, NULL)) < 0) {
-		debug3("accept():%d:%s", errno, strerror(errno));
-		return errno;
-	}
+	if ((ip.fd = accept(fd, NULL, NULL)) < 0)
+		goto error;
 
 	socket_blocking(ip.fd);
 	getpeername(ip.fd, (struct sockaddr *)&ip.sa, &ip.len);
-	if(inet_ntop(AF_INET6, &ip.sa.sin6_addr, ip.name, sizeof(ip.name)))
-		debug1("Accepted connection from %s:%d", 
-		     ip.name, htons(ip.sa.sin6_port));
+
+	const char *from = inet_ntopa(AF_INET6, &ip.sa.sin6_addr);
+	debug1("Accepted connection from %s:%d", from, htons(ip.sa.sin6_port));
 
 	char buffer[8192] = {0};
 	int rv = read(ip.fd, buffer, sizeof(buffer));
@@ -153,11 +152,17 @@ process_entry(struct task *proc)
 
 	} while(1);
 	return 0;
+
+error:
+	debug1("%d:%s", errno, strerror(errno));
+	return -1;
 }
+
+
 static int
 workque_ctor(struct task *proc)
 {
-	setproctitle("mpm-%d", proc->id);
+	setproctitle("mpm/%d", proc->id);
 	debug1("workque pid: %d started", proc->pid);
 	return 0;
 }
@@ -225,10 +230,9 @@ main(int argc, char *argv[])
 
 	int pid;
 	if ((pid = pid_read(pidfile)))
-		die("process already running pid: %d\n", pid);
-
+		die("process already running pid: %d", pid);
 	if (!pid_write(pidfile))
-		die("can't write pid file: %s\n", pidfile);
+		die("can't write pid file: %s", pidfile);
 
 	argv = setproctitle_init(argc, argv);
 	setproctitle("mpmd");

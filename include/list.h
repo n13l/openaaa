@@ -244,7 +244,7 @@ hnode_unhashed(struct hnode *h)
 }
 
 static inline void 
-hlist_add_head(struct hlist *hlist, struct hnode *hnode)
+hlist_add(struct hlist *hlist, struct hnode *hnode)
 {
 	struct hnode *head = hlist->head;
 	hnode->next = head;
@@ -299,32 +299,22 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 		next->next->prev  = &next->next;
 }
 
-static inline void
-hlist_add(struct hnode *hnode, struct hnode *next)
-{
-	next->next = hnode->next;
-	hnode->next = next;
-	next->prev = &hnode->next;
+#define hlist_for_first(___list)  ({ ___list->head; })
+#define hlist_for_next(___node) ({___node->next;})
 
-	if(next->next)
-		next->next->prev  = &next->next;
-}
+#define hlist_for_each(__list, __node) \
+	for (__node = hlist_for_first((__list)); __node; \
+	     __node = hlist_for_next(__node))
 
-/*
-#ifdef CONFIG_DEBUG_LIST
-# define hlist_first(node)     ({ (list)->head; )}
-# define hlist_next(node, pos) ({node = node->next; hlist_next_hook(pos) 1;})
-#else
-# define hlist_first(node)     ({ (list)->head; })
-# define hlist_next(node, pos) ({node = pos->next; 1;})
-#endif
+#define hlist_for_each_delsafe(__list, __node, it) \
+	for (__node = hlist_first((__list)); it && ({it = __node->next;1;}); \
+	     __node = it)
 
-#define hlist_for_each(node, list) \
-	for (node = hlist_first(list); node; node = node->next)
+#define hlist_for_each_item_delsafe(item, n, list, member)                 \
+	for (item = __container_of_safe((list)->head, typeof(*item), member);\
+	     item && ({ n = item->member.next; 1; });                     \
+	     item = __container_of_safe(n, typeof(*item), member))
 
-#define hlist_for_each_delsafe(node, it, list) \
-	for (node = hlist_first(list); it && ({it = pos->next; 1;}); node = it)
-*/
 
 __END_DECLS
 

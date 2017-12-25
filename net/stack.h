@@ -24,7 +24,7 @@
 #ifndef __NET_STACK_H__
 #define __NET_STACK_H__
 
-#define stk_inet_ntop(af, addr) \
+#define inet_ntopa(af, addr) \
 ({\
 	size_t __len = af == AF_INET ? INET_ADDRSTRLEN : INET6_ADDRSTRLEN;\
 	char *__str = alloca(__len + 1);\

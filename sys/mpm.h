@@ -58,15 +58,25 @@
 #define TASK_STOPPED     0x0002 /* task has been stopped */
 #define TASK_RUNNING     0x0004 /* task is running */
 #define TASK_EXITING     0x0008 /* task is in exiting state */
+#define TASK_FINISHED    0x0009
 #define TASK_WORKQUE     0x0010 /* task is in work queue */
 
 /* subprocess is interupted with SIGHUP when parent dies based on PDEATHSIG  */
 #define TASK_PDEATHSIGHUP 0x0001 
 
+struct task_status {
+	u64 created;
+        u64 modified;
+        u64 expires;
+	pid_t id, pid;
+	int status;
+	int state;
+};
+
 struct task {
 	timestamp_t created;
 	timestamp_t expires;
-	int ppid, pid, index, id;
+	pid_t ppid, pid, index, id;
 	volatile int state;
 	int version;
 	int status;
@@ -82,6 +92,10 @@ struct sched_callbacks {
 	struct task_callbacks worksvc; /* multi-processing root dispatcher   */
 	struct task_callbacks workque; /* multi-processing workque processes */
 	struct task_callbacks process; /* multi-processing workers processes */
+};
+
+struct sched_module {
+	const char *name;
 };
 
 /* scheduling parameters */
@@ -108,16 +122,20 @@ struct mpm_module {
 	const struct sched_callbacks *callbacks;
 };
 
-void sched_timeout_interuptible(int timeout);
-void sched_timeout_uninteruptible(int timeout);
-void sched_timeout_killable(int timeout);
-void sched_timeout_throttled(int timeout);
+int sched_timeout_interuptible(int timeout);
+int sched_timeout_uninteruptible(int timeout);
+int sched_timeout_killable(int timeout);
+int sched_timeout_throttled(int timeout);
 
 int sched_getcaps(void);
 int sched_setcaps(int caps);
 int sched_sendmsg(int id, void *addr, size_t size);
 int sched_recvmsg(int id, void *addr, size_t size);
 int sched_workque(struct task *, const char *arg);
+int sched_setbuf(struct task *, byte *addr, size_t len);
+int sched_getbuf(struct task *, byte *addr, size_t len);
+int sched_sethist(struct task *, int id, struct task_status status);
+int sched_sethist(struct task *, int id, struct task_status status);
 
 void _sched_start(const struct mpm_module *);
 void _sched_wait(const struct mpm_module *);
@@ -126,6 +144,7 @@ void _sched_stop(const struct mpm_module *);
 int task_is_inactive(struct task *);
 int task_is_running(struct task *);
 int task_is_workque(struct task *);
+
 const char *task_arg(struct task *);
 
 #endif

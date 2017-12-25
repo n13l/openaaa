@@ -185,6 +185,13 @@ pages2mb(uint32_t shift, unsigned long pages)
 }
 
 _unused static unsigned long
+pages2b(uint32_t shift, unsigned long pages)
+{
+	return (pages * (1 << shift));
+}
+
+
+_unused static unsigned long
 mb2pages(uint32_t shift, unsigned long mb)
 {
 	return (mb << (20 - shift));

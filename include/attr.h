@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2016 Daniel Kubec <niel@rtfm.cz>
+ * Copyright (c) 2016, 2017 Daniel Kubec <niel@rtfm.cz>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"),to deal
@@ -46,16 +46,15 @@ enum xattr_type {
 	TYPE_U64     = 8,   /* Unsigned 64bit integer  type: u64  */
 	TYPE_INT     = 9,   /* signed interger type: int */
 	TYPE_UINT    = 10,  /* unsigned interger type: unsigned int */
-	TYPE_STRING  = 11,  /* String        */
-	TYPE_IP      = 12,  /* IP4/6 Address */
-	TYPE_HOST    = 13,  /* Hostname */
-	TYPE_IPADDR  = 14,  /* IP4/6 Address and port host:port */
-	TYPE_BLOB    = 15,  /* byte buffer */
+	TYPE_STRING  = 11,  /* null terminated string        */
+	TYPE_BLOB    = 12,  /* byte buffer */
+	TYPE_IP      = 13,  /* IP4/6 Address */
+	TYPE_HOST    = 14,  /* Hostname */
 };
 
 struct xattr {
 	enum xattr_type type;
-	char *key;
+	struct bb key;
 	union {
 		u8 u8;
 		u16 u16;

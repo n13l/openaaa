@@ -1,5 +1,5 @@
-#ifndef HASH_GENERIC_H__
-#define HASH_GENERIC_H__
+#ifndef __HASH_GENERIC_H__
+#define __HASH_GENERIC_H__
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
@@ -64,19 +64,11 @@ hash_buffer(const char *ptr, int size)
 	return(v);
 }
 
-
 #define DEFINE_HASHTABLE(name, bits) struct hlist name[1 << (bits)]
 #define DEFINE_HASHTABLE_SHARED(name) struct hlist *name
 
-#ifdef CONFIG_DEBUG_HASH_TABLE
-#define hash_first(hook) 
-#define hash_next(hook)
-#else
-#define hash_first(hook)
-#define hash_next(hook)
-#endif/*CONFIG_DEBUG_HASH_TABLE*/
-
 #define hash_bits(name) (unsigned int)(log2(array_size(name)))
+#define hash_entries(name) array_size(name)
 #define hash_data(name, key) (u32)hash_u32(key, hash_bits(name))
 #define hash_data_shared(key, bts) (u32)hash_u32(key, bits)
 
@@ -89,29 +81,12 @@ hash_buffer(const char *ptr, int size)
 		INIT_HLIST_PTR(&table[__i]);
 
 #define hash_add(htable, hnode, slot) \
-	hlist_add_head(& htable[slot], hnode)
+	hlist_add(& htable[slot], hnode)
 
-#define hash_del(node) \
-	hlist_del_init(node);
-
-#define hash_get(table, key) \
-	&name[hash_data(key, hash_bits(name))]
-
-# define hlist_first(node)     ({ (list)->head; })
-# define hlist_next(node, pos) ({node = pos->next; 1;})
-
-#define hlist_for_each(node, list) \
-	for (node = hlist_first(list); node; node = item->next)
-
-#define hlist_for_each_delsafe(node, it, list) \
-	for (node = hlist_first(list); it && ({it = pos->next; 1;}); node = it)
-
-#define hlist_for_each_item_safe(item, n, list, member)                 \
-	for (item = __container_of_safe((list)->head, typeof(*item), member);\
-	     item && ({ n = item->member.next; 1; });                     \
-	     item = __container_of_safe(n, typeof(*item), member))
+#define hash_del(node) hlist_del_init(node);
+#define hash_get(table, key) &name[hash_data(key, hash_bits(name))]
 
 #define hash_for_each_item_delsafe(htable, obj, tmp, member, slot)        \
-	hlist_for_each_item_safe(obj, tmp, &htable[slot], member)
+	hlist_for_each_item_delsafe(obj, tmp, &htable[slot], member)
 
 #endif

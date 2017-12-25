@@ -1,5 +1,11 @@
 
 #include <sys/compiler.h>
+#include <sys/log.h>
+#include <mem/alloc.h>
+#include <mem/page.h>
+#include <mem/pool.h>
+#include <mem/map.h>
+
 #include <signal.h>
 #include <sys/log.h>
 #include <sys/irq.h>
@@ -7,6 +13,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <buffer.h>
+#include <list.h>
+#include <hash.h>
 
 #ifdef CONFIG_LINUX
 /* workarround missing types */
@@ -17,9 +25,7 @@
 #include <sys/prctl.h>
 #endif
 
-#include <mem/stack.h>
 #include <net/proto.h>
-#include <list.h>
 #include <copt/lib.h>
 #include <unix/timespec.h>
 
@@ -27,6 +33,19 @@
 #include <sys/ev/model.h>
 #include <sys/ev/ev.c>
 #endif
+
+DEFINE_HASHTABLE(hstatus, 7);
+
+struct history {
+	struct page page;
+	struct hnode hnode_id;
+	struct hnode hnode_pid;
+	union { struct task_status; };
+	int size;
+	byte payload[];
+};
+
+static struct pagemap *pagemap;
 
 static sig_atomic_t request_shutdown = 0;
 static sig_atomic_t request_restart  = 0;
@@ -65,16 +84,10 @@ struct mpm_workers {
 	sig_atomic_t total;
 } workers = { .running = 0, .total = 0};
 
-struct process_time {
+struct timeframe {
 	timestamp_t created;
-	timestamp_t expires;
-	timestamp_t exited;
-};
-
-struct process_status {
-	u32 id;
-	u32 hash;
-	u16 type;
+	timestamp_t modified;
+	timestamp_t expire;
 };
 
 struct process_ev {
@@ -91,7 +104,7 @@ struct process_ev {
 struct process {
 	struct node node;
 	struct node queued;
-	struct process_time time;
+	struct timeframe time;
 	struct process_ev ev;
 	struct task self;
 	char *arg;
@@ -196,7 +209,7 @@ process_status(int pid, int status)
 int
 subprocess_wait(pid_t pid, int secs)
 {
-	debug1("process pid: %d waiting", pid);
+	debug1("process pid: %d waiting for status", pid);
 	int v, status;
 	for (v = 0; v == 0 && secs > 0; secs--) {
 		if ((v = waitpid(pid, &status, WNOHANG)) == -1)
@@ -750,33 +763,34 @@ do_balance(struct process *root)
 	     workers.running, workers.total, workque.running, workque.waiting);
 }
 
-void
+int
 sched_timeout_interuptible(int timeout)
 {
+	return 0;
 }
 
-void
+int
 sched_timeout_uninteruptible(int timeout)
 {
+	return 0;
 }
 
-void
+int
 sched_timeout_killable(int timeout)
 {
+	return 0;
 }
 
-void
+int
 sched_timeout_throttled(int timeout)
 {
-}
-
-void sched_info_show(void)
-{
+	return 0;
 }
 
 void
 _sched_start(const struct mpm_module *mpm_module)
 {
+	hash_init(hstatus);
 	list_init(&workers.list);
 	list_init(&workque.run);
 	list_init(&workque.que);
@@ -790,14 +804,28 @@ _sched_start(const struct mpm_module *mpm_module)
 	workers.total = params->max_processes - params->max_job_parallel;
 	do_ctor(&root);
 
-	debug3("scheduler limits  processes: %d (workers: %d, job_parallel: %d) queue: %d", 
-		params->max_processes, workers.total, 
-		params->max_job_parallel, params->max_job_queue);
-	debug3("scheduler timeout interuptible: %d, killable: %d, throttled: %d, status: %d",
-	       params->timeout_interuptible, params->timeout_killable,
-	       params->timeout_throttled, params->timeout_status);
+	debug2("scheduler noop registered");
+	debug2("scheduler deadline registered");
+	debug2("scheduler config registered");
+	debug2("scheduler queue registered");
+	debug2("scheduler mq-deadline registered");
+	debug2("scheduler roundrobin registered");
+	debug2("scheduler cache-status registered");
 
-	debug1("status cache hash table entries: %d (order: %d, %d bytes)", 0, 0, 0);
+	int pages = 512;
+	int shift = 12;
+
+	pagemap = mmap_open(NULL, MAP_SHARED | MAP_ANON, shift, pages);
+	if (!pagemap)
+		die("map():%d:%s", errno, strerror(errno));
+
+	unsigned long long pageb = (unsigned long long)pages2b(shift, pages);
+	debug2("status cache hash table entries: %d (shift: %d, %llu bytes)", 
+	       (int)hash_entries(hstatus), (int)hash_bits(hstatus),
+	       (unsigned long long)sizeof(hstatus) * array_size(hstatus));
+	debug2("status cache memory pages: %d (shift: %d, %llu bytes)",
+	       pages, shift, pageb);
+
 }
 
 void
@@ -815,6 +843,10 @@ _sched_stop(const struct mpm_module *mpm_module)
 {
 	do_shutdown();
 	do_dtor(&root);
+	
+	if (pagemap)
+		mmap_close(pagemap);
+
 }
 #else
 void
