@@ -34,12 +34,11 @@
 #define HASHTABLE_BITS 9
 
 DEFINE_HASHTABLE(htable_name, HASHTABLE_BITS);
-DEFINE_HASHTABLE(person_age,  HASHTABLE_BITS);
+DEFINE_HASHTABLE(htable_age,  HASHTABLE_BITS);
 
 DEFINE_HLIST(person_list);
 
 struct person {
-	u32 key;
 	char *name;
 	unsigned int age;
 	struct { 
@@ -59,7 +58,7 @@ int
 main(void)
 {
 	hash_init(htable_name);
-	hash_init(person_age);
+	hash_init(htable_age);
 
 	hlist_add(&person_list, &daniel.n.node);
 	hlist_add(&person_list, &daniela.n.node);
@@ -69,15 +68,14 @@ main(void)
 
 	hlist_for_each(&person_list, it) {
 		struct person *p = __container_of(it, struct person, n.node);
-		p->key   = hash_buffer(p->name, strlen(p->name));
-		u32 hash = hash_data(htable_name, p->key);
-		hash_add(htable_name, &p->n.name, hash);
+		u32 key = hash_skey(htable_name, p->name);
+		hash_add(htable_name, &p->n.name, key);
 	}
 
-	u32 key = hash_skey(htable_name, "Daniel");
+	u32 key = hash_skey(htable_name, "Adam");
 	hash_for_each(htable_name, it, key) {
-		struct person *p = __container_of(it, struct person, n.node);
-		printf(":: name: %s\n", p->name);
+		struct person *p = __container_of(it, struct person, n.name);
+		printf(":: %p name: %s key: %d\n", p, p->name, (int)key);
 	}
 
 	return 0;

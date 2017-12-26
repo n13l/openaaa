@@ -34,14 +34,23 @@
 #include <sys/ev/ev.c>
 #endif
 
-DEFINE_HASHTABLE(hstatus, 7);
+DEFINE_HASHTABLE(hstatus_id,  6);
+DEFINE_HASHTABLE(hstatus_pid, 6);
 
-struct history {
+struct pstatus {
 	struct page page;
-	struct hnode hnode_id;
-	struct hnode hnode_pid;
-	union { struct task_status; };
-	int size;
+	timestamp_t created;
+	timestamp_t modified;
+	timestamp_t expires;
+	u32 hash_id;
+	u32 hash_pid;
+	pid_t id, pid;
+	struct {
+		struct hnode id;
+		struct hnode pid;
+	} n;
+	struct task_status self; 
+	int size;                 /* size of payload + sizeof(pstatus) */
 	byte payload[];
 };
 
@@ -71,14 +80,14 @@ int timeout_interuptible = 5;
 static const struct sched_callbacks *callback;
 static const struct sched_params *params;
 
-struct mpm_workqueue {
+struct workqueue {
 	struct list run;
 	struct list que;
 	sig_atomic_t running;
 	sig_atomic_t waiting;
 } workque = { .running = 0, .waiting = 0};
 
-struct mpm_workers {
+struct workers {
 	struct list list;
 	sig_atomic_t running;
 	sig_atomic_t total;
@@ -142,6 +151,15 @@ struct ipc_msg {
 };
 
 struct process root;
+
+static u32 
+getid(void) 
+{
+	static u32 id_counter = 0;
+	if (id_counter > 8192)
+		id_counter = 0;
+	return ++id_counter;
+};
 
 int
 task_is_workque(struct task *proc)
@@ -248,8 +266,6 @@ subprocess_free(struct process *proc)
 	free(proc);
 }
 
-static u32 id_counter = 1;
-
 int
 sched_workque_add(const char *arg)
 {
@@ -257,10 +273,6 @@ sched_workque_add(const char *arg)
 		return -1;
 
 	struct process *proc = subprocess_alloc();
-	if (id_counter > 8192)
-		id_counter = 0;
-
-	proc->self.id = id_counter++;
 	proc->type = TASK_WORKQUE;
 	proc->arg  = arg ? strdup(arg) : NULL;
 	list_add(&workque.que, &proc->queued);
@@ -352,6 +364,110 @@ error:
 	return -1;	
 }
 
+static void
+pstatus_touch(struct pstatus *pstatus, timestamp_t now)
+{
+	pstatus->modified = now;
+	pstatus->expires = pstatus->modified + 360;
+}
+
+static void
+pstatus_init(struct pstatus *pstatus, timestamp_t now)
+{
+	pstatus->created = pstatus->modified = now;
+	pstatus_touch(pstatus, now);
+	pstatus->size = sizeof(*pstatus);
+}
+
+static struct pstatus *
+pstatus_alloc(pid_t pid, pid_t id, timestamp_t now)
+{
+	struct pstatus *pstatus = (struct pstatus *)page_alloc_safe(pagemap);
+	if (!pstatus)
+		return NULL;
+
+	pstatus_init(pstatus, now);
+
+	pstatus->pid = pid;
+	pstatus->id = id;
+	pstatus->hash_id  = hash_data(hstatus_id, id);
+	pstatus->hash_pid = hash_data(hstatus_pid, pid);
+
+	hnode_init(&pstatus->n.id);
+	hnode_init(&pstatus->n.pid);
+	hash_add(hstatus_id, &pstatus->n.id, pstatus->hash_id);
+	hash_add(hstatus_pid, &pstatus->n.pid, pstatus->hash_pid);
+	return pstatus;
+}
+
+static void
+pstatus_free(struct pstatus *pstatus)
+{
+	debug2("process status cache id: %u (pid: %u, hash: %u, %u) expired.", 
+	       (unsigned int)pstatus->id, (unsigned int)pstatus->pid, 
+	       (unsigned int)pstatus->hash_id, (unsigned int)pstatus->hash_pid);
+	
+	hash_del(&pstatus->n.id);
+	hash_del(&pstatus->n.pid);
+	page_free(pagemap, (struct page *)pstatus);
+}
+
+static struct pstatus *
+pstatus_create(pid_t pid, pid_t id)
+{
+	timestamp_t now = get_timestamp();
+
+	hash_for_each_delsafe(hstatus_pid, it, hash_data(hstatus_pid, pid)) {
+		struct pstatus *p = __container_of(it, struct pstatus, n.pid);
+		if ((now > p->expires) || pid == p->pid)
+			pstatus_free(p);
+	}
+
+	return pstatus_alloc(pid, id, now);
+}
+
+static struct pstatus *
+pstatus_lookup_pid(pid_t pid)
+{
+	timestamp_t now = get_timestamp();
+
+	hash_for_each_delsafe(hstatus_pid, it, hash_data(hstatus_pid, pid)) {
+		struct pstatus *p = __container_of(it, struct pstatus, n.pid);
+		if ((now > p->expires))
+			pstatus_free(p);
+		else if (p->pid == pid)
+			return p;
+	}
+	return NULL;
+}
+
+static struct pstatus *
+pstatus_lookup_id(pid_t id)
+{
+	timestamp_t now = get_timestamp();
+
+	hash_for_each_delsafe(hstatus_id, it, hash_data(hstatus_id, id)) {
+		struct pstatus *p = __container_of(it, struct pstatus, n.id);
+		if ((now > p->expires))
+			pstatus_free(p);
+		else if (p->id == id)
+			return p;
+	}
+
+	return NULL;
+}
+
+static int
+pstatus_update_state(pid_t pid, int state)
+{
+	struct pstatus *pstatus = pstatus_lookup_pid(pid);
+	if (!pstatus)
+		return -1;
+	pstatus_touch(pstatus, get_timestamp());
+	pstatus->self.state = state;
+	return 0;
+}
+
 static inline void
 subprocess_attach(struct process *proc)
 {
@@ -361,6 +477,22 @@ subprocess_attach(struct process *proc)
 	ev_io_init(&proc->ev.ipc, ipc_handler,  proc->ipc[0], EV_READ);
 	ev_io_start(EV_DEFAULT_ &proc->ev.ipc);
 	debug4("subprocess pid=%d attach: %p", proc->self.pid, &proc->ev.ipc);
+
+	struct pstatus *pstatus = pstatus_create(proc->self.pid, proc->self.id);
+	if (!pstatus)
+		goto error;
+
+	timestamp_t now = get_timestamp();
+	pstatus_init(pstatus, now);
+
+	pstatus->self.state = TASK_RUNNING;
+	debug2("process status cache id: %u (pid: %u, hash: %u, %u) created.", 
+	       (unsigned int)pstatus->id, (unsigned int)pstatus->pid, 
+	       (unsigned int)pstatus->hash_id, (unsigned int)pstatus->hash_pid);
+	
+	return;
+error:
+	error("Can't create history for subprocess pid: %d", proc->self.pid);
 }
 
 static inline void
@@ -373,6 +505,8 @@ subprocess_detach(struct process *proc)
 	close(proc->ipc[0]);
 	close(proc->ipc[1]);
 	debug4("subprocess pid=%d detach: %p", proc->self.pid, &proc->ev.ipc);
+
+	pstatus_update_state(proc->self.pid, TASK_FINISHED);
 }
 
 static void
@@ -609,6 +743,7 @@ do_subprocess_alloc(struct process *root)
 	proc->self.state = TASK_INACTIVE;
 	proc->self.index = ++root->self.index;
 	proc->self.created = get_timestamp();
+	proc->self.id = getid();
 
 	node_init(&proc->node);
 	node_init(&proc->queued);
@@ -790,7 +925,9 @@ sched_timeout_throttled(int timeout)
 void
 _sched_start(const struct mpm_module *mpm_module)
 {
-	hash_init(hstatus);
+	hash_init(hstatus_id);
+	hash_init(hstatus_pid);
+
 	list_init(&workers.list);
 	list_init(&workque.run);
 	list_init(&workque.que);
@@ -821,8 +958,8 @@ _sched_start(const struct mpm_module *mpm_module)
 
 	unsigned long long pageb = (unsigned long long)pages2b(shift, pages);
 	debug2("status cache hash table entries: %d (shift: %d, %llu bytes)", 
-	       (int)hash_entries(hstatus), (int)hash_bits(hstatus),
-	       (unsigned long long)sizeof(hstatus) * array_size(hstatus));
+	       (int)hash_entries(hstatus_id), (int)hash_bits(hstatus_id),
+	       (unsigned long long)sizeof(hstatus_id) * array_size(hstatus_id));
 	debug2("status cache memory pages: %d (shift: %d, %llu bytes)",
 	       pages, shift, pageb);
 

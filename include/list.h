@@ -308,15 +308,14 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 	     __node = hlist_for_next(__node))
 
 #define hlist_for_each_delsafe(__list, __node) \
-	for (struct hnode *__node, *__it = hlist_for_first((__list)); \
-	     __it && ({it = __node->next;1;}); \
-	     __node = __it)
+	for (struct hnode *(__node) = hlist_for_first((__list)), *__it; \
+	     (__node) && ({__it = (__node)->next;1;}); \
+	     (__node) = __it)
 
 #define hlist_for_each_item_delsafe(item, n, list, member)                 \
 	for (item = __container_of_safe((list)->head, typeof(*item), member);\
 	     item && ({ n = item->member.next; 1; });                     \
 	     item = __container_of_safe(n, typeof(*item), member))
-
 
 __END_DECLS
 
