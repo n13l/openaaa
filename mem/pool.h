@@ -137,7 +137,7 @@ mm_pool_flush(struct mm_pool *pool)
 static inline struct mm_pool *
 mm_pool_block(void *block, size_t blocksize)
 {
-	size_t size, aligned = align_addr(sizeof(*block));
+	size_t size, aligned = align_addr(sizeof(void *));
 	size = __max(blocksize, CPU_CACHE_LINE + aligned);
 	size = align_to(size, CPU_PAGE_SIZE) - aligned;
 
