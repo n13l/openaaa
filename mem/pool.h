@@ -135,7 +135,7 @@ mm_pool_flush(struct mm_pool *pool)
 }
 
 static inline struct mm_pool *
-mm_pool_block(void *block, size_t blocksize)
+mm_pool_overlay(void *block, size_t blocksize)
 {
 	size_t size, aligned = align_addr(sizeof(void *));
 	size = __max(blocksize, CPU_CACHE_LINE + aligned);
@@ -264,10 +264,11 @@ static char *
 mm_pool_vprintf_at(struct mm_pool *mp, size_t of, const char *fmt, va_list args)
 {
 	char *b = (char *)mm_pool_extend(mp, of + 1) + of;
+	size_t avail = mm_pool_avail(mp);
 
 	va_list args2;
 	va_copy(args2, args);
-	int len = vsnprintf(b, mm_pool_avail(mp) - of, fmt, args2);
+	int len = vsnprintf(b, avail - of, fmt, args2);
 	va_end(args2);
 
 	if (len < 0) {
@@ -277,7 +278,7 @@ mm_pool_vprintf_at(struct mm_pool *mp, size_t of, const char *fmt, va_list args)
 			len = vsnprintf(b, mm_pool_avail(mp) - of, fmt, args2);
 			va_end(args2);
 		} while (len < 0);
-	} else if ((unsigned int)len >= mm_pool_avail(mp) - of) {
+	} else if ((unsigned int)len >= avail - of) {
 		b = (char *)mm_pool_extend(mp, of + len + 1) + of;
 		va_copy(args2, args);
 		vsnprintf(b, len + 1, fmt, args2);

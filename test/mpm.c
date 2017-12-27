@@ -116,14 +116,35 @@ process_dtor(struct task *proc)
 }
 
 static int
-workque_add(struct task *proc)
+workque_add(struct task *proc, int fd, const char *arg)
 {
+	struct bb bb = { .addr = alloca(PIPE_BUF), .len = PIPE_BUF};
+
+	int size = strlen(arg);
+	for (u8 *u = (u8*)arg; size; size--, u++) 
+		if (*u == '\n') *u = 0;
+
+	int id = sched_workque(proc, arg);
+	debug2("workque id=%d added", id);
+
+	snprintf(bb.addr, bb.len - 1, "%d\n", id);
+	write(fd, bb.addr, strlen(bb.addr));
+	
 	return 0;
 }
 
 static int
-workque_status(struct task *proc)
+workque_status(struct task *proc, int fd, const char *arg)
 {
+	int id = atoi(arg);
+	debug2("workque id=%d status", id);
+
+	struct bb bb = { .addr = alloca(PIPE_BUF), .len = PIPE_BUF};
+	struct task_status *status = (struct task_status *)bb.addr;
+
+	id = sched_gethist(proc, id, status, PIPE_BUF);
+	snprintf(bb.addr, bb.len - 1, "%d\n", id);
+	write(fd, bb.addr, strlen(bb.addr));
 	return 0;
 }
 
@@ -150,28 +171,11 @@ process_entry(struct task *proc)
 	buffer[rv] = 0;
 
 	if (!strncmp(buffer, "add", 3)) {
-		for (u8 *u = (u8*)buffer; rv; rv--, u++) 
-			if (*u == '\n') *u = 0;
-
-		const char *arg = buffer;
-		int id = sched_workque(proc, arg);
-		debug2("workque id=%d added", id);
-
-		snprintf(buffer, sizeof(buffer), "%d\n", id);
-		write(ip.fd, buffer, strlen(buffer));
-	}
-
-	if (!strncmp(buffer, "status", 6)) {
+		const char *arg = buffer + 3;
+		workque_add(proc, ip.fd, arg);
+	} else if (!strncmp(buffer, "status", 6)) {
 		const char *arg = buffer + 7;
-		int id = atoi(arg);
-		debug2("workque id=%d status", id);
-
-		struct bb bb = { .addr = alloca(PIPE_BUF), .len = PIPE_BUF};
-		struct task_status *status = (struct task_status *)bb.addr;
-
-		id = sched_gethist(proc, id, status, PIPE_BUF);
-		snprintf(buffer, sizeof(buffer), "%d\n", id);
-		write(ip.fd, buffer, strlen(buffer));
+		workque_status(proc, ip.fd, arg);
 	}
 
 	close(ip.fd);
