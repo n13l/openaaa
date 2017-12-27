@@ -65,21 +65,24 @@
 #define TASK_PDEATHSIGHUP 0x0001 
 
 struct task_status {
-	u64 created;
-        u64 modified;
-        u64 expires;
+	time_t created;
+        time_t modified;
+        time_t expires;
 	pid_t id, pid;
 	int status;
 	int state;
+	int exitcode;
+	int size;                    /* sizeof(task_status) + payload */
 };
 
 struct task {
-	timestamp_t created;
-	timestamp_t expires;
+	time_t created;
+	time_t expires;
 	pid_t ppid, pid, index, id;
 	volatile int state;
 	int version;
 	int status;
+	int exitcode;
 };
 
 struct task_callbacks {
@@ -132,10 +135,8 @@ int sched_setcaps(int caps);
 int sched_sendmsg(int id, void *addr, size_t size);
 int sched_recvmsg(int id, void *addr, size_t size);
 int sched_workque(struct task *, const char *arg);
-int sched_setbuf(struct task *, byte *addr, size_t len);
-int sched_getbuf(struct task *, byte *addr, size_t len);
-int sched_sethist(struct task *, int id, struct task_status status);
-int sched_sethist(struct task *, int id, struct task_status status);
+int sched_sethist(struct task *, int id, struct task_status *status);
+int sched_gethist(struct task *, int id, struct task_status *status, int size);
 
 void _sched_start(const struct mpm_module *);
 void _sched_wait(const struct mpm_module *);

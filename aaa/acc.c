@@ -248,9 +248,9 @@ create(struct aaa *aaa, struct cursor *sid)
 
 	set_id(session, sid);
 	aaa_attr_set(aaa, "sess.id", (char *)sid->id.addr);
-	aaa_attr_set(aaa, "sess.created",  printfa("%jd", (intmax_t)session->created));
-	aaa_attr_set(aaa, "sess.modified", printfa("%jd", (intmax_t)session->modified));
-	aaa_attr_set(aaa, "sess.expires",  printfa("%jd", (intmax_t)session->expires));
+	aaa_attr_set(aaa, "sess.created",  printfa("%lld", (long long int)session->created));
+	aaa_attr_set(aaa, "sess.modified", printfa("%lld", (long long int)session->modified));
+	aaa_attr_set(aaa, "sess.expires",  printfa("%lld", (long long int)session->expires));
 
 	if (session_write(aaa, session) < 0)
 		goto cleanup;

@@ -18,8 +18,7 @@
 #include <string.h>
 
 /* 
- * Allows deterministic behavior on real-time systems avoiding the out of 
- * memory errors.
+ * Allows deterministic behavior on real-time systems 
  *
  * Variable-size block memory pools do need to store allocation metadata for 
  * each allocation, describing characteristics like the size of the allocated
@@ -135,6 +134,29 @@ mm_pool_flush(struct mm_pool *pool)
 	snode_init(&pool->save.node);
 }
 
+static inline struct mm_pool *
+mm_pool_block(void *block, size_t blocksize)
+{
+	size_t size, aligned = align_addr(sizeof(*block));
+	size = __max(blocksize, CPU_CACHE_LINE + aligned);
+	size = align_to(size, CPU_PAGE_SIZE) - aligned;
+
+	struct mm_pool *pool = (struct mm_pool *)((u8 *)block - size);
+
+	mem_pool_dbg("pool %p attached with %llu bytes", 
+	             pool, (unsigned long long)blocksize);
+
+	pool->save.avail[0] = size - sizeof(*pool);
+	pool->save.final[0] = block;
+
+	pool->final = &pool->final;
+	pool->total_bytes  = blocksize + aligned;
+	pool->blocksize = size; 
+	//pool->flags |= (MM_NO_DIE | MM_NO_GROW);
+
+	return pool;
+}
+	
 static inline struct mm_pool *
 mm_pool_create(size_t blocksize, int flags)
 {
@@ -299,6 +321,23 @@ mm_pool_strndup(struct mm_pool *p, const char *str, size_t len)
 	char *s = (char *)mm_pool_alloc(p, len + 1);
 	memcpy(s, str, len);
 	s[len] = 0;
+	return s;
+}
+
+_unused static char *
+mm_pool_strmem(struct mm_pool *p, const char *str, size_t len)
+{
+	char *s = (char *)mm_pool_alloc(p, len + 1);
+	memcpy(s, str, len);
+	s[len] = 0;
+	return s;
+}
+
+_unused static char *
+mm_pool_memdup(struct mm_pool *p, const char *ptr, size_t len)
+{
+	char *s = (char *)mm_pool_alloc(p, len);
+	memcpy(s, ptr, len);
 	return s;
 }
 

@@ -116,6 +116,18 @@ process_dtor(struct task *proc)
 }
 
 static int
+workque_add(struct task *proc)
+{
+	return 0;
+}
+
+static int
+workque_status(struct task *proc)
+{
+	return 0;
+}
+
+static int
 process_entry(struct task *proc)
 {
 	struct ip_peer ip = { .len = sizeof(ip.sa) };
@@ -133,36 +145,51 @@ process_entry(struct task *proc)
 
 	char buffer[8192] = {0};
 	int rv = read(ip.fd, buffer, sizeof(buffer));
-	if (rv < 0) {
-		error("result=%d %d:%s", rv, errno, strerror(errno));
-		return -1;
-	} else if (rv == 0) {
-		debug1("disconnected");
-		return -1;
-	}
-
+	if (rv < 1)
+		goto error;
 	buffer[rv] = 0;
 
-	for (u8 *u = (u8*)buffer; rv; rv--, u++) if (*u == '\n') *u = 0;
-	const char *arg = buffer;
-	_unused int id = sched_workque(proc, arg);
+	if (!strncmp(buffer, "add", 3)) {
+		for (u8 *u = (u8*)buffer; rv; rv--, u++) 
+			if (*u == '\n') *u = 0;
+
+		const char *arg = buffer;
+		int id = sched_workque(proc, arg);
+		debug2("workque id=%d added", id);
+
+		snprintf(buffer, sizeof(buffer), "%d\n", id);
+		write(ip.fd, buffer, strlen(buffer));
+	}
+
+	if (!strncmp(buffer, "status", 6)) {
+		const char *arg = buffer + 7;
+		int id = atoi(arg);
+		debug2("workque id=%d status", id);
+
+		struct bb bb = { .addr = alloca(PIPE_BUF), .len = PIPE_BUF};
+		struct task_status *status = (struct task_status *)bb.addr;
+
+		id = sched_gethist(proc, id, status, PIPE_BUF);
+		snprintf(buffer, sizeof(buffer), "%d\n", id);
+		write(ip.fd, buffer, strlen(buffer));
+	}
 
 	close(ip.fd);
-	debug1("Connection closed with %s:%d", ip.name, htons(ip.sa.sin6_port));
+	debug1("Connection closed with %s:%d", from, htons(ip.sa.sin6_port));
 
 	} while(1);
 	return 0;
 
 error:
 	debug1("%d:%s", errno, strerror(errno));
-	return -1;
+	return 1;
 }
 
 
 static int
 workque_ctor(struct task *proc)
 {
-	setproctitle("mpm/%d", proc->id);
+	setproctitle("mpm id=%d", proc->id);
 	debug1("workque pid: %d started", proc->pid);
 	return 0;
 }
@@ -239,6 +266,10 @@ main(int argc, char *argv[])
 
 	log_setcaps(15);
 	log_verbose = 2;
+
+	const char *verb = getenv("MPM_VERBOSE");
+	if (verb)
+		log_verbose = atoi(verb);
 
 	socket_init();
 

@@ -34,14 +34,14 @@
 #include <sys/ev/ev.c>
 #endif
 
-DEFINE_HASHTABLE(hstatus_id,  6);
-DEFINE_HASHTABLE(hstatus_pid, 6);
+DEFINE_HASHTABLE(hstatus_id,  7);
+DEFINE_HASHTABLE(hstatus_pid, 7);
 
 struct pstatus {
 	struct page page;
-	timestamp_t created;
-	timestamp_t modified;
-	timestamp_t expires;
+	time_t created;
+	time_t modified;
+	time_t expires;
 	u32 hash_id;
 	u32 hash_pid;
 	pid_t id, pid;
@@ -53,6 +53,23 @@ struct pstatus {
 	int size;                 /* size of payload + sizeof(pstatus) */
 	byte payload[];
 };
+
+static const char * const task_state_names[] = {
+	[TASK_INACTIVE]   = "inactive",
+	[TASK_STOPPED]    = "stopped",
+	[TASK_RUNNING]    = "running",
+	[TASK_EXITING]    = "exiting",
+	[TASK_FINISHED]   = "finished",
+};
+
+const char *
+task_sget_state(u8 id)
+{
+	if (id > (u8)array_size(task_state_names))
+		return "undefined";
+	return task_state_names[id];
+}
+
 
 static struct pagemap *pagemap;
 
@@ -152,6 +169,14 @@ struct ipc_msg {
 
 struct process root;
 
+static time_t
+secs_now(void)
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return tv.tv_sec;
+}
+
 static u32 
 getid(void) 
 {
@@ -177,6 +202,12 @@ task_arg(struct task *proc)
 	struct process *p = __container_of(proc, struct process, self);
 	return p->arg;
 }
+
+static void
+pstatus_info(struct pstatus *p);
+
+static struct pstatus *
+pstatus_lookup_id(pid_t id);
 
 static void
 chld_handler(EV_P_ ev_child *w, int revents);
@@ -274,6 +305,7 @@ sched_workque_add(const char *arg)
 
 	struct process *proc = subprocess_alloc();
 	proc->type = TASK_WORKQUE;
+	proc->self.id = getid();
 	proc->arg  = arg ? strdup(arg) : NULL;
 	list_add(&workque.que, &proc->queued);
 	workque.waiting++;
@@ -289,31 +321,26 @@ sched_workque_del(void)
 static void
 ipc_handler(EV_P_ struct ev_io *w, int revents)
 {
+	int rv;
 	if (!(revents & EV_READ))
-		goto exit;
+		return;
 
 	char buffer[8192] = {0};
-	int rv = read(w->fd, buffer, sizeof(buffer));
-	if (rv < 0) {
-		error("result=%d %d:%s", rv, errno, strerror(errno));
-		goto exit;
-	} else if (rv == 0) {
-		error("ipc disconnected");
-		goto exit;
-	}
+	rv = read(w->fd, buffer, sizeof(buffer) - 1);
+	if (rv < 1)
+		goto error;
 
 	buffer[rv] = 0;
 	struct ipc_msg *req = (struct ipc_msg *)buffer;
-	if (rv < sizeof(*req)) {
-		error("ipc msg malformed");
-		goto exit;
-	}
+	if (rv < sizeof(*req))
+		goto error;
 
 	int len = req->size - sizeof(*req);
-	char *arg = len > 0 ? strndupa((u8*)req + sizeof(*req), len) : NULL;
+	char *arg = len > 0 ? strmema((u8*)req + sizeof(*req), len) : NULL;
 
-	debug4("ipc msg recv %s:%s", 
-	       s_ipc_msg[req->type], s_ipc_dir[req->dir]);
+	debug4("ipc msg recv %s:%s %d bytes", 
+	       s_ipc_msg[req->type], s_ipc_dir[req->dir], rv);
+
 	switch (req->type) {
 	case IPC_WORKQUE_ADD: {
 		int id = sched_workque_add(arg);
@@ -322,17 +349,93 @@ ipc_handler(EV_P_ struct ev_io *w, int revents)
 			.size = sizeof(res), .sid  = id
 		};
 
-		debug4("ipc msg send %s:%s", 
-		       s_ipc_msg[res.type], s_ipc_dir[res.dir]);
+		debug4("ipc msg send %s:%s %d bytes", 
+		       s_ipc_msg[res.type], s_ipc_dir[res.dir], res.size);
 		if ((rv = write(w->fd, &res, res.size)) < res.size)
 			error("result=%d %d:%s", rv, errno, strerror(errno));
+		break;
 
 	}
+	case IPC_STATUS: {
+		int id = (*(int *)arg);
+		struct pstatus *pstatus = pstatus_lookup_id(id);
+		int size = pstatus ? sizeof(*pstatus): 0;
+		
+		struct ipc_msg *res = (struct ipc_msg *)buffer;
+		*res = (struct ipc_msg) { 
+			.type = IPC_STATUS, .dir  = IPC_RESPONSE, 
+			.size = sizeof(*res) + size, .sid  = pstatus ? id : 0
+		};
+
+		if (size)
+			memcpy(((u8*)res) + sizeof(*res), pstatus, size);
+
+		debug4("ipc msg send %s:%s %d bytes", 
+		       s_ipc_msg[res->type], s_ipc_dir[res->dir], res->size);
+		if ((rv = write(w->fd, res, res->size)) < res->size)
+			goto error;
+		break;
+	}
+	default:
+		write(w->fd, " ", 1);
 	break;
 	}
-exit:
+
+	ev_break(loop, EVBREAK_ALL);
+	return;
+error:
+	error("result=%d %d:%s", rv, errno, strerror(errno));
 	ev_break(loop, EVBREAK_ALL);
 }
+
+int
+sched_sethist(struct task *proc, int id, struct task_status *status)
+{
+	return 0;
+}
+
+int
+sched_gethist(struct task *proc, int id, struct task_status *status, int bsize)
+{
+	struct process *p = __container_of(proc, struct process, self);
+	struct bb bb = { .addr = alloca(PIPE_BUF), .len = PIPE_BUF};
+	int rv, len = sizeof(id);
+
+	struct ipc_msg *m = (struct ipc_msg *)bb.addr;
+	m->type = IPC_STATUS; 
+	m->dir  = IPC_REQUEST; 
+	m->size = sizeof(*m) + len;
+	memcpy(((byte *)m) + sizeof(*m), &id, len);
+
+	debug4("ipc msg send %s:%s %d bytes", 
+	     s_ipc_msg[m->type], s_ipc_dir[m->dir], m->size);
+
+	if ((rv = write(p->ipc[1], m, m->size)) < m->size)
+		goto error;
+	if ((rv = read(p->ipc[1], m, PIPE_BUF)) < m->size)
+		goto error;
+
+	debug4("ipc msg recv %s:%s %d bytes",
+	     s_ipc_msg[m->type], s_ipc_dir[m->dir], rv);
+
+	if (m->type != IPC_STATUS || m->dir != IPC_RESPONSE)
+		return -1;
+	if (m->size < (sizeof(*m) + sizeof(struct pstatus)))
+		return -1;
+	struct pstatus *pstatus = (struct pstatus *)((u8*)m + sizeof(*m));
+	if (!pstatus)
+		return -1;
+
+	pstatus_info(pstatus);
+	memcpy(&pstatus->self, status, sizeof(*status));
+		
+	return 0;
+
+error:
+	error("%d:%s", errno, strerror(errno));
+	return -1;	
+}
+
 
 int
 sched_workque(struct task *proc, const char *arg)
@@ -372,15 +475,16 @@ pstatus_touch(struct pstatus *pstatus, timestamp_t now)
 }
 
 static void
-pstatus_init(struct pstatus *pstatus, timestamp_t now)
+pstatus_init(struct pstatus *pstatus, time_t now)
 {
 	pstatus->created = pstatus->modified = now;
+	pstatus->self.state = TASK_RUNNING;
 	pstatus_touch(pstatus, now);
 	pstatus->size = sizeof(*pstatus);
 }
 
 static struct pstatus *
-pstatus_alloc(pid_t pid, pid_t id, timestamp_t now)
+pstatus_alloc(pid_t pid, pid_t id, time_t now)
 {
 	struct pstatus *pstatus = (struct pstatus *)page_alloc_safe(pagemap);
 	if (!pstatus)
@@ -392,6 +496,7 @@ pstatus_alloc(pid_t pid, pid_t id, timestamp_t now)
 	pstatus->id = id;
 	pstatus->hash_id  = hash_data(hstatus_id, id);
 	pstatus->hash_pid = hash_data(hstatus_pid, pid);
+	pstatus->size = sizeof(*pstatus);
 
 	hnode_init(&pstatus->n.id);
 	hnode_init(&pstatus->n.pid);
@@ -403,9 +508,8 @@ pstatus_alloc(pid_t pid, pid_t id, timestamp_t now)
 static void
 pstatus_free(struct pstatus *pstatus)
 {
-	debug2("process status cache id: %u (pid: %u, hash: %u, %u) expired.", 
-	       (unsigned int)pstatus->id, (unsigned int)pstatus->pid, 
-	       (unsigned int)pstatus->hash_id, (unsigned int)pstatus->hash_pid);
+	debug2("process status cache id: %u (pid: %u) expired.", 
+	       (unsigned int)pstatus->id, (unsigned int)pstatus->pid);
 	
 	hash_del(&pstatus->n.id);
 	hash_del(&pstatus->n.pid);
@@ -429,7 +533,7 @@ pstatus_create(pid_t pid, pid_t id)
 static struct pstatus *
 pstatus_lookup_pid(pid_t pid)
 {
-	timestamp_t now = get_timestamp();
+	time_t now = secs_now();
 
 	hash_for_each_delsafe(hstatus_pid, it, hash_data(hstatus_pid, pid)) {
 		struct pstatus *p = __container_of(it, struct pstatus, n.pid);
@@ -444,7 +548,7 @@ pstatus_lookup_pid(pid_t pid)
 static struct pstatus *
 pstatus_lookup_id(pid_t id)
 {
-	timestamp_t now = get_timestamp();
+	time_t now = secs_now();
 
 	hash_for_each_delsafe(hstatus_id, it, hash_data(hstatus_id, id)) {
 		struct pstatus *p = __container_of(it, struct pstatus, n.id);
@@ -457,14 +561,35 @@ pstatus_lookup_id(pid_t id)
 	return NULL;
 }
 
+static void
+pstatus_info(struct pstatus *p)
+{
+	char *v = p->self.state == TASK_FINISHED ? 
+		printfa(" status: %d", p->self.exitcode): "";
+
+	debug2("status cache id: %d (pid: %d, state: %s%s))",
+	       (int)p->id, (int)p->pid, task_sget_state(p->self.state), v);
+
+	debug4("status cache id: %d (modified: %lld expires: %lld {%d})", 
+	       (int)p->id, 
+	       (long long int)p->modified, 
+	       (long long int)p->expires,
+	       (int)(p->expires - p->modified));
+}
+
 static int
-pstatus_update_state(pid_t pid, int state)
+pstatus_update_state(pid_t pid, int state, int status, int exitcode)
 {
 	struct pstatus *pstatus = pstatus_lookup_pid(pid);
 	if (!pstatus)
 		return -1;
-	pstatus_touch(pstatus, get_timestamp());
+
+	time_t now = secs_now();
 	pstatus->self.state = state;
+	pstatus->self.status = status;
+	pstatus->self.exitcode = exitcode;
+	pstatus_info(pstatus);
+	pstatus_touch(pstatus, now);
 	return 0;
 }
 
@@ -476,20 +601,15 @@ subprocess_attach(struct process *proc)
 
 	ev_io_init(&proc->ev.ipc, ipc_handler,  proc->ipc[0], EV_READ);
 	ev_io_start(EV_DEFAULT_ &proc->ev.ipc);
-	debug4("subprocess pid=%d attach: %p", proc->self.pid, &proc->ev.ipc);
+	debug4("subprocess pid: %d attach: %p", proc->self.pid, &proc->ev.ipc);
 
 	struct pstatus *pstatus = pstatus_create(proc->self.pid, proc->self.id);
 	if (!pstatus)
 		goto error;
 
-	timestamp_t now = get_timestamp();
+	time_t now = secs_now();
 	pstatus_init(pstatus, now);
-
-	pstatus->self.state = TASK_RUNNING;
-	debug2("process status cache id: %u (pid: %u, hash: %u, %u) created.", 
-	       (unsigned int)pstatus->id, (unsigned int)pstatus->pid, 
-	       (unsigned int)pstatus->hash_id, (unsigned int)pstatus->hash_pid);
-	
+	pstatus_info(pstatus);
 	return;
 error:
 	error("Can't create history for subprocess pid: %d", proc->self.pid);
@@ -506,7 +626,10 @@ subprocess_detach(struct process *proc)
 	close(proc->ipc[1]);
 	debug4("subprocess pid=%d detach: %p", proc->self.pid, &proc->ev.ipc);
 
-	pstatus_update_state(proc->self.pid, TASK_FINISHED);
+	pstatus_update_state(proc->self.pid,
+	                     WIFEXITED(proc->self.status) ? 
+			     TASK_FINISHED: TASK_INACTIVE,
+	                     proc->self.status, proc->self.exitcode);
 }
 
 static void
@@ -542,8 +665,11 @@ chld_handler(EV_P_ ev_child *w, int revents)
 	list_for_each_item(workers.list, c, node) {
 		if (w->rpid != c->self.pid)
 			continue;
+		if (WIFEXITED(w->rstatus))
+			c->self.exitcode = WEXITSTATUS(w->rstatus);
 		if (WIFEXITED(w->rstatus) || WIFSIGNALED(w->rstatus)) {
 			workers.running--;
+			c->self.status = w->rstatus;
 			subprocess_detach(c);
 		}
 	}
@@ -552,8 +678,11 @@ chld_handler(EV_P_ ev_child *w, int revents)
 		c = __container_of(node, struct process, queued);
 		if (w->rpid != c->self.pid)
 			continue;
+		if (WIFEXITED(w->rstatus))
+			c->self.exitcode = WEXITSTATUS(w->rstatus);
 		if (WIFEXITED(w->rstatus) || WIFSIGNALED(w->rstatus)) {
 			workque.running--;
+			c->self.status = w->rstatus;
 			subprocess_detach(c);
 			list_del(&c->queued);
 			subprocess_free(c);
@@ -723,13 +852,14 @@ do_wait(struct process *proc)
 	if (proc == &root) {
 		do_balance(proc);
 		ev_loop(c->loop, 0);
-	} else {	
+	} else {
+		int exitcode = 0;
 		while(!request_restart && !request_shutdown) {
 			if (callback->process.entry)
-				callback->process.entry(task);
+				exitcode = callback->process.entry(task);
 		}
 		do_dtor(proc);
-		exit(0);
+		exit(exitcode);
 	}
 	return 0;
 }
@@ -743,7 +873,6 @@ do_subprocess_alloc(struct process *root)
 	proc->self.state = TASK_INACTIVE;
 	proc->self.index = ++root->self.index;
 	proc->self.created = get_timestamp();
-	proc->self.id = getid();
 
 	node_init(&proc->node);
 	node_init(&proc->queued);
@@ -761,6 +890,9 @@ do_subprocess_ctor(struct process *root, struct process *proc)
 	t2->version  = t1->version;
 	t2->ppid     = t1->pid;
 	t2->state    = TASK_RUNNING;
+
+	if (!t2->id)
+		t2->id = getid();
 
 	if (socketpair(PF_UNIX, SOCK_STREAM, 0, proc->ipc))
 		error("Can not create ipc anonymous unix socket");
@@ -794,7 +926,7 @@ do_subprocess(struct process *proc)
 	do_wait(proc);
 	do_dtor(proc);
 	close(proc->ipc[1]);
-	exit(0);
+	exit(proc->self.exitcode);
 }
 
 static inline void
@@ -817,12 +949,13 @@ do_workque(struct process *proc)
 	sig_enable(SIGHUP);
 	do_ctor(proc);
 
+	int exitcode = 0;
 	if (callback->workque.entry)
-		callback->workque.entry(&proc->self);
+		exitcode = callback->workque.entry(&proc->self);
 
 	do_dtor(proc);
 	close(proc->ipc[1]);
-	exit(0);
+	exit(exitcode);
 }
 
 

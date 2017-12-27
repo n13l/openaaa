@@ -85,6 +85,14 @@ struct mm_stack {
 })
 #endif
 
+#ifndef memdupa
+#define memdupa(string, size) __extension__ \
+({\
+	char *_X = alloca(size); \
+	memcpy(_X, string, size); _X; \
+})
+#endif
+
 
 #ifndef printfa
 #define printfa(...) __extension__ \
