@@ -23,7 +23,7 @@
 
 #ifndef __NET_STACK_H__
 #define __NET_STACK_H__
-
+/*
 #define inet_ntopa(af, addr) \
 ({\
 	size_t __len = af == AF_INET ? INET_ADDRSTRLEN : INET6_ADDRSTRLEN;\
@@ -32,5 +32,6 @@
 	__dst = inet_ntop(af, addr, __str, __len);\
 	__dst;\
 })
+*/
 
 #endif/*__NET_STACK_H__*/

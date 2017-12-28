@@ -29,6 +29,12 @@
 #include <sys/log.h>
 #include <sys/irq.h>
 #include <sys/mpm.h>
+#include <mem/alloc.h>
+#include <mem/pool.h>
+
+#include <buffer.h>
+#include <list.h>
+#include <dict.h>
 
 #include <unistd.h>
 #include <string.h>
@@ -136,16 +142,40 @@ workque_add(struct task *proc, int fd, const char *arg)
 static int
 workque_status(struct task *proc, int fd, const char *arg)
 {
-	int id = atoi(arg);
-	debug2("workque id=%d status", id);
+	int size, rv, id = atoi(arg);
 
-	struct bb bb = { .addr = alloca(PIPE_BUF), .len = PIPE_BUF};
+	struct bb bb = { .addr = zalloca(PIPE_BUF), .len = PIPE_BUF};
 	struct task_status *status = (struct task_status *)bb.addr;
 
-	id = sched_gethist(proc, id, status, PIPE_BUF);
-	snprintf(bb.addr, bb.len - 1, "%d\n", id);
+	if ((rv = sched_getstat(proc, id, status)))
+		goto exit;
+	if (status->state == TASK_RUNNING)
+		goto done;
+	if (status->state != TASK_FINISHED)
+		goto exit;
+	if ((size = sched_getcbuf(proc, id, bb.addr, PIPE_BUF)) < 1)
+		goto exit;
+
+	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
+
+	struct dict dict;
+	dict_init(&dict, mp);
+	dict_unpack(&dict, bb.addr, size);
+	dict_dump(&dict);
+
+	dict_pack(&dict, bb.addr, PIPE_BUF);
+
+	mm_pool_destroy(mp);
 	write(fd, bb.addr, strlen(bb.addr));
+
+done:
+	write(fd, "1", 1);
 	return 0;
+exit:
+	error("operation status id=%d failed", id);
+	snprintf(bb.addr, bb.len - 1, "%d\n", rv);
+	write(fd, bb.addr, strlen(bb.addr));
+	return 1;
 }
 
 static int
@@ -189,7 +219,6 @@ error:
 	return 1;
 }
 
-
 static int
 workque_ctor(struct task *proc)
 {
@@ -208,9 +237,26 @@ workque_dtor(struct task *proc)
 static int
 workque_entry(struct task *proc)
 {
+	struct dict dict;
+	struct bb bb = { .addr = alloca(PIPE_BUF), .len = PIPE_BUF};
+
 	const char *arg = task_arg(proc);
 	debug1("workque pid: %d id=%d arg=%s", proc->pid, proc->id, arg);
-	sleep(2);
+
+	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
+
+	dict_init(&dict, mp);
+	dict_set(&dict, "tx.id",   "1");
+	dict_set(&dict, "tx.type", "2");
+	dict_sort(&dict);
+
+	int size = dict_pack(&dict, bb.addr, bb.len);
+	if (size < 1)
+		goto exit;
+
+	sched_setcbuf(proc, proc->id, bb.addr, size);
+exit:
+	mm_pool_destroy(mp);
 	return 0;
 }
 
@@ -218,8 +264,8 @@ static const struct sched_params sched_params = {
 	.max_processes        = 4,     /* number of processes                */
 	.max_job_parallel     = 2,     /* number of running queued processes */
 	.max_job_queue        = 8,     /* size of the workqueue              */
-	.max_job_unique       = 0,    /* maximum unique jobs                */
-	.timeout_interuptible = 5,     /* timeout for interuptible code area */
+	.max_job_unique       = 0,     /* maximum unique jobs                */
+	.timeout_interuptible = 15,    /* timeout for interuptible code area */
 	.timeout_killable     = 5,     /* timeout before process is killed   */
 	.timeout_throttled    = 1,     /* slowdown on trashing / fatal errors */
 	.timeout_status       = 360,   /* 5 minutes for process status       */

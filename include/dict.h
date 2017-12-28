@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2016 Daniel Kubec <niel@rtfm.cz>
+ * Copyright (c) 2015, 2016, 2017                  Daniel Kubec <niel@rtfm.cz>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"),to deal
@@ -127,7 +127,13 @@ static inline void
 dict_dump(struct dict *dict)
 {
 	dict_for_each(a, dict->list)
-		debug("%s: %s", a->key, a->val);
+		debug1("dump attr %s:%s", a->key, a->val);
 }
+
+int
+dict_pack(struct dict *dict, char *buf, int size);
+
+int
+dict_unpack(struct dict *dict, char *buf, int len);
 
 #endif

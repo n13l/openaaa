@@ -67,12 +67,14 @@
 struct task_status {
 	time_t created;
         time_t modified;
+	time_t uptime;
+	time_t finished;
         time_t expires;
 	pid_t id, pid;
 	int status;
 	int state;
+	int type;
 	int exitcode;
-	int size;                    /* sizeof(task_status) + payload */
 };
 
 struct task {
@@ -92,7 +94,7 @@ struct task_callbacks {
 };
 
 struct sched_callbacks {
-	struct task_callbacks worksvc; /* multi-processing root dispatcher   */
+	struct task_callbacks worksvc; /* multi-processing worksvc dispatcher*/
 	struct task_callbacks workque; /* multi-processing workque processes */
 	struct task_callbacks process; /* multi-processing workers processes */
 };
@@ -135,8 +137,10 @@ int sched_setcaps(int caps);
 int sched_sendmsg(int id, void *addr, size_t size);
 int sched_recvmsg(int id, void *addr, size_t size);
 int sched_workque(struct task *, const char *arg);
-int sched_sethist(struct task *, int id, struct task_status *status);
-int sched_gethist(struct task *, int id, struct task_status *status, int size);
+int sched_setstat(struct task *, int id, struct task_status *status);
+int sched_getstat(struct task *, int id, struct task_status *status);
+int sched_setcbuf(struct task *, int id, char *buf, int size);
+int sched_getcbuf(struct task *, int id, char *buf, int size);
 
 void _sched_start(const struct mpm_module *);
 void _sched_wait(const struct mpm_module *);
@@ -145,6 +149,9 @@ void _sched_stop(const struct mpm_module *);
 int task_is_inactive(struct task *);
 int task_is_running(struct task *);
 int task_is_workque(struct task *);
+
+const char *
+task_sget_state(unsigned int id);
 
 const char *task_arg(struct task *);
 
