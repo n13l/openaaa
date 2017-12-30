@@ -5,13 +5,6 @@
 #include <stdio.h>
 
 void
-timespec_to_timeval(struct timespec *ts, struct timeval *tv)
-{
-	tv->tv_sec  = ts->tv_sec;
-	tv->tv_usec = ts->tv_nsec / 1000;
-}
-
-void
 timespec_now(struct timespec *ts)
 {
 	struct timeval  tv;
@@ -94,5 +87,5 @@ timespec_milliseconds(struct timespec *ts)
 void
 timespec_show(struct timespec *ts)
 {
-	info("%li.%09li", ts->tv_sec, ts->tv_nsec);
+	info("%jd.%09jd", (intmax_t)ts->tv_sec, (intmax_t)ts->tv_nsec);
 }

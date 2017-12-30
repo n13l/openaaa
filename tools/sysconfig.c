@@ -66,6 +66,7 @@ system_report(void)
 	info("sys.stack.avail=%d", 0);
 	info("sys.sizeof int=%d", (int)sizeof(int));
 	info("sys.sizeof long=%d", (int)sizeof(long));
+	info("sys.sizeof long int=%d", (int)sizeof(long int));
 	info("sys.sizeof long long int=%d", (int)sizeof(long long int));
 	info("sys.sizeof ptr=%d", (int)sizeof(void *));
 }

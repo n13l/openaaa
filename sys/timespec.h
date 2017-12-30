@@ -25,8 +25,7 @@
 #ifndef __SYS_TIMESPEC_H__
 #define __SYS_TIMESPEC_H__
 
-void
-timespec_to_timeval(struct timespec *ts, struct timeval *tv)
+struct timespec;
 
 void
 timespec_now(struct timespec *ts);
