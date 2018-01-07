@@ -89,7 +89,7 @@ udp_parse(struct aaa *aaa, byte *packet, unsigned int len)
 			return -1;
 		*packet++ = 0;
 
-		if (!strncasecmp(key, "msg.", 4))
+		if (!strncmp(key, "msg.", 4))
                         continue;
 
                 dict_set_nf(&aaa->attrs, key, value);

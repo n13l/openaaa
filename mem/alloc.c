@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2015 Daniel Kubec <niel@rtfm.cz> 
+ * Copyright (c) 2015, 2016, 2017, 2018, 2019       Daniel Kubec <niel@rtfm.cz> 
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy 
  * of this software and associated documentation files (the "Software"),to deal 
@@ -28,6 +28,38 @@
 #include <sys/cpu.h>
 #include <mem/alloc.h>
 
-struct mm_stack *MM_STACK = (void *)0x8000000ULL;
-struct mm_heap  *MM_HEAP  = (void *)0x8000000ULL;
-struct mm_pool  *MM_POOL  = (void *)0x8000000ULL;
+void *
+libc_malloc(struct mm *mm, size_t size)
+{
+	void *addr = malloc(size);
+	if (!addr)
+		die("Can not allocate memory size=%jd", (intmax_t)size);
+
+	return addr;
+}
+
+void
+libc_free(struct mm *mm, void *addr)
+{
+	free(addr);
+}
+
+void *
+libc_realloc(struct mm *mm, void *addr, size_t size)
+{
+	void *p = realloc(addr, size);
+	if (!p)
+		die("Can not extend memory");
+	return p;
+}
+
+struct mm mm_libc_ops = {
+	.alloc   = libc_malloc,
+	.free    = libc_free,
+	.realloc = libc_realloc
+};
+
+struct mm *mm_libc(void)
+{
+	return &mm_libc_ops;
+}

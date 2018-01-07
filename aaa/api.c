@@ -28,8 +28,7 @@ aaa_new(enum aaa_endpoint type, int flags)
 	aaa->mp_attrs = mm_pool_create(CPU_PAGE_SIZE, 0);
 	aaa->attrs_it = NULL;
 
-	dict_init(&aaa->attrs, aaa->mp_attrs);
-
+	dict_init(&aaa->attrs, mm_pool(aaa->mp_attrs));
 	return aaa;
 }
 
@@ -55,7 +54,7 @@ void
 aaa_reset(struct aaa *aaa)
 {
 	mm_pool_flush(aaa->mp_attrs);
-	dict_init(&aaa->attrs, aaa->mp_attrs);
+	dict_init(&aaa->attrs, mm_pool(aaa->mp_attrs));
 	aaa->attrs_it = NULL;
 }
 

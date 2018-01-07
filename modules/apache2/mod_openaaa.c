@@ -227,7 +227,7 @@ static int
 check_authn(request_rec *r)
 {
 	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "aaa"))
+	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
 	struct srv *srv = ap_srv_config_get(r->server);
@@ -266,7 +266,7 @@ static int
 check_access(request_rec *r)
 {
 	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "aaa"))
+	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
 	return DECLINED;
@@ -288,7 +288,7 @@ static int
 auth_checker(request_rec *r)
 {
 	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "aaa"))
+	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 	return DECLINED;
 }
@@ -309,7 +309,7 @@ static int
 check_authz(request_rec *r)
 {
 	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "aaa"))
+	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
 	return DECLINED;
@@ -319,7 +319,7 @@ static int
 check_access_ex(request_rec *r)
 {
 	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "aaa"))
+	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
 	struct srv *srv = ap_srv_config_get(r->server);
@@ -433,7 +433,7 @@ header_parser(request_rec *r)
 		return DECLINED;
 	if (!ssl_is_https(r->connection))
 		return DECLINED;
-	if (!ap_auth_type(r) || strcasecmp(ap_auth_type(r), "aaa"))
+	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
 	struct req *req = ap_req_config_get(r);

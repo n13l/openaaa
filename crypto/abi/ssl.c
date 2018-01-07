@@ -278,8 +278,8 @@ session_init(const SSL *ssl)
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
 	struct session *sp = mm_pool_zalloc(mp, sizeof(*sp));
 
-	dict_init(&sp->recved, mp);
-	dict_init(&sp->posted, mp);
+	dict_init(&sp->recved, mm_pool(mp));
+	dict_init(&sp->posted, mm_pool(mp));
 
 	sp->mp = mp;
 	sp->ssl = (SSL *)ssl;

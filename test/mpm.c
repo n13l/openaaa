@@ -159,7 +159,7 @@ workque_status(struct task *proc, int fd, const char *arg)
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
 
 	struct dict dict;
-	dict_init(&dict, mp);
+	dict_init(&dict, mm_pool(mp));
 	dict_unpack(&dict, bb.addr, size);
 	dict_dump(&dict);
 
@@ -245,7 +245,7 @@ workque_entry(struct task *proc)
 
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
 
-	dict_init(&dict, mp);
+	dict_init(&dict, mm_pool(mp));
 	dict_set(&dict, "tx.id",   "1");
 	dict_set(&dict, "tx.type", "2");
 	dict_sort(&dict);

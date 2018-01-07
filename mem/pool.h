@@ -5,12 +5,10 @@
 #include <sys/cpu.h>
 #include <sys/log.h>
 #include <sys/decls.h>
-
 #include <mem/alloc.h>
 #include <mem/savep.h>
 #include <mem/block.h>
 #include <mem/generic.h>
-
 #include <list.h>
 
 #include <inttypes.h>
@@ -25,7 +23,10 @@
  * block.
  */
 
+struct mm;
+
 struct mm_pool {
+	struct mm *mm;
 	struct mm_savep save;
 	void *avail, *final;
 	unsigned int blocksize;
@@ -46,6 +47,7 @@ struct mm_pool {
 };
 
 __BEGIN_DECLS
+struct mm *mm_pool(struct mm_pool *);
 
 static inline void *
 __pool_alloc_block(struct mm_pool *pool, size_t size)
@@ -79,6 +81,11 @@ mm_pool_alloc(struct mm_pool *pool, size_t size)
 		return p;
 	} 
 	return __pool_alloc_block(pool, size);
+}
+
+static inline void
+mm_pool_free(void *addr)
+{
 }
 
 static inline void *
@@ -254,39 +261,27 @@ mm_pool_extend(struct mm_pool *mp, size_t size)
 	return addr;
 }
 
-static inline void *
-mm_pool_extend_one(struct mm_pool *mp)
-{
-	return mm_pool_extend(mp, mm_pool_avail(mp) + 1);
-}
-
 static char *
-mm_pool_vprintf_at(struct mm_pool *mp, size_t of, const char *fmt, va_list args)
+mm_pool_vprintf_at(struct mm_pool *mp, size_t pos, const char *fmt, va_list args)
 {
-	char *b = (char *)mm_pool_extend(mp, of + 1) + of;
+	char *b = (char *)mm_pool_extend(mp, pos + 1) + pos;
 	size_t avail = mm_pool_avail(mp);
+	size_t rest = avail - pos;
 
 	va_list args2;
 	va_copy(args2, args);
-	int len = vsnprintf(b, avail - of, fmt, args2);
+	int len = vsnprintf(b, rest, fmt, args2);
 	va_end(args2);
 
-	if (len < 0) {
-		do {
-			b = (char *)mm_pool_extend_one(mp) + of;
-			va_copy(args2, args);
-			len = vsnprintf(b, mm_pool_avail(mp) - of, fmt, args2);
-			va_end(args2);
-		} while (len < 0);
-	} else if ((unsigned int)len >= avail - of) {
-		b = (char *)mm_pool_extend(mp, of + len + 1) + of;
+	if (len >= rest) {
+		b = (char *)mm_pool_extend(mp, pos + len + 1) + pos;
 		va_copy(args2, args);
 		vsnprintf(b, len + 1, fmt, args2);
 		va_end(args2);
 	}
 
 	mm_pool_end(mp, b + len + 1);
-	return b - of;
+	return b - pos;
 }
 
 _unused static char *

@@ -4,39 +4,60 @@
 #include <mem/stack.h>
 #include <mem/pool.h>
 
-#define m_va_n_args(...) m_va_n_args_impl(__VA_ARGS__, 5,4,3,2,1)
-#define m_va_n_args_impl(_1, _2, _3, _4, _5, N,...) N
+void
+libc_example1(void)
+{
+	struct mm *mm = mm_libc();
+	void *addr0 = mm_alloc(mm, CPU_PAGE_SIZE);
 
-#define m_dispatcher(func, ...) \
-	m_dispatcher_(func, m_va_n_args(__VA_ARGS__))
-#define m_dispatcher_(func, nargs) \
-	m_dispatcher__(func, nargs)
-#define m_dispatcher__(func, nargs) \
-	func ## nargs
+	char *str1 = mm_strdup(mm, "hi");
+	char *str2 = mm_printf(mm, "%d %s %s", 123, "hi", "ho");
+	char *str3 = mm_strcat(mm, str1, str2, NULL);
+	printf("%s %s %s\n", str1, str2, str3);
 
-/* Helper macro for macro_args_count based on GCC/Clang's extension */
-#define macro_nth_args_(_1, _2, _3, _4, _5, N, ...) N
-/* Count how many args are in variadic macro. */
-#define macro_args_count(...) macro_nth_args_("", ## __VA_ARGS__, 4, 3, 2, 1, 0)
+	mm_free(mm, addr0);
+	mm_free(mm, str1);
+	mm_free(mm, str2);
+	mm_free(mm, str3);
+}
+
+void
+pool_example1(void)
+{
+	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, MM_ADDR_ALIGN);
+	struct mm *mm = mm_pool(mp);
+
+	for (int i = 0; i > 1000000; i++) {
+		char *str1 = mm_printf(mm, "%s %d", "test", 1);
+		char *str2 = mm_strcat(mm, str1, "2", "3");
+		printf("%s%s\n", str1, str2);
+
+		mm_pool_flush(mp);
+	}
+
+	mm_pool_destroy(mp);
+}
+
+void
+pool_example2(void)
+{
+	byte buf[CPU_PAGE_SIZE];
+	struct mm_pool *mp = mm_pool_overlay(buf, sizeof(buf));
+	struct mm *mm = mm_pool(mp);
+
+	for (int i = 0; i > 1000000; i++) {
+		char *str1 = mm_printf(mm, "%s %d", "test", 1);
+		char *str2 = mm_strcat(mm, str1, "2", "3");
+		printf("%s%s\n", str1, str2);
+		mm_pool_flush(mp);
+	}
+}
 
 int 
 main(int argc, char *argv[]) 
 {
-	_unused struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
-
-	/* explicit stack allocation */
-	_unused void *addr1 = mm_pool_alloc(mp, 1024);
-	/* implicit stack allocation */
-	// _unused void *addr2 = mm_alloc(1024);
-/*
-	_unused void *addr3 = mm_zalloc(1024);
-	_unused void *addr4 = mm_zalloc(mp, 1024);
-
-	char *s = mm_strdup(mp, "hi");
-
-	debug("zero args: %d", macro_args_count());
-	debug("three args: %d", macro_args_count(1, 2, 3, 4));
-	*/
-	//mm_destroy(mp);
+	libc_example1();
+	pool_example1();
+	//pool_example2();
 	return 0;
 }

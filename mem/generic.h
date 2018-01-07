@@ -34,6 +34,111 @@
 #include <mem/debug.h>
 #include <assert.h>
 
+extern struct mm_stack *MM_STACK;
+extern struct mm_heap  *MM_HEAP;
+extern struct mm_pool  *MM_POOL;
+
+/* 
+ * Generic and type-safe memory management structures and functions.
+ *
+ * o High performance, generic and type-safe memory management
+ * o Runtime zero-overhead metaprogramming
+ * o Significantly reducing context switch overhead
+ * o Significantly reducing function call overhead
+ * o Performance for more threads will be yet more significant when
+ *   comparing mm_stack, mm_pool with zero locks and atomic operations with 
+ *   libc malloc/free.
+ *
+ * Context switch reduction
+ *
+ * o In general, the indirect cost of context switch ranges from several 
+ *   microseconds to more than one thousand microseconds.
+ *
+ * o When the overall data size is larger than cache size, the overhead of 
+ *   refilling of CPU cache have substantial impact on the cost of context 
+ *   switch.
+ *
+ * Function call reduction and generic type-safe implementation
+ *
+ * o The generic functions gave us a reduction in execution time, finishing in 
+ *   70% of the time required.
+ *
+ * Generic type-safe implementation
+ *
+ * o Comparing with their void * counterparts runnig much faster while 
+ *   executing less and less expensive CPU instructions.
+ */
+
+/*
+ * Type-generic macro
+ *
+ * mm_alloc - allocate memory buffer from stack, pool or heap
+ * @mm Optional opaque object representing the memory context
+ * @size size of buffer
+ */
+
+#define mm1_alloc(... /* mm, size */) \
+	({ void *_X = mm_alloc_dispatch(__VA_ARGS__); _X; })
+
+#define mm1_zalloc(...) /* mm, size */ \
+	({ void *_X = mm_zalloc_dispatch(__VA_ARGS__); _X; })
+
+#define mm1_flush(mm) \
+	do { mm_flush_dispatch(mm); } while(0)
+
+#define mm1_free(mm, addr)
+
+/* save memory state point */
+#define mm1_savep(mm) 
+/* load memory state point */
+#define mm1_loadp(mm)
+#define mm1_memdup(mm, addr, size)
+
+#define mm1_strdup(...) /* mm, str */ \
+	({ char *_X = mm_strdup_dispatch(__VA_ARGS__); _X; })
+
+#define mm1_strndup(mm, str, size)
+#define mm1_strmem(mm, str, size)
+
+/*
+ * mm_describe - Return size in bytes of the last allocated memory object 
+ */
+#define mm1_describe(mm, addr)
+
+/*
+  * mm_printf - sends formatted output string to memory management container
+  * @mm: memory management object: 
+  *   struct mm_pool *, struct mm_stack *, struct mm_heap *
+  *
+  * note: @mm argument is optional. MM_STACK is used implicitly in that case
+  *
+  * Pool based allocation with savepoint support:
+  *
+  *   struct mm_pool *p = mm_create(mm_pool, CPU_PAGE_SIZE, MM_NO_DIE);
+  *   const char *v = mm_printf(p, "string=%s, id=%d, "string1", 1);
+  *   ...
+  *   mm_destroy(p);
+  *
+  * Explicit and implicit stack based allocation without savepoints:
+  *   const char *v = mm_printf("string=%s", "string1"); 
+  *   const char *v = mm_printf(MM_STACK, "string=%s, "string1");
+  *
+  * Stack based allocation with savepoint support:
+  *   struct mm_stack *stack = mm_create(MM_STACK, CPU_PAGE_SIZE, MM_NO_GROW);
+  *   const char *v = mm_printf(stack, "string=%s", "hi);
+  */
+
+#define mm1_printf(mm, ...) \
+({                                                                            \
+	char *_X = mm_printf_dispatch(mm, __VA_ARGS__); _X;                  \
+})
+
+#define mm1_vprintf(mm, fmt, args) \
+({                                                                            \
+	char *_X = mm_vprintf_dispatch(mm, fmt, args); _X;                  \
+})
+
+
 /* Runtime zero-overhead metaprogramming in C language */
 #define mm_flush_dispatch(mm) \
 do { \

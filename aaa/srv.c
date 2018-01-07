@@ -317,18 +317,18 @@ udp_parse(struct msg *msg, byte *packet, unsigned int len)
 		*packet++ = 0;
 
 		debug3("%s:%s", key, value);
-		if (!strcasecmp(key, "sess.id"))
+		if (!strcmp(key, "sess.id"))
 			msg->sid = value;
-		if (!strcasecmp(key, "user.id"))
+		if (!strcmp(key, "user.id"))
 			msg->uid = value;
-		if (strncasecmp(key, "msg.", 4)) {
+		if (strncmp(key, "msg.", 4)) {
 			aaa_attr_set(aaa, key, value);
 			continue;
 		}
 
-		if (!strcasecmp(key, "msg.op"))
+		if (!strcmp(key, "msg.op"))
 			msg->op = value;
-		else if (!strcasecmp(key, "msg.id"))
+		else if (!strcmp(key, "msg.id"))
 			msg->id = value;
 		
 	}

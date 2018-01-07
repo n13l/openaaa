@@ -30,7 +30,6 @@
 #include <mem/alloc.h>
 #include <mem/pool.h>
 #include <list.h>
-
 #include <stdarg.h>
 #include <stdint.h>
 
@@ -51,13 +50,13 @@ struct attr {
 
 struct dict {
 	struct list list;
-	struct mm_pool *mp;
+	struct mm *mm;
 };
 
 static inline void
-dict_init(struct dict *dict, struct mm_pool *mp)
+dict_init(struct dict *dict, struct mm *mm)
 {
-	dict->mp = mp;
+	dict->mm = mm;
 	list_init(&dict->list);
 }
 
@@ -87,16 +86,14 @@ dict_lookup(struct dict *dict, const char *key, int create)
 	dict_for_each(a, dict->list)
 		if (!strcmp(a->key, key))
 			return a;
-
 	if (!create)
 		return NULL;
 
-	struct attr *a = mm_pool_alloc(dict->mp, sizeof(*a));
-	a->key = mm_pool_strdup(dict->mp, key);
+	struct attr *a = mm_alloc(dict->mm, sizeof(*a));
+	a->key = mm_strdup(dict->mm, key);
 	a->node.next = NULL;
 	a->node.prev = NULL;
 	a->flags = 0;
-
 	list_add(&dict->list, &a->node);
 	return a;
 }
@@ -105,15 +102,32 @@ static inline void
 dict_set(struct dict *dict, const char *key, const char *val)
 {
 	struct attr *a = dict_lookup(dict, key, 1);
-	a->val = val ? mm_pool_strdup(dict->mp, val) : NULL;
+	a->val = val ? mm_strdup(dict->mm, val) : NULL;
 	a->flags |= ATTR_CHANGED;
+}
+
+_unused static void
+dict_vset(struct dict *dict, const char *key, const char *fmt, va_list args)
+{
+	struct attr *a = dict_lookup(dict, key, 1);
+	a->flags |= ATTR_CHANGED;
+	a->val = mm_vprintf(dict->mm, fmt, args);
+}
+
+_unused static void
+dict_set_fmt(struct dict *dict, const char *key, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	dict_vset(dict, key, fmt, args);
+	va_end(args);
 }
 
 static inline void
 dict_set_nf(struct dict *dict, const char *key, const char *val)
 {
 	struct attr *a = dict_lookup(dict, key, 1);
-	a->val = val ? mm_pool_strdup(dict->mp, val) : NULL;
+	a->val = val ? mm_strdup(dict->mm, val) : NULL;
 }
 
 static inline const char *
