@@ -27,6 +27,7 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <mem/alloc.h>
+#include <stdlib.h>
 
 void *
 libc_malloc(struct mm *mm, size_t size)
@@ -34,7 +35,6 @@ libc_malloc(struct mm *mm, size_t size)
 	void *addr = malloc(size);
 	if (!addr)
 		die("Can not allocate memory size=%jd", (intmax_t)size);
-
 	return addr;
 }
 

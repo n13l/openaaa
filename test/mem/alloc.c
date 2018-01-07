@@ -10,8 +10,8 @@ libc_example1(void)
 	struct mm *mm = mm_libc();
 	void *addr0 = mm_alloc(mm, CPU_PAGE_SIZE);
 
-	char *str1 = mm_strdup(mm, "hi");
-	char *str2 = mm_printf(mm, "%d %s %s", 123, "hi", "ho");
+	char *str1 = mm_strdup(mm, "0");
+	char *str2 = mm_printf(mm, "%d %s %s", 1, "2", "3");
 	char *str3 = mm_strcat(mm, str1, str2, NULL);
 	printf("%s %s %s\n", str1, str2, str3);
 
@@ -29,7 +29,7 @@ pool_example1(void)
 
 	for (int i = 0; i > 1000000; i++) {
 		char *str1 = mm_printf(mm, "%s %d", "test", 1);
-		char *str2 = mm_strcat(mm, str1, "2", "3");
+		char *str2 = mm_strcat(mm, str1, "2", "3", NULL);
 		printf("%s%s\n", str1, str2);
 
 		mm_pool_flush(mp);

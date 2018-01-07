@@ -118,20 +118,26 @@ mm_strcat(struct mm *mm, ...)
 	va_copy(a, args);
 
 	char *x, *y, *s;
-	unsigned int len, c;
-	for (c = 0; (x = va_arg(a, char *)); c++);
+	unsigned int len = 0, c = 0;
+	while ((x = va_arg(a, char *)))
+		c++;
 
 	size_t *sizes = alloca(c * sizeof(*sizes));
 	va_end(a);
 	va_copy(a, args);
 
-	for (c = 0; (x = va_arg(a, char *)); len += sizes[c++] = strlen(x));
+	c = 0;
+	while ((x = va_arg(a, char *)))
+		len += sizes[c++] = strlen(x);
 
-	y = s = mm->alloc(mm, len);
+	y = s = (char *)mm->alloc(mm, len + 1);
 	va_end(a);
 
-	for (c = 0; (x = va_arg(args, char *)); y += sizes[c++])
+	c = 0;
+	while ((x = va_arg(args, char *))) {
 		memcpy(y, x, sizes[c]);
+		y += sizes[c++];
+	}
 	
 	*y = 0;
 	va_end(args);
