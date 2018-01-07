@@ -5,7 +5,7 @@
 
 #include <sys/compiler.h>
 #include <mem/alloc.h>
-#include <mem/stack.h>
+#include <mem/pool.h>
 
 int 
 main(int argc, char *argv[]) 

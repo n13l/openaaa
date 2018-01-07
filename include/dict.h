@@ -115,7 +115,7 @@ dict_vset(struct dict *dict, const char *key, const char *fmt, va_list args)
 }
 
 _unused static void
-dict_set_fmt(struct dict *dict, const char *key, const char *fmt, ...)
+dict_setf(struct dict *dict, const char *key, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);

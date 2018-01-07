@@ -1,6 +1,5 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
-#include <mem/debug.h>
 #include <mem/alloc.h>
 #include <mem/pool.h>
 	
@@ -30,5 +29,5 @@ struct mm mm_pool_ops = {
 
 struct mm *mm_pool(struct mm_pool *mp)
 {
-	return mp->mm;
+	return &mp->mm;
 }

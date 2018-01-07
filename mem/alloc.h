@@ -33,8 +33,8 @@
 #include <mem/debug.h>
 #include <mem/savep.h>
 #include <mem/stack.h>
-#include <mem/pool.h>
-#include <mem/generic.h>
+//#include <mem/pool.h>
+//#include <mem/generic.h>
 #include <list.h>
 #include <stdarg.h>
 #include <assert.h>

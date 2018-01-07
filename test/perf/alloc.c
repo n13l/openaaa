@@ -6,6 +6,7 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <mem/alloc.h>
+#include <mem/pool.h>
 #include <mem/safe.h>
 
 #include <unix/timespec.h>

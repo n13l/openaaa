@@ -1,5 +1,5 @@
-#ifndef __GENERIC_MEM_POOL_H__
-#define __GENERIC_MEM_POOL_H__
+#ifndef __MM_POOL_H__
+#define __MM_POOL_H__
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
@@ -10,7 +10,6 @@
 #include <mem/block.h>
 #include <mem/generic.h>
 #include <list.h>
-
 #include <inttypes.h>
 #include <assert.h>
 #include <string.h>
@@ -24,9 +23,8 @@
  */
 
 struct mm;
-
 struct mm_pool {
-	struct mm *mm;
+	struct mm mm;
 	struct mm_savep save;
 	void *avail, *final;
 	unsigned int blocksize;
@@ -45,6 +43,8 @@ struct mm_pool {
 	size_t blocks_free;
 #endif	
 };
+
+extern struct mm mm_pool_ops;
 
 __BEGIN_DECLS
 struct mm *mm_pool(struct mm_pool *);
@@ -74,7 +74,7 @@ __pool_alloc_avail(struct mm_pool *pool, size_t size, size_t avail)
 static inline void *
 mm_pool_alloc(struct mm_pool *pool, size_t size)
 {
-	mem_pool_dbg("size=%d avail=%d ", (int)size, (int)pool->save.avail[0]);
+	mem_pool_dbg("size=%d avail=%d", (int)size, (int)pool->save.avail[0]);
 	if (size <= pool->save.avail[0]) {
 		void *p = (u8 *)pool->save.final[0] - pool->save.avail[0];
 		pool->save.avail[0] -= size;
@@ -184,7 +184,8 @@ mm_pool_create(size_t blocksize, int flags)
 
 	pool->final = &pool->final;
 	pool->total_bytes  = block->size + aligned;
-	pool->blocksize = size; 
+	pool->blocksize = size;
+	memcpy(&pool->mm,  &mm_pool_ops, sizeof(mm_pool_ops));
 
 	return pool;
 }

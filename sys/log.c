@@ -1,5 +1,6 @@
 #include <sys/compiler.h>
 #include <sys/log.h>
+#include <mem/alloc.h>
 #include <mem/stack.h>
 #include <unistd.h>
 #include <string.h>
