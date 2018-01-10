@@ -29,7 +29,7 @@ dict_test1(struct dict *x)
 int 
 main(int argc, char *argv[]) 
 {
-	log_open("stdout");
+	log_open("stdout", 0);
 	log_verbose = 4;
 
 	struct mm_pool *p = mm_pool_create(CPU_PAGE_SIZE, MM_NO_DIE|MM_NO_GROW);

@@ -26,6 +26,19 @@ enum log_type_e {
 	LOG_TYPE_FILE   = 4,
 };
 
+#ifndef LOG_USER
+#define LOG_USER        (1<<3)  /* random user-level messages */
+#endif
+#ifndef LOG_DAEMON
+#define LOG_DAEMON      (3<<3)  /* system daemons */
+#endif
+#ifndef LOG_AUTH
+#define LOG_AUTH        (4<<3)  /* security/authorization messages */
+#endif
+#ifndef LOG_AUTHPRIV
+#define LOG_AUTHPRIV    (10<<3) /* security/authorization messages (private) */ 
+#endif
+
 /*
  * https://tools.ietf.org/html/rfc5424
  *
@@ -190,7 +203,7 @@ void
 log_name(const char *name);
 
 void
-log_open(const char *file);
+log_open(const char *file, int facility);
 
 void
 log_close(void);

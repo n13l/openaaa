@@ -133,9 +133,9 @@ session_parse(struct aaa *aaa, byte *buf, unsigned int len)
 
 		struct attr *attr = dict_lookup(&aaa->attrs, key, 0);
 		if (attr && (attr->flags & ATTR_CHANGED)) {
-			debug2("%s:%s changed", attr->key, attr->val);
+			debug3("%s:%s changed", attr->key, attr->val);
 		} else {
-			debug2("%s:%s", key, value);
+			debug3("%s:%s", key, value);
 			dict_set_nf(&aaa->attrs, key, value);
 		}
 		*a = ':';
@@ -197,7 +197,7 @@ session_write(struct aaa *aaa, struct session *session)
 static void
 expired(struct session *session)
 {
-	debug2("session id=%s expired.", session->attrs.sid);
+	debug3("session id=%s expired.", session->attrs.sid);
 	hash_del(&session->sid);
 	page_free(pagemap, (struct page *)session);
 }
@@ -221,7 +221,7 @@ lookup(struct aaa *aaa, struct cursor *sid)
 		if (strcmp(sid->id.addr, session->attrs.sid))
 			continue;
 
-		debug2("session id=%s attached.", session->attrs.sid);
+		debug3("session id=%s attached.", session->attrs.sid);
 		session_read(aaa, session);
 		rv = 0;
 	}
@@ -256,7 +256,7 @@ create(struct aaa *aaa, struct cursor *sid)
 		goto cleanup;
 	hash_add(htable_sid, &session->sid, sid->slot);
 
-	debug2("session id=%s created.", session->attrs.sid);
+	debug3("session id=%s created.", session->attrs.sid);
 	return 0;
 cleanup:
 	if (page)
@@ -271,7 +271,7 @@ session_bind(struct aaa *aaa, const char *id)
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
 	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
 
-        debug2("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
+        debug3("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
 
 	if (!(lookup(aaa, &csid)))
 		return 0;
@@ -330,7 +330,7 @@ session_commit(struct aaa *aaa, const char *id)
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
 	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
 
-	debug2("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
+	debug3("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
 
 	if (lookup(aaa, &csid))
 		return -EINVAL;
@@ -345,7 +345,7 @@ session_touch(struct aaa *aaa, const char *id)
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
 	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
 
-	debug2("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
+	debug3("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
 	if (lookup(aaa, &csid))
 		return -EINVAL;
 

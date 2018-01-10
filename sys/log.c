@@ -30,14 +30,14 @@ char progname[256] = {0};
 void (*log_write_cb)(struct log_ctx *ctx, const char *msg, int len) = NULL;
 
 void
-log_open(const char *file)
+log_open(const char *file, int facility)
 {
 	if (!strcmp(file, "syslog")) 
 		log_type = LOG_TYPE_SYSLOG;
 
 	switch (log_type) {
 	case LOG_TYPE_SYSLOG: 
-		openlog(progname, LOG_CONS | LOG_PID | LOG_NDELAY, LOG_DAEMON);
+		openlog(progname, LOG_CONS | LOG_PID | LOG_NDELAY, facility);
 		break;
 	}
 }
@@ -111,10 +111,8 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 
 	if (log_caps & LOG_CAP_PID)
 		pline += snprintf(pline, size, "%d ", (int)getpid());
-
 	if (log_caps & LOG_CAP_MODULE)
 		pline += snprintf(pline, size, "%s ", ctx->module);
-
 	if (log_caps & LOG_CAP_FN)
 		pline += snprintf(pline, size, "%s ", ctx->fn);
 
@@ -128,7 +126,7 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 		log_write_cb(ctx, msg, len);
 	}
 
-	byte amsg[4096];
+	byte amsg[1024];
 	snprintf(amsg, sizeof(amsg) - 1, "%s%s\n",
 	         line, msg);
 #ifdef WIN32

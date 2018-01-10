@@ -121,15 +121,13 @@ mm_strcat(struct mm *mm, ...)
 	unsigned int len = 0, c = 0;
 	while ((x = va_arg(a, char *)))
 		c++;
-
-	size_t *sizes = alloca(c * sizeof(*sizes));
 	va_end(a);
 	va_copy(a, args);
 
+	size_t sizes[c];
 	c = 0;
 	while ((x = va_arg(a, char *)))
 		len += sizes[c++] = strlen(x);
-
 	y = s = (char *)mm->alloc(mm, len + 1);
 	va_end(a);
 

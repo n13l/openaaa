@@ -605,7 +605,7 @@ task_init(struct task *task)
 	}
 
 	if (task->pid != task->ppid)
-		info("mpm process aaa/%d started", task->index);
+		info("aaa/%d started", task->index);
 }
 
 int
@@ -688,7 +688,7 @@ again:
 	}
 
 	if (id == 0) {
-		info("process pid=%d did not respond within the expected timeframe",
+		error("process pid=%d did not respond within the expected timeframe",
 		     pid);
 		kill(pid, SIGKILL);
 		goto again;
@@ -722,7 +722,7 @@ task_fini(struct task *task)
 	}
 
 	if (task->pid != task->ppid)	
-		info("mpm process aaa/%d stopped", task->index);
+		info("aaa/%d stopped", task->index);
 }
 
 int
@@ -758,7 +758,7 @@ struct sched_class {
 static void
 configure(void)
 {
-	info("configuring from ~/.aaa/");
+	debug1("configuring from ~/.aaa/");
 	request_restart = 0;
 	timestamp_t now = get_timestamp();
 	task_disp.version = now;
@@ -822,7 +822,9 @@ aaa_server1(int argc, char *argv[])
 	if (!pid_write(pidfile))
 		die("can't write pid file: %s\n", pidfile);
 
-	info("OpenAAA/%s Server %s %s", PACKAGE_VERSION, __DATE__, __TIME__);
+	debug1("OpenAAA/%s Server %s %s", PACKAGE_VERSION, __DATE__, __TIME__);
+
+	info("OpenAAA Service started");
 
 	setproctitle_init(argc, argv);
 
@@ -836,7 +838,7 @@ aaa_server1(int argc, char *argv[])
 	sched_wait();
 	sched_fini();
 
-	info("Shut down gracefully");
+	info("OpenAAA Service stopped.");
 
 	return 0;
 }

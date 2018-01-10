@@ -45,7 +45,7 @@ aaa_env_init(void)
 	if (logv)
 		log_verbose = atoi(logv);
 
-	log_open(logf);	
+	log_open(logf, LOG_AUTH);	
 }
 
 void

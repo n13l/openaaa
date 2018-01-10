@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)         
  *
- * Copyright (c) 2013 Daniel Kubec <niel@rtfm.cz>
+ * Copyright (c) 2013 - 2019                        Daniel Kubec <niel@rtfm.cz>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"),to deal
@@ -186,6 +186,8 @@ list_del(struct node *node)
 	     &(__it->__node) != &(__list).head; \
 	     (__it) = __container_of(__it->__node.next, typeof(*__it), __node))
 
+#define list_sort(__list, __comp_fn) 
+
 static inline unsigned int
 list_size(struct list *list)
 {
@@ -300,8 +302,8 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 		next->next->prev  = &next->next;
 }
 
-#define hlist_for_first(___list)  ({ ___list->head; })
-#define hlist_for_next(___node) ({___node->next;})
+#define hlist_for_first(___list) ({ ___list->head; })
+#define hlist_for_next(___node)  ({ ___node->next; })
 
 #define hlist_for_each(__list, __node) \
 	for (struct hnode * __node = hlist_for_first((__list)); __node; \

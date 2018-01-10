@@ -18,8 +18,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
-
-//#include <sys/missing.h>
 #include <mem/page.h>
 
 #ifndef PAGE_SIZE

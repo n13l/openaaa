@@ -87,7 +87,7 @@ main(int argc, char *argv[])
 		}
 	} while(1);
 
-	log_open(log_file);
+	log_open(log_file, LOG_AUTH);
 	log_setcaps(caps);
 
 	if (endpoint == 1 && aaa_server)
