@@ -16,8 +16,7 @@ const char *aaad_host;
 void
 aaa_env_init(void)
 {
-        if (!(aaad_host = getenv("OPENAAA_SERVICE")))
-                return;
+        aaad_host = getenv("OPENAAA_SERVICE");
 /*
 #ifndef CONFIG_WIN32
         struct hostent *hostent = gethostbyname(aaad_host);
@@ -30,9 +29,6 @@ aaa_env_init(void)
                 return;
 #endif
 */
-        debug1("aaa.service.ip=%s", aaad_host);
-        aaad_ip = strdup(aaad_host);
-
 	const char *logf = getenv("OPENAAA_LOG_FILE");
 	const char *logc = getenv("OPENAAA_LOG_CAPS");
 	const char *logv = getenv("OPENAAA_VERBOSE");
@@ -41,11 +37,15 @@ aaa_env_init(void)
 
 	if (logc)
 		log_setcaps(atoi(logc));
-
 	if (logv)
 		log_verbose = atoi(logv);
 
-	log_open(logf, LOG_AUTH);	
+	log_open(logf, LOG_AUTHPRIV);
+
+	if (aaad_host) {
+		debug1("aaa.service.ip=%s", aaad_host);
+        	aaad_ip = strdup(aaad_host);
+	}
 }
 
 void

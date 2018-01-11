@@ -38,6 +38,7 @@ struct aaa {
         struct node *attrs_it;
 	const char *config;
 	const char *sid;           /* used internally only */
+	const char *uid;
 };
 
 struct msg {

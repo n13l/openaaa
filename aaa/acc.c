@@ -108,30 +108,50 @@ page_copy(struct page *page, struct page *from)
 	return 0;
 }
 
+static void
+audit_authentication(struct aaa *aaa, const char *uid)
+{
+	const char *user  = aaa_attr_get(aaa, "user.name");
+	const char *type  = aaa_attr_get(aaa, "auth.type");
+	const char *trust = aaa_attr_get(aaa, "auth.trust");
+	const char *proto = type ? printfa(", type: %s", type):"";
+	const char *authx = trust ? printfa(", trust: %s", trust):"";
+
+	info("The user %s has been authenticated. (uid: %s, protocol: tls%s%s)",
+	     user ? user: uid, uid, proto, authx);
+
+}
+
 static int 
 session_parse(struct aaa *aaa, byte *buf, unsigned int len)
 {
-	len--; /* zero ending */
-	byte *ptr = buf, *end = buf + len, *a, *b;
+	const char *uid1 = aaa_attr_get(aaa, "user.id");
+	const char *uid2 = NULL;
+	len--; 
+	byte *end = buf + len, *a, *b;
 	while (buf < end) {
 		byte *key = buf;
 		while (buf < end && *buf != ':' && *buf != '\n')
 			buf++;
 		if (buf >= end)
-			return -1;
+			goto finish;
 		if (*buf != ':')
-			return buf - ptr;
+			goto finish;
 		a = buf;
 		*buf++ = 0;
 		byte *value = buf;
 		while (buf < end && *buf != '\n')
 			buf++;
 		if (buf >= end)
-			return -1;
+			goto finish;
 		b = buf;
 		*buf++ = 0;
 
 		struct attr *attr = dict_lookup(&aaa->attrs, key, 0);
+
+		if (!strcmp(key, "user.id"))
+			uid2 = value;
+
 		if (attr && (attr->flags & ATTR_CHANGED)) {
 			debug3("%s:%s changed", attr->key, attr->val);
 		} else {
@@ -143,6 +163,10 @@ session_parse(struct aaa *aaa, byte *buf, unsigned int len)
 
 	}
 	*buf++ = 0;
+finish:
+	if (!uid2 && uid1)
+		audit_authentication(aaa, uid1);
+	
 	return len;
 }
 

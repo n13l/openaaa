@@ -139,7 +139,7 @@ task_user_get(struct task *task)
 static void
 huphandler(int signo, siginfo_t *info, void *context)
 {
-	debug3("signum=%d reason=%s processed", signo, strsignal(signo));
+	debug3("%d:%s processed", signo, strsignal(signo));
 	request_restart = 1;
 }
 
@@ -164,14 +164,14 @@ sighandler(struct ev_loop *loop, ev_signal *w, int revents)
 	if (w->signum == SIGINT)
 		write(1, "\n", 1);
 
-	debug3("signum=%d reason=%s processed", w->signum, strsignal(w->signum));
+	debug3("%d:%s processed", w->signum, strsignal(w->signum));
 	if (w->signum == SIGTERM || w->signum == SIGINT)
 		request_shutdown = 1;
 	if (w->signum == SIGHUP)
 		request_restart = 1;
 	if (w->signum == SIGUSR1) {
 		request_info = 1;
-		info("workers=%d running=%d", task_disp.workers, task_disp.running);
+		//info("workers=%d running=%d", task_disp.workers, task_disp.running);
 	}
 
 	if (w->signum == SIGSEGV) {
@@ -428,6 +428,7 @@ cmd_commit(struct cmd *cmd)
 {
 	struct msg *msg = &cmd->msg;
 	msg->status = 0;
+
 	return msg->sid ? session_commit(msg->aaa, msg->sid) : -EINVAL;
 }
 
@@ -519,9 +520,9 @@ udp_serve(struct task *task)
 	debug2("%s sent %d byte(s)", v, sent);
 
 	if (sent < 0)
-	        error("sendto failed: reason=%s ", strerror(errno));
+	        error("sendto failed: reason=%s", strerror(errno));
 	else if (sent < size)
-		error("sendto sent partial packet (%d of %d bytes)", sent, (int)size);
+		error("sent partial packet (%d of %d bytes)", sent, (int)size);
 
 cleanup:
 	aaa_reset(msg->aaa);
@@ -605,7 +606,7 @@ task_init(struct task *task)
 	}
 
 	if (task->pid != task->ppid)
-		info("aaa/%d started", task->index);
+		debug1("AAA/%d started", task->index);
 }
 
 int
@@ -629,7 +630,7 @@ sched(struct task *task)
 {                                                                               
 	pid_t pid;
 	while (task->running < task->workers && !request_shutdown) {
-		debug4("workers=%d running=%d", task->workers, task->running);
+		//debug4("workers=%d running=%d", task->workers, task->running);
 		struct task *child = NULL;
 		int spawned = 1;
 		list_for_each_item(task->list, child, node) {
@@ -674,7 +675,7 @@ init:
 int
 wait_subprocess(pid_t pid, int secs)
 {
-	debug1("waiting for the subprocess pid=%d", pid);
+	debug2("waiting for the subprocess pid=%d", pid);
 
 	int status = 0, id = 0;
 again:
@@ -722,7 +723,7 @@ task_fini(struct task *task)
 	}
 
 	if (task->pid != task->ppid)	
-		info("aaa/%d stopped", task->index);
+		debug1("AAA/%d stopped", task->index);
 }
 
 int
@@ -758,7 +759,6 @@ struct sched_class {
 static void
 configure(void)
 {
-	debug1("configuring from ~/.aaa/");
 	request_restart = 0;
 	timestamp_t now = get_timestamp();
 	task_disp.version = now;
@@ -822,9 +822,11 @@ aaa_server1(int argc, char *argv[])
 	if (!pid_write(pidfile))
 		die("can't write pid file: %s\n", pidfile);
 
+	log_name("aaa");
+	aaa_env_init();
 	debug1("OpenAAA/%s Server %s %s", PACKAGE_VERSION, __DATE__, __TIME__);
 
-	info("OpenAAA Service started");
+	info("AAA/0 Service started");
 
 	setproctitle_init(argc, argv);
 
@@ -838,8 +840,7 @@ aaa_server1(int argc, char *argv[])
 	sched_wait();
 	sched_fini();
 
-	info("OpenAAA Service stopped.");
-
+	info("AAA/0 Service stopped.");
 	return 0;
 }
 
