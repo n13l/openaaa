@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2015, 2016, 2017, 2018             Daniel Kubec <niel@rtfm.cz> 
+ * Copyright (c) 2012-2018                            OpenAAA <openaaa@rtfm.cz>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy 
  * of this software and associated documentation files (the "Software"),to deal
@@ -24,8 +24,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef MM_ALLOC_GENERIC_H__
-#define MM_ALLOC_GENERIC_H__
+#ifndef __MM_ALLOC_GENERIC_H__
+#define __MM_ALLOC_GENERIC_H__
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>

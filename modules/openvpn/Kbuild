@@ -1,5 +1,6 @@
 lib                := vpn
-libname            := $(lib)-$(PACKAGEVERSION)
+#libname            := $(lib)-$(PACKAGEVERSION)
+libname            := $(lib)
 always             += $(if $(CONFIG_MODULES),$(libname).$(so),)
 
 obj-m := $(libname).o

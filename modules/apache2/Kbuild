@@ -1,5 +1,6 @@
-lib                := mod_aaa
-libname            := $(lib)-$(PACKAGEVERSION)
+lib                := mod_authnz_ssl
+#libname            := $(lib)-$(PACKAGEVERSION)
+libname            := $(lib)
 always             += $(if $(CONFIG_MODULES),$(libname).$(so),)
 
 obj-m := $(libname).o

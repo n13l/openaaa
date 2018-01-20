@@ -6,7 +6,8 @@ CFLAGS_srv.o += -Wno-unused-value -Wno-unused-function
 CFLAGS_srv.o += -Wno-comment -Wno-parentheses 
 
 lib                   := aaa
-libname               := lib$(lib)-$(PACKAGEVERSION)
+#libname               := lib$(lib)-$(PACKAGEVERSION)
+libname               := lib$(lib)
 
 always                += $(libname).a
 always                += $(if $(CONFIG_MODULES),$(libname).$(so),)

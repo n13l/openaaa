@@ -1,9 +1,10 @@
 lib                := pkcs11
-libname            := $(lib)-$(PACKAGEVERSION)
+#libname            := $(lib)-$(PACKAGEVERSION)
+libname            := $(lib)
 always             += $(if $(CONFIG_MODULES),$(libname).$(so),)
 
 obj-m := $(libname).o
-$(libname)-objs := pkcs11.o
+$(libname)-objs := pk.o
 
 CFLAGS_pkcs11.o := -Wno-attributes
 

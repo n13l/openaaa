@@ -31,23 +31,23 @@ install-bin-obj := $(addprefix $(obj)/,$(sort $(install-bin-y)))
 install-lib-obj := $(addprefix $(obj)/,$(sort $(install-lib-y)))
 
 always += install/aaa/aaa
-always += install/aaa/libaaa-$(PACKAGEVERSION).$(so)
+always += install/aaa/libaaa.$(so)
 
 ifeq ($(CONFIG_JNI),y)
-always += install/aaa/libaaa-$(PACKAGEVERSION).jar
+always += install/aaa/libaaa.jar
 endif
 
 install/aaa/aaa: aaa/aaa
 	@mkdir -p $(CURDIR)/install/bin
 	@cp aaa/aaa $(CURDIR)/install/bin
 
-install/aaa/libaaa-$(PACKAGEVERSION).$(so): aaa/libaaa-$(PACKAGEVERSION).$(so)
+install/aaa/libaaa.$(so): aaa/libaaa.$(so)
 	@mkdir -p $(CURDIR)/install/lib
-	@cp aaa/libaaa-$(PACKAGEVERSION).$(so) $(CURDIR)/install/lib
+	@cp aaa/libaaa.$(so) $(CURDIR)/install/lib
 
-install/aaa/libaaa-$(PACKAGEVERSION).jar: aaa/libaaa-$(PACKAGEVERSION).jar
+install/aaa/libaaa.jar: aaa/libaaa.jar
 	@mkdir -p $(CURDIR)/install/lib
-	@cp aaa/libaaa-$(PACKAGEVERSION).jar $(CURDIR)/install/lib
+	@cp aaa/libaaa.jar $(CURDIR)/install/lib
 
 ifeq ($(KBUILD_INSTALL),1)
 # First part - we are descending..
