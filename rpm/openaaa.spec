@@ -68,7 +68,7 @@ rm -rf %{buildroot}
 
 %files java
 %defattr(-, root, root)
-%{_libdir}/libaaa-*.jar
+%{_libdir}/libaaa.jar
 
 %files vpn
 %defattr(-, root, root)
@@ -80,4 +80,4 @@ rm -rf %{buildroot}
 
 %files apache2
 %defattr(-, root, root)
-%{_libdir}/openaaa/modules/mod_aaa*
+%{_libdir}/openaaa/modules/mod_*
