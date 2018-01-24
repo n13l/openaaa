@@ -32,6 +32,7 @@ void (*log_write_cb)(struct log_ctx *ctx, const char *msg, int len) = NULL;
 void
 log_open(const char *file, int facility)
 {
+	log_type = 0;
 	if (!strcmp(file, "syslog")) 
 		log_type = LOG_TYPE_SYSLOG;
 
