@@ -6,7 +6,7 @@ always             += $(if $(CONFIG_MODULES),$(libname).$(so),)
 obj-m := $(libname).o
 $(libname)-objs := pk.o
 
-CFLAGS_pkcs11.o := -Wno-attributes
+CFLAGS_pk.o := -Wno-attributes
 
 #swflags           := -debug-module 1
 
