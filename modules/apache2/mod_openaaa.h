@@ -34,9 +34,9 @@
 #include <util_filter.h>
 #include <util_script.h>
 
-#define MODULE_PREFIX "aaa"
+#define MODULE_PREFIX "authnz_ssl"
 #define MODULE_VERSION "OpenAAA/1.0.0" 
-#define MODULE_ENTRY aaa_module
+#define MODULE_ENTRY authnz_ssl_module
 
 extern module AP_MODULE_DECLARE_DATA MODULE_ENTRY;
 

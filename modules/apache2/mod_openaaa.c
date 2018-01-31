@@ -1,7 +1,3 @@
-/*
- * $id: mod_openaaa.c                               Daniel Kubec <niel@rtfm.cz>
- */
-
 #undef HAVE_STRING_H
 #undef PACKAGE_NAME
 #undef PACKAGE_VERSION
@@ -43,7 +39,7 @@
 
 #include <sys/log.h>
 
-APLOG_USE_MODULE(aaa);
+APLOG_USE_MODULE(authnz_ssl);
 
 APR_OPTIONAL_FN_TYPE(ssl_is_https)         *ssl_is_https;
 APR_OPTIONAL_FN_TYPE(ssl_var_lookup)       *ssl_var_lookup;
