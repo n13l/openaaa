@@ -230,9 +230,7 @@ authz_group(struct aaa *aaa, const char *key, const char *g, const char *role)
 				return OPENVPN_PLUGIN_FUNC_SUCCESS;
 		}
 
-
-		return 0 ? OPENVPN_PLUGIN_FUNC_SUCCESS: 
-		             OPENVPN_PLUGIN_FUNC_ERROR;
+		return OPENVPN_PLUGIN_FUNC_ERROR;
 
 	}
 
