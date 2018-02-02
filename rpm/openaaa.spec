@@ -72,7 +72,7 @@ rm -rf %{buildroot}
 
 %files vpn
 %defattr(-, root, root)
-%{_libdir}/openaaa/modules/vpn*
+%{_libdir}/openaaa/modules/openvpn*
 
 %files pkcs11
 %defattr(-, root, root)

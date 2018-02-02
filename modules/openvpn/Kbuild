@@ -1,4 +1,4 @@
-lib                := vpn
+lib                := openvpn_plugin_ssl
 #libname            := $(lib)-$(PACKAGEVERSION)
 libname            := $(lib)
 always             += $(if $(CONFIG_MODULES),$(libname).$(so),)
@@ -6,19 +6,20 @@ always             += $(if $(CONFIG_MODULES),$(libname).$(so),)
 obj-m := $(libname).o
 $(libname)-objs := plugin.o
 
-libaaa-pkcs11-dirs := mem net crypto aaa sys arch/$(SRCARCH)
-libaaa-pkcs11-objs := $(patsubst %,%/built-in.o, $(libaaa-pkcs11-dirs)) modules/openvpn/$(libname).o
-libaaa-pkcs11-libs := $(patsubst %,%/lib.a, $(libs-y))
-libaaa-pkcs11-all  := $(libaaa-pkcs11-objs) $(libaaa-pkcs11-libs) $(KBUILD_LIBS)
+plugin-ssl-dirs := mem net crypto aaa sys arch/$(SRCARCH)
+plugin-ssl-objs := $(patsubst %,%/built-in.o, $(plugin-ssl-dirs)) \
+                   modules/openvpn/$(libname).o
+plugin-ssl-libs := $(patsubst %,%/lib.a, $(libs-y))
+plugin-ssl-all  := $(plugin-ssl-objs) $(plugin-ssl-libs) $(KBUILD_LIBS)
 
-$(obj)/$(libname).$(so): $(libaaa-pkcs11-objs) $(libaaa-pkcs11-libs)
+$(obj)/$(libname).$(so): $(plugin-ssl-objs) $(plugin-ssl-libs)
 	$(call if_changed,$(libname).$(so))
 
 quiet_cmd_$(libname).$(so) = LD [M]  $@
 	cmd_$(libname).$(so) = $(CC) $(LDFLAGS) $(SHLIB_LDFLAGS) -o $@ \
-                                     $(libaaa-pkcs11-all)
+                                     $(plugin-ssl-all)
 
-PHONY += $(libaaa-pkcs11-dirs)
-$(libaaa-pkcs11-dirs): scripts_basic
+PHONY += $(plugin-ssl-dirs)
+$(plugin-ssl-dirs): scripts_basic
 	$(Q)$(MAKE) $(build)=$@
 clean-files  += $(libname).$(so) $(libname).jar

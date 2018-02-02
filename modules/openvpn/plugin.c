@@ -19,6 +19,7 @@
 #include <modules/openvpn/plugin.h>
 
 #define OVPN_MASK OPENVPN_PLUGIN_MASK
+#define OVPN_ENV_EKM "exported_keying_material"
 
 #undef KBUILD_MODNAME
 #define KBUILD_MODNAME "vpn"
@@ -46,7 +47,7 @@ ovpn_log_write(struct log_ctx *ctx, const char *msg, int len)
 	char buf[4096] = {0};
 	snprintf(buf, sizeof(buf) - 1, "%s:%s %s", ctx->module, ctx->fn, msg);
 	if (ovpn_log)
-		ovpn_log(PLOG_NOTE, "aaa", buf);
+		ovpn_log(PLOG_NOTE, "ssl", buf);
 }
 
 static const char *
@@ -99,6 +100,7 @@ openvpn_plugin_open_v3(const int version,
 	ovpn_log = args->callbacks->plugin_log;
 
 	log_custom_set(ovpn_log_write, NULL);
+	log_name("vpn");
 
 	envp_dbg(args->envp);
 
@@ -190,10 +192,51 @@ openvpn_auth_user_verify(const int version,
                          struct openvpn_plugin_args_func_in const *args,
                          struct openvpn_plugin_args_func_return *ret)
 {
-	//const char *user = envp_get("username", args->envp);
-	//const char *pass = envp_get("password", args->envp);
+	const char *user = envp_get("username", args->envp);
+	const char *pass = envp_get("password", args->envp);
+	debug1("cred u: %s p: %s", user, pass);
+}
 
-	//debug1("auth user=%s pass=%s", user, pass);
+static inline int
+authz_group(struct aaa *aaa, const char *key, const char *g, const char *role)
+{
+	if (!g)
+		return OPENVPN_PLUGIN_FUNC_ERROR;
+
+	for (int i = 0; i < 10; i++) {
+		aaa_reset(aaa);
+		aaa_attr_set(aaa, "sess.id", key);
+		aaa_bind(aaa);
+
+		const char *uid = aaa_attr_get(aaa, "user.id");
+		info("checking for user %s", uid ? "yes": "no");
+		if (!uid || !*uid) {
+			sleep(1);
+			continue;
+		}
+
+		char *path = printfa("acct.%s.roles[]", g);
+		const char *acct = aaa_attr_get(aaa, path);
+
+		if (!acct || !*acct)
+			return OPENVPN_PLUGIN_FUNC_ERROR;
+		if (!role)
+			OPENVPN_PLUGIN_FUNC_SUCCESS;
+
+		char *t, *ln = strdupa(acct);
+		for (char *p = strtok_r(ln, ":", &t); p; 
+		           p = strtok_r(NULL, ":", &t)) {
+			if (!strcmp(role, p))
+				return OPENVPN_PLUGIN_FUNC_SUCCESS;
+		}
+
+
+		return 0 ? OPENVPN_PLUGIN_FUNC_SUCCESS: 
+		             OPENVPN_PLUGIN_FUNC_ERROR;
+
+	}
+
+	return OPENVPN_PLUGIN_FUNC_ERROR;
 }
 
 EXPORT(int)
@@ -229,31 +272,14 @@ openvpn_plugin_func_v3(const int version,
 		if (ovpn->type != VPN_SERVER)
 			return OPENVPN_PLUGIN_FUNC_SUCCESS;
 
-		const char *uid = NULL;
-		const char *key = envp_get("exported_keying_material", args->envp);
-		info("key=%s", key);
-
+		const char *key = envp_get(OVPN_ENV_EKM, args->envp);
 		if (!key || !*key)
 			return OPENVPN_PLUGIN_FUNC_ERROR;
 
-		for (int i = 0; i < 10; i++) {
-			aaa_reset(aaa);
-			aaa_attr_set(aaa, "sess.id", key);
-			aaa_bind(aaa);
+		const char *group = envp_get("openaaa_group", args->envp);
+		const char *role  = envp_get("openaaa_role", args->envp);
 
-			uid = aaa_attr_get(aaa, "user.id");
-			info("checking for user %s", uid ? "yes": "no");
-			if (uid && *uid) {
-				const char *vpn = aaa_attr_get(aaa, "vpn");
-				info("attribute vpn=%s", vpn);
-				return vpn ? OPENVPN_PLUGIN_FUNC_SUCCESS: OPENVPN_PLUGIN_FUNC_ERROR;
-			}
-
-			sleep(1);
-
-		}
-
-		return OPENVPN_PLUGIN_FUNC_ERROR;
+		return authz_group(aaa, key, group, role);
 	default:
 		goto failed;
 	}
