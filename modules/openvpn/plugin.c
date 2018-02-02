@@ -221,7 +221,7 @@ authz_group(struct aaa *aaa, const char *key, const char *g, const char *role)
 		if (!acct || !*acct)
 			return OPENVPN_PLUGIN_FUNC_ERROR;
 		if (!role)
-			OPENVPN_PLUGIN_FUNC_SUCCESS;
+			return OPENVPN_PLUGIN_FUNC_SUCCESS;
 
 		char *t, *ln = strdupa(acct);
 		for (char *p = strtok_r(ln, ":", &t); p; 
