@@ -675,7 +675,6 @@ ssl_server_aaa(struct session *sp)
 
 	info("protocol server=%s client=%s", proto_server, proto_client);
 
-
 	aaa_attr_set(usr, "sess.id", sess_id);
 	aaa_attr_set(usr, "sess.key", key);
 	aaa_bind(usr);
@@ -699,10 +698,10 @@ ssl_server_aaa(struct session *sp)
 	char *host = aaa.authority;
 	char *msg;
 	if (aaa.group && aaa.role)
-		msg = printfa("%s -pri -a%s -i%s -k%s -g%s -r%s ", 
+		msg = printfa("%s -pri -a%s -i%s -k%s -g%s -r%s", 
 		         aaa.handler, host, id, key, aaa.group, aaa.role);
 	else
-		msg = printfa("%s -pri -a%s -i%s -k%s ", 
+		msg = printfa("%s -pri -a%s -i%s -k%s", 
 		              aaa.handler, host, id, key);
 	
 	int status = system(msg);
@@ -718,7 +717,9 @@ ssl_server_aaa(struct session *sp)
 	debug("cmd=%s", msg);
 	
 	status = system(msg);
-	debug("%s", WEXITSTATUS(status)? "forbidden" : "authenticated");
+
+	if (!server_handshake_synch)
+		debug("%s", WEXITSTATUS(status)? "forbidden" : "authenticated");
 
 	if (!server_handshake_synch)
 		return 0;

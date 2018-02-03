@@ -204,34 +204,36 @@ authz_group(struct aaa *aaa, const char *key, const char *g, const char *role)
 		return OPENVPN_PLUGIN_FUNC_ERROR;
 
 	for (int i = 0; i < 10; i++) {
+		sleep(1);
+
 		aaa_reset(aaa);
 		aaa_attr_set(aaa, "sess.id", key);
 		aaa_bind(aaa);
 
 		const char *uid = aaa_attr_get(aaa, "user.id");
-		info("checking for user %s", uid ? "yes": "no");
-		if (!uid || !*uid) {
-			sleep(1);
+		if (!uid || !*uid)
 			continue;
-		}
 
 		char *path = printfa("acct.%s.roles[]", g);
 		const char *acct = aaa_attr_get(aaa, path);
 
 		if (!acct || !*acct)
 			return OPENVPN_PLUGIN_FUNC_ERROR;
+
+		return OPENVPN_PLUGIN_FUNC_SUCCESS;
+/*
 		if (!role)
 			return OPENVPN_PLUGIN_FUNC_SUCCESS;
 
 		char *t, *ln = strdupa(acct);
-		for (char *p = strtok_r(ln, ":", &t); p; 
-		           p = strtok_r(NULL, ":", &t)) {
+		for (char *p = strtok_r(ln, " ", &t); p; 
+		           p = strtok_r(NULL, " ", &t)) {
 			if (!strcmp(role, p))
 				return OPENVPN_PLUGIN_FUNC_SUCCESS;
 		}
 
 		return OPENVPN_PLUGIN_FUNC_ERROR;
-
+*/
 	}
 
 	return OPENVPN_PLUGIN_FUNC_ERROR;
