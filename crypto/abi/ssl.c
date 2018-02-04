@@ -747,7 +747,7 @@ ssl_client_aaa(struct session *sp)
 
 #ifdef CONFIG_WIN32
 	const char *pre = "START /B ", *end = "";
-	const char *msg = printfa("%s\"%s -k%s -i%s -prx -a%s %s\"", 
+	const char *msg = printfa("%s %s -k%s -i%s -prx -a%s %s", 
 	                          pre, aaa.handler, key, id, authority, end);
 
 #else
