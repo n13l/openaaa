@@ -192,9 +192,6 @@ openvpn_auth_user_verify(const int version,
                          struct openvpn_plugin_args_func_in const *args,
                          struct openvpn_plugin_args_func_return *ret)
 {
-	const char *user = envp_get("username", args->envp);
-	const char *pass = envp_get("password", args->envp);
-	debug1("cred u: %s p: %s", user, pass);
 }
 
 static inline int
@@ -214,14 +211,15 @@ authz_group(struct aaa *aaa, const char *key, const char *g, const char *role)
 		if (!uid || !*uid)
 			continue;
 
+		debug1("user.id: %s", uid);
+
 		char *path = printfa("acct.%s.roles[]", g);
 		const char *acct = aaa_attr_get(aaa, path);
-
 		if (!acct || !*acct)
-			return OPENVPN_PLUGIN_FUNC_ERROR;
+			continue;
 
-		return OPENVPN_PLUGIN_FUNC_SUCCESS;
-/*
+		debug1("%s: %s", path, acct);
+
 		if (!role)
 			return OPENVPN_PLUGIN_FUNC_SUCCESS;
 
@@ -233,7 +231,6 @@ authz_group(struct aaa *aaa, const char *key, const char *g, const char *role)
 		}
 
 		return OPENVPN_PLUGIN_FUNC_ERROR;
-*/
 	}
 
 	return OPENVPN_PLUGIN_FUNC_ERROR;
