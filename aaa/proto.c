@@ -100,7 +100,7 @@ udp_parse(struct aaa *aaa, byte *packet, unsigned int len)
 int
 udp_bind(struct aaa *aaa)
 {
-        int fd = 1;
+        int fd = -1;
         byte packet[8192];
         memset(packet, 0, sizeof(packet));
 
@@ -158,7 +158,7 @@ cleanup:
 int
 udp_commit(struct aaa *aaa)
 {
-        int fd = 1;
+        int fd = -1;
         byte packet[8192];
         memset(packet, 0, sizeof(packet));
 
