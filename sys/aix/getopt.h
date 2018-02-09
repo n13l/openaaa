@@ -11,27 +11,6 @@ int getopt(int argc, char *const argv[], const char *optsting);
 extern char *optarg; 
 extern int optind, opterr, optopt;
 
-/* Describe the long-named options requested by the application.
-   The LONG_OPTIONS argument to getopt_long or getopt_long_only is a vector
-   of `struct option' terminated by an element containing a name which is
-   zero.
-
-   The field `has_arg' is:
-   no_argument		(or 0) if the option does not take an argument,
-   required_argument	(or 1) if the option requires an argument,
-   optional_argument 	(or 2) if the option takes an optional argument.
-
-   If the field `flag' is not NULL, it points to a variable that is set
-   to the value given in the field `val' when the option is found, but
-   left unchanged if the option is not found.
-
-   To have a long-named option do something other than set an `int' to
-   a compiled-in constant, such as set a value from `optarg', set the
-   option's `flag' field to zero and its `val' field to a nonzero
-   value (the equivalent single-letter option character, if there is
-   one).  For long options that have a zero `flag' field, `getopt'
-   returns the contents of the `val' field.  */
-
 struct option
 {
 # if defined __STDC__ && __STDC__
