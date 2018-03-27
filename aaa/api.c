@@ -22,11 +22,12 @@ aaa_new(enum aaa_endpoint type, int flags)
 	}
 
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
-	struct aaa *aaa = mm_pool_alloc(mp, sizeof(*aaa));
+	struct aaa *aaa = mm_pool_zalloc(mp, sizeof(*aaa));
 
 	aaa->mp = mp;
 	aaa->mp_attrs = mm_pool_create(CPU_PAGE_SIZE, 0);
 	aaa->attrs_it = NULL;
+	aaa->timeout = AAA_SESSION_EXPIRES;
 
 	dict_init(&aaa->attrs, mm_pool(aaa->mp_attrs));
 	return aaa;
@@ -37,6 +38,12 @@ aaa_free(struct aaa *aaa)
 {
 	mm_pool_destroy(aaa->mp_attrs);
 	mm_pool_destroy(aaa->mp);
+}
+
+void
+aaa_set_timeout(struct aaa *aaa, int timeout)
+{
+	aaa->timeout = timeout;
 }
 
 int
@@ -155,7 +162,7 @@ aaa_touch(struct aaa *aaa)
 		return -EINVAL;
 
         timestamp_t modified = get_time();
-        timestamp_t expires  = modified + AAA_SESSION_EXPIRES;
+        timestamp_t expires  = modified + aaa->timeout;
 	
 	aaa_attr_set(aaa, "sess.modified", printfa("%jd", (intmax_t)modified));
 	aaa_attr_set(aaa, "sess.expires",  printfa("%jd", (intmax_t)expires));

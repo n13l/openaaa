@@ -128,6 +128,8 @@ DEFINE_ABI(SSL_get_certificate);
 DEFINE_ABI(SSL_get_SSL_CTX);
 DEFINE_ABI(SSL_CTX_get_cert_store);
 DEFINE_ABI(CRYPTO_free);
+DEFINE_ABI(SSL_SESSION_set_timeout);
+DEFINE_ABI(SSL_SESSION_get_timeout);
 DEFINE_ABI(SSL_set_verify_result);
 DEFINE_ABI(SSL_shutdown);
 
@@ -664,6 +666,9 @@ ssl_server_aaa(struct session *sp)
 	unsigned int len;
 	const byte *sessid = CALL_ABI(SSL_SESSION_get_id)(sess, &len);
 	char *sess_id = evala(memhex, (char *)sessid, len);
+
+	long timeout = CALL_ABI(SSL_SESSION_get_timeout)(sess);
+	info("ssl.timeout: %ld", timeout);
 
 	struct aaa *usr = aaa_new(AAA_ENDPOINT_SERVER, 0);
 
@@ -1212,6 +1217,8 @@ ssl_init(void)
 	IMPORT_ABI(SSL_get_SSL_CTX);
 	IMPORT_ABI(SSL_CTX_get_cert_store);
 	IMPORT_ABI(CRYPTO_free);
+	IMPORT_ABI(SSL_SESSION_set_timeout);
+	IMPORT_ABI(SSL_SESSION_get_timeout);
 	IMPORT_ABI(SSL_set_verify_result);
 	IMPORT_ABI(SSL_shutdown);
 
@@ -1327,6 +1334,8 @@ crypto_lookup(void)
 	IMPORT_ABI(SSL_get_SSL_CTX);
 	IMPORT_ABI(SSL_CTX_get_cert_store);
 	IMPORT_ABI(CRYPTO_free);
+	IMPORT_ABI(SSL_SESSION_set_timeout);
+	IMPORT_ABI(SSL_SESSION_get_timeout);
 	IMPORT_ABI(SSL_set_verify_result);
 	IMPORT_ABI(SSL_shutdown);
 

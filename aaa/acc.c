@@ -293,7 +293,7 @@ session_bind(struct aaa *aaa, const char *id)
 {
 	struct cursor csid;
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
-	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
+	acct_cursor(&csid, &sid, aaa->timeout);
 
         debug3("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
 
@@ -352,7 +352,7 @@ session_commit(struct aaa *aaa, const char *id)
 {
 	struct cursor csid;
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
-	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
+	acct_cursor(&csid, &sid, aaa->timeout);
 
 	debug3("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
 
@@ -367,7 +367,7 @@ session_touch(struct aaa *aaa, const char *id)
 {
 	struct cursor csid;
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
-	acct_cursor(&csid, &sid, AAA_SESSION_EXPIRES);
+	acct_cursor(&csid, &sid, aaa->timeout);
 
 	debug3("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
 	if (lookup(aaa, &csid))

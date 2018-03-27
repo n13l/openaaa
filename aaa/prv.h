@@ -39,6 +39,7 @@ struct aaa {
 	const char *config;
 	const char *sid;           /* used internally only */
 	const char *uid;
+	int timeout;
 };
 
 struct msg {

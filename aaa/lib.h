@@ -32,7 +32,7 @@
 
 /* API version, they compare as integers */
 #define API_VERSION PACKAGE_VERSION
-#define AAA_SESSION_EXPIRES         3600
+#define AAA_SESSION_EXPIRES         7200
 
 /* A private structures containing the aaa context */
 struct aaa;
@@ -79,6 +79,9 @@ aaa_new(enum aaa_endpoint type, int flags);
 
 void
 aaa_free(struct aaa *);
+
+void
+aaa_set_timeout(struct aaa *, int timeout);
 
 /*
  * NAME
