@@ -34,7 +34,6 @@ aaa_env_init(void)
 	const char *logv = getenv("OPENAAA_VERBOSE");
 
 	logf = logf ? logf: "syslog";
-
 	if (logc)
 		log_setcaps(atoi(logc));
 	if (logv)

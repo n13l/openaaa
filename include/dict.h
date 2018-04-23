@@ -115,7 +115,7 @@ dict_vset(struct dict *dict, const char *key, const char *fmt, va_list args)
 }
 
 _unused static void
-dict_setf(struct dict *dict, const char *key, const char *fmt, ...)
+dict_set_fmt(struct dict *dict, const char *key, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -135,6 +135,13 @@ dict_get(struct dict *dict, const char *key)
 {
 	struct attr *a = dict_lookup(dict, key, 0);
 	return a ? a->val : NULL;
+}
+
+static inline long long int
+dict_get_num(struct dict *dict, const char *key)
+{
+	struct attr *a = dict_lookup(dict, key, 0);
+	return a ? atoll(a->val): 0;
 }
 
 static inline void

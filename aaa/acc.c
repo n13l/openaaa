@@ -148,7 +148,6 @@ session_parse(struct aaa *aaa, byte *buf, unsigned int len)
 		*buf++ = 0;
 
 		struct attr *attr = dict_lookup(&aaa->attrs, key, 0);
-
 		if (!strcmp(key, "user.id"))
 			uid2 = value;
 
@@ -169,7 +168,6 @@ finish:
 	
 	return len;
 }
-
 
 int
 session_read(struct aaa *aaa, struct session *session)
@@ -296,7 +294,6 @@ session_bind(struct aaa *aaa, const char *id)
 	acct_cursor(&csid, &sid, aaa->timeout);
 
         debug3("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
-
 	if (!(lookup(aaa, &csid)))
 		return 0;
 	if (!(create(aaa, &csid)))

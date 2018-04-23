@@ -34,12 +34,15 @@ struct bb {
 	size_t len;
 };
 
-/* resizable variable length buffer */
-struct vb {
-	byte *addr;
-	size_t len;
-	size_t cap;
+struct mb {
+	size_t capacity;
+	struct mm *mm;
+	union { struct bb bb; };
+
 };
+
+#define bb_init(__addr, __size) \
+  ({ struct bb __bb = (struct bb){.addr = __addr, .len = __size }; __bb; }) 
 
 /*
  * Concatenate a string to an bbuf buffer

@@ -21,7 +21,7 @@ dict_test1(struct dict *x)
 	dict_set(x, "attr.cest2", "12345");
 	dict_set(x, "attr.dest3", "12345");
 
-	dict_setf(x, "attr.testf", "%d", 1234);
+	dict_set_fmt(x, "attr.testf", "%d", 1234);
 	dict_sort(x);
 	dict_dump(x);
 }
