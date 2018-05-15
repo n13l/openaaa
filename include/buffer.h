@@ -75,4 +75,24 @@ bb_unpack(struct bb *bb, size_t size)
 	return p;
 }
 
+static inline char *
+bstrtok(char *buf, ssize_t *size, char *sep, char **ptr)
+{
+        char *p = buf = buf ? buf: *ptr;
+        for (; *size; p++, (*size)--) {
+                if (*p != *sep)
+                        continue;
+                *p = 0;
+                *ptr = p + 1;
+                (*size)--;
+                return buf;
+        }
+
+        if (p == buf)
+                return NULL;
+        else
+                *p = 0;
+        return buf;
+}
+
 #endif/*__BYTEBUFFER_FILE_LIB_H__*/

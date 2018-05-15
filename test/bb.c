@@ -10,7 +10,7 @@
 void
 bb_test1(struct mm *mm)
 {
-	struct bb bb = bb_init(NULL, 0);
+	_unused struct bb bb = bb_init(NULL, 0);
 }
 
 int 

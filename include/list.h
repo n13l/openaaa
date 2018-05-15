@@ -184,7 +184,29 @@ list_del(struct node *node)
 	     &(__it->__node) != &(__list).head; \
 	     (__it) = __container_of(__it->__node.next, typeof(*__it), __node))
 
-#define list_sort(__list, __comp_fn) 
+#define list_sort(list, cmp_fn) list_sort_asc(list, cmp_fn)
+
+#define list_sort_asc(list, cmp_fn) \
+        for (struct node *z, *y, *x = list_head(list); x; ) { \
+                for (z = y = x; (y = list_next(list, y)); )   \
+                        if (cmp_fn(y, z) < 0) z = y; \
+                if (x == z) \
+                        x = list_next(list, x); \
+                else { \
+                        list_del(z); list_add_before(z, x); \
+                } \
+        }
+
+#define list_sort_dsc(list, cmp_fn) \
+        for (struct node *z, *y, *x = list_head(list); x; ) { \
+                for (z = y = x; (y = list_next(list, y)); )   \
+                        if (cmp_fn(y, z) > 0) z = y; \
+                if (x == z) \
+                        x = list_next(list, x); \
+                else { \
+                        list_del(z); list_add_before(z, x); \
+                } \
+        }
 
 static inline unsigned int
 list_size(struct list *list)
