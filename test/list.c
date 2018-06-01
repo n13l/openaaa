@@ -10,7 +10,7 @@
 
 struct person {
 	const char *name;
-	struct node node;
+	struct node n;
 	struct hnode hnode;
 };
 
@@ -19,28 +19,28 @@ test0_list(void)
 {
 	DECLARE_LIST(list);
 
-	struct person daniel  = {.name = "Daniel",  .node = INIT_NODE};
-	struct person daniela = {.name = "Daniela", .node = INIT_NODE};
-	struct person adam    = {.name = "Adam",    .node = INIT_NODE};
-	struct person eve     = {.name = "Eve",     .node = INIT_NODE};
-	struct person robot   = {.name = "Robot",   .node = INIT_NODE};
+	struct person daniel  = {.name = "Daniel",  .n = INIT_NODE};
+	struct person daniela = {.name = "Daniela", .n = INIT_NODE};
+	struct person adam    = {.name = "Adam",    .n = INIT_NODE};
+	struct person eve     = {.name = "Eve",     .n = INIT_NODE};
+	struct person robot   = {.name = "Robot",   .n = INIT_NODE};
 
-	list_add(&list, &daniel.node);
-	list_add(&list, &daniela.node);
-	list_add(&list, &adam.node);
-	list_add(&list, &eve.node);
-	list_add(&list, &robot.node);
+	list_add(&list, &daniel.n);
+	list_add(&list, &daniela.n);
+	list_add(&list, &adam.n);
+	list_add(&list, &eve.n);
+	list_add(&list, &robot.n);
 
-	struct person pepa = {.name = "Daniel", .node = INIT_NODE};
+	struct person pepa = {.name = "Daniel", .n = INIT_NODE};
 
-	list_add(&list, &pepa.node);
+	list_add(&list, &pepa.n);
 
 	struct person *p;
-	for (p = it_begin(list, p, node); p; p = it_next(list, p, node)) {
+	for (p = it_begin(list, p, n); p; p = it_next(list, p, n)) {
 		debug("person=%p name=%s", p, p->name);
 	}
 
-	it_for_each(list, p, node) {
+	it_for_each(list, p, n) {
 		debug("person=%p name=%s", p, p->name);
 	}
 }
@@ -51,44 +51,44 @@ test1_list(void)
 	DECLARE_LIST(list);
 	DECLARE_HLIST(hlist);
 
-	struct person daniel  = {.name = "Daniel",  .node = INIT_NODE};
-	struct person daniela = {.name = "Daniela", .node = INIT_NODE};
-	struct person adam    = {.name = "Adam",    .node = INIT_NODE};
-	struct person eve     = {.name = "Eve",     .node = INIT_NODE};
-	struct person robot   = {.name = "Robot",   .node = INIT_NODE};
+	struct person daniel  = {.name = "Daniel",  .n = INIT_NODE};
+	struct person daniela = {.name = "Daniela", .n = INIT_NODE};
+	struct person adam    = {.name = "Adam",    .n = INIT_NODE};
+	struct person eve     = {.name = "Eve",     .n = INIT_NODE};
+	struct person robot   = {.name = "Robot",   .n = INIT_NODE};
 
-	list_add(&list, &daniel.node);
-	list_add(&list, &daniela.node);
-	list_add(&list, &adam.node);
-	list_add(&list, &eve.node);
-	list_add(&list, &robot.node);
+	list_add(&list, &daniel.n);
+	list_add(&list, &daniela.n);
+	list_add(&list, &adam.n);
+	list_add(&list, &eve.n);
+	list_add(&list, &robot.n);
 
 	/* iterate over all objects */
 	list_for_each(list, n) {
-		struct person *p = __container_of(n, struct person, node);
+		struct person *p = __container_of(n, struct person, n);
 		debug("node=%p person=%p name=%s", n, p, p->name);
 	}
 
 	/* iterate and unlink adam */
 	list_for_each_delsafe(list, n) {
-		struct person *p = __container_of(n, struct person, node);
+		struct person *p = __container_of(n, struct person, n);
 		if (!strcmp(p->name, "Adam"))
-			list_del(&p->node);
+			list_del(&p->n);
 		debug("node=%p person=%p name=%s", n, p, p->name);
 	}
 
-	struct node *cursor = &daniela.node;
+	struct node *cursor = &daniela.n;
 	/* iterate over rest: starts at daniela node */
 	list_walk(list, cursor, n) {
-		struct person *p = __container_of(n, struct person, node);
+		struct person *p = __container_of(n, struct person, n);
 		debug("node=%p person=%p name=%s", n, p, p->name);
 		break;
 	}
 	/* iterate over rest with del safety: starts at daniel node */
 	list_walk_delsafe(list, cursor, n) {
-		struct person *p = __container_of(n, struct person, node);
+		struct person *p = __container_of(n, struct person, n);
 		debug("node=%p person=%p name=%s", n, p, p->name);
-		list_del(&p->node);
+		list_del(&p->n);
 	}
 
 	hlist_add(&hlist, &daniel.hnode);
@@ -105,23 +105,72 @@ test1_list(void)
 
 }
 
+static inline int
+person_cmp(struct person *a, struct person *b)
+{
+	return strcmp(a->name, b->name);
+}
+
+static inline int
+person_node_cmp(struct node *a, struct node *b)
+{
+	return strcmp(__container_of(a, struct person, n)->name, 
+	              __container_of(b, struct person, n)->name);
+}
+
 static void
 test2_list(void)
 {
 	struct list list;
 	list_init(&list);
 
-	struct person daniel  = {.name = "Daniel",  .node = INIT_NODE};
-	struct person daniela = {.name = "Daniela", .node = INIT_NODE};
-	struct person adam    = {.name = "Adam",    .node = INIT_NODE};
-	struct person eve     = {.name = "Eve",     .node = INIT_NODE};
-	struct person robot   = {.name = "Robot",   .node = INIT_NODE};
+	struct person daniel  = {.name = "Daniel",  .n = INIT_NODE};
+	struct person daniela = {.name = "Daniela", .n = INIT_NODE};
+	struct person adam    = {.name = "Adam",    .n = INIT_NODE};
+	struct person eve     = {.name = "Eve",     .n = INIT_NODE};
+	struct person robot   = {.name = "Robot",   .n = INIT_NODE};
+	struct person daniel1 = {.name = "Daniel",  .n = INIT_NODE};
 
-	list_add(&list, LIST_ITEM(daniel, node));
-	list_add(&list, LIST_ITEM(daniela, node));
-	list_add(&list, LIST_ITEM(adam, node));
-	list_add(&list, LIST_ITEM(eve, node));
-	list_add(&list, LIST_ITEM(robot, node));
+	list_add(&list, LIST_ITEM(daniel, n));
+	list_add(&list, LIST_ITEM(daniela, n));
+	list_add(&list, LIST_ITEM(adam, n));
+	list_add(&list, LIST_ITEM(eve, n));
+	list_add(&list, LIST_ITEM(robot, n));
+	list_add(&list, LIST_ITEM(daniel1, n));
+
+	list_sort(&list, person_node_cmp);
+	list_for_each(list, n)
+		printf("dfn:%s\n", __container_of(n, struct person, n)->name);
+
+	list_sort_asc(&list, person_node_cmp);
+	list_for_each(list, n)
+		printf("asc:%s\n", __container_of(n, struct person, n)->name);
+
+	list_sort_dsc(&list, person_node_cmp);
+	list_for_each(list, n)
+		printf("dsc:%s\n", __container_of(n, struct person, n)->name);
+
+	list_sort_type(&list, person_cmp, struct person, n);
+	list_for_each(list, n)
+		printf("dfn:%s\n", __container_of(n, struct person, n)->name);
+
+	list_sort_type_asc(&list, person_cmp, struct person, n);
+	list_for_each(list, n)
+		printf("asc:%s\n", __container_of(n, struct person, n)->name);
+
+	list_sort_type_dsc(&list, person_cmp, struct person, n);
+	list_for_each(list, n)
+		printf("dsc:%s\n", __container_of(n, struct person, n)->name);
+
+	list_sort(&list, person_node_cmp);
+	list_ddup(&list, person_node_cmp);
+	list_for_each(list, n)
+		printf("dup:%s\n", __container_of(n, struct person, n)->name);
+
+	list_sort_type(&list, person_cmp, struct person, n);
+	list_ddup_type(&list, person_cmp, struct person, n);
+	list_for_each(list, n)
+		printf("dup:%s\n", __container_of(n, struct person, n)->name);
 
 	list_for_each_delsafe(list, n)
 		list_del(n);

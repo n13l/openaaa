@@ -68,27 +68,26 @@ list_init(struct list *list)
 static inline void *
 list_head(struct list *list)
 {
-	return (list->head.next != &list->head) ? list->head.next : NULL;
+	return (list->head.next != &list->head) ? list->head.next: NULL;
 }
 
 static inline void *
 list_first(struct list *list)
 {
-	return (list->head.next != &list->head) ? list->head.next : NULL;
+	return (list->head.next != &list->head) ? list->head.next: NULL;
 }
 
 static inline void *
 list_tail(struct list *list)
 {
-	return (list->head.prev != &list->head) ? list->head.prev : NULL;
+	return (list->head.prev != &list->head) ? list->head.prev: NULL;
 }
 
 static inline void *
 list_last(struct list *list)
 {
-	return (list->head.prev != &list->head) ? list->head.prev : NULL;
+	return (list->head.prev != &list->head) ? list->head.prev: NULL;
 }
-
 
 static inline void *
 list_next(struct list *list, struct node *node)
@@ -99,7 +98,7 @@ list_next(struct list *list, struct node *node)
 static inline void *
 list_prev(struct list *list, struct node *node)
 {
-	return (node->prev != &list->head) ? (void *)node->prev : NULL;
+	return (node->prev != &list->head) ? (void *)node->prev: NULL;
 }
 
 static inline int
@@ -184,12 +183,23 @@ list_del(struct node *node)
 	     &(__it->__node) != &(__list).head; \
 	     (__it) = __container_of(__it->__node.next, typeof(*__it), __node))
 
-#define list_sort(list, cmp_fn) list_sort_asc(list, cmp_fn)
-
-#define list_sort_asc(list, cmp_fn) \
+#define list_sort(list, __cmp_fn) \
+	list_sort_asc(list, __cmp_fn)
+#define list_sort_asc(list, __cmp_fn) \
         for (struct node *z, *y, *x = list_head(list); x; ) { \
                 for (z = y = x; (y = list_next(list, y)); )   \
-                        if (cmp_fn(y, z) < 0) z = y; \
+                        if (__cmp_fn(y, z) < 0) z = y; \
+                if (x == z) \
+			x = list_next(list, x); \
+		else { \
+			list_del(z); list_add_before(z, x); \
+		} \
+        }
+
+#define list_sort_dsc(list, __cmp_fn) \
+        for (struct node *z, *y, *x = list_head(list); x; ) { \
+                for (z = y = x; (y = list_next(list, y)); )   \
+                        if (__cmp_fn(y, z) > 0) z = y; \
                 if (x == z) \
                         x = list_next(list, x); \
                 else { \
@@ -197,16 +207,60 @@ list_del(struct node *node)
                 } \
         }
 
-#define list_sort_dsc(list, cmp_fn) \
+#define list_sort_type(list, __cmp_fn, __type, __node) \
+	list_sort_type_asc(list, __cmp_fn, __type, __node)
+#define list_sort_type_asc(list, __cmp_fn, __type, __node) \
         for (struct node *z, *y, *x = list_head(list); x; ) { \
                 for (z = y = x; (y = list_next(list, y)); )   \
-                        if (cmp_fn(y, z) > 0) z = y; \
+                        if (__cmp_fn(__container_of(y, __type, __node), \
+			             __container_of(z, __type, __node)) < 0) \
+				z = y; \
                 if (x == z) \
                         x = list_next(list, x); \
                 else { \
                         list_del(z); list_add_before(z, x); \
                 } \
         }
+
+#define list_sort_type_dsc(list, cmp_fn, __type, __node) \
+        for (struct node *z, *y, *x = list_head(list); x; ) { \
+                for (z = y = x; (y = list_next(list, y)); )   \
+                        if (cmp_fn(__container_of(y, __type, __node), \
+			           __container_of(z, __type, __node)) > 0) \
+				z = y; \
+                if (x == z) \
+                        x = list_next(list, x); \
+                else { \
+                        list_del(z); list_add_before(z, x); \
+                } \
+        }
+
+#define list_ddup(__list, __cmp_fn) \
+	list_ddup2(__list, __cmp_fn)
+#define list_ddup2(__list, __cmp_fn) \
+{ \
+	struct node *__pr = NULL; \
+	list_for_each_delsafe(*(__list), __node) { \
+		if (__pr && !__cmp_fn(__pr, __node)) \
+			list_del(__node); \
+		else \
+			__pr = __node; \
+	} \
+}
+
+#define list_ddup_type(__list, __cmp_fn, __type, __node) \
+{ \
+	struct node *__pr = NULL; \
+	list_for_each_delsafe(*(__list), __nd) { \
+		if (__pr && !__cmp_fn(__container_of(__pr, __type, __node), \
+		                      __container_of(__nd, __type, __node))) \
+			list_del(__nd); \
+		else \
+			__pr = __nd; \
+	} \
+}
+
+#define list_ddup_copy(__list, __cmp_fn, __cp_fn)
 
 static inline unsigned int
 list_size(struct list *list)

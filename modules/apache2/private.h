@@ -112,6 +112,7 @@ struct srv {
     void *ssl;
     module *mod_ssl;
     module *mod_mpm;
+    module *mod_mpm_prefork;
 };
 
 struct user {

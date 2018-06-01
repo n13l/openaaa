@@ -197,7 +197,6 @@ typedef u32 endian_bitwise wsum;
 	____ptr ? __container_of(____ptr, type, member): NULL; \
 })
 
-
 #if __STDC_VERSION__ >= 201112L
 #define instance_of(X, T) \
 	_Generic((X), T: 1, const T: 1, default: 0)
@@ -275,6 +274,8 @@ typedef u32 endian_bitwise wsum;
 #define macro_dispatcher__(func, nargs) \
 	func ## nargs
 
+#define va_nargs2(...) ((int)(sizeof((int[]){ __VA_ARGS__ })/sizeof(int)))
+
 #define vmax(...) macro_dispatcher(max, __VA_ARGS__)(__VA_ARGS__)
 #define vmax1(a) a
 #define vmax2(a,b) ((a)>(b)?(a):(b))
@@ -289,7 +290,6 @@ typedef u32 endian_bitwise wsum;
 /* IBM XL C/C++ */
 #if defined(__IBMCPP__) || defined(__xlC__) || defined(__xlc__)
 /* http://www-01.ibm.com/support/docview.wss?uid=swg27039015 */
-
 #ifndef __IBM_MACRO_WITH_VA_ARGS
 #error "requires support for variadic macro extensions."
 #endif
