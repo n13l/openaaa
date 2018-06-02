@@ -20,7 +20,7 @@ addons:
     packages:
     - flex
     - bison
-    - gperf
+    - gperf3.1
     - pkg-config
     - clang
     - binutils-mingw-w64-i686
