@@ -171,10 +171,38 @@ list_del(struct node *node)
 	for (struct node *it, *(__it) = (__node); it = (__it)->next, \
 	     (__it) != &list.head; (__it) = it)
 
-#define list_for_each(list, n) \
-	for (struct node *(n) = (list).head.next; (n) != &(list).head; (n) = (n)->next)
+/**
+ * list_for_each - iterate over list 
+ * @list:       the your list.
+ * @it:	        the type safe iterator to use as a loop cursor.
+ * @type:       the optional structure type
+ * @member:	the optional name of the node within the struct.
+ */
 
-#define list_for_each_delsafe(list, n) \
+#define list_for_each(list,...) \
+	varg_dispatch(list_for_each,__VA_ARGS__)(list,__VA_ARGS__)
+
+#define list_for_each1(list, n) \
+	for (struct node *(n) = (list).head.next; \
+	    (n) != &(list).head; (n) = (n)->next)
+
+#define list_for_each3(list, it, type, member) \
+	for (type *(it) = __container_of(list_for_first(list), type, member); \
+	     &(it->member) != &(list).head; \
+	     (it) = __container_of(it->member.next, type, member))
+
+/**
+ * list_for_each_delsafe - iterate over list with safety against removal
+ * @list:       the your list.
+ * @it:	        the type safe iterator to use as a loop cursor.
+ * @type:       the optional structure type
+ * @member:	the optional name of the node within the struct.
+ */
+
+#define list_for_each_delsafe(list,...) \
+	varg_dispatch(list_for_each_delsafe,__VA_ARGS__)(list,__VA_ARGS__)
+
+#define list_for_each_delsafe1(list, n) \
 	for (struct node *it, *(n) = (list).head.next; \
 		(it) = (n)->next, (n) != &(list).head; (n) = it)
 
@@ -183,9 +211,29 @@ list_del(struct node *node)
 	     &(__it->__node) != &(__list).head; \
 	     (__it) = __container_of(__it->__node.next, typeof(*__it), __node))
 
-#define list_sort(list, __cmp_fn) \
-	list_sort_asc(list, __cmp_fn)
-#define list_sort_asc(list, __cmp_fn) \
+/**
+ * list_sort  - sort list 
+ * @list:       the your list.
+ * @fn:	        the type safe comparator
+ * @type:       the optional structure type
+ * @member:	the optional name of the node within the struct.
+ */
+
+#define list_sort(list, ...) \
+	varg_dispatch(list_sort_asc,__VA_ARGS__)(list,__VA_ARGS__)
+
+/**
+ * list_sort_asc  - sort list 
+ * @list:       the your list.
+ * @fn:	        the type safe comparator
+ * @type:       the optional structure type
+ * @member:	the optional name of the node within the struct.
+ */
+
+#define list_sort_asc(list, ...) \
+	varg_dispatch(list_sort_asc,__VA_ARGS__)(list,__VA_ARGS__)
+
+#define list_sort_asc1(list, __cmp_fn) \
         for (struct node *z, *y, *x = list_head(list); x; ) { \
                 for (z = y = x; (y = list_next(list, y)); )   \
                         if (__cmp_fn(y, z) < 0) z = y; \
@@ -196,7 +244,17 @@ list_del(struct node *node)
 		} \
         }
 
-#define list_sort_dsc(list, __cmp_fn) \
+/**
+ * list_sort_dsc  - sort list 
+ * @list:       the your list.
+ * @fn:	        the type safe comparator
+ * @type:       the optional structure type
+ * @member:	the optional name of the node within the struct.
+ */
+
+#define list_sort_dsc(list, ...) \
+	varg_dispatch(list_sort_dsc,__VA_ARGS__)(list,__VA_ARGS__)
+#define list_sort_dsc1(list, __cmp_fn) \
         for (struct node *z, *y, *x = list_head(list); x; ) { \
                 for (z = y = x; (y = list_next(list, y)); )   \
                         if (__cmp_fn(y, z) > 0) z = y; \
@@ -206,10 +264,9 @@ list_del(struct node *node)
                         list_del(z); list_add_before(z, x); \
                 } \
         }
-
-#define list_sort_type(list, __cmp_fn, __type, __node) \
-	list_sort_type_asc(list, __cmp_fn, __type, __node)
-#define list_sort_type_asc(list, __cmp_fn, __type, __node) \
+#define list_sort3(list, __cmp_fn, __type, __node) \
+	list_sort_asc3(list, __cmp_fn, __type, __node)
+#define list_sort_asc3(list, __cmp_fn, __type, __node) \
         for (struct node *z, *y, *x = list_head(list); x; ) { \
                 for (z = y = x; (y = list_next(list, y)); )   \
                         if (__cmp_fn(__container_of(y, __type, __node), \
@@ -221,8 +278,7 @@ list_del(struct node *node)
                         list_del(z); list_add_before(z, x); \
                 } \
         }
-
-#define list_sort_type_dsc(list, cmp_fn, __type, __node) \
+#define list_sort_dsc3(list, cmp_fn, __type, __node) \
         for (struct node *z, *y, *x = list_head(list); x; ) { \
                 for (z = y = x; (y = list_next(list, y)); )   \
                         if (cmp_fn(__container_of(y, __type, __node), \
@@ -235,9 +291,17 @@ list_del(struct node *node)
                 } \
         }
 
-#define list_ddup(__list, __cmp_fn) \
-	list_ddup2(__list, __cmp_fn)
-#define list_ddup2(__list, __cmp_fn) \
+/**
+ * list_ddup  - deduplicate list
+ * @list:       the your list.
+ * @fn:	        the type safe comparator
+ * @type:       the optional structure type
+ * @member:	the optional name of the node within the struct.
+ */
+
+#define list_ddup(list, ...) \
+	varg_dispatch(list_ddup,__VA_ARGS__)(list,__VA_ARGS__)
+#define list_ddup1(__list, __cmp_fn) \
 { \
 	struct node *__pr = NULL; \
 	list_for_each_delsafe(*(__list), __node) { \
@@ -247,8 +311,7 @@ list_del(struct node *node)
 			__pr = __node; \
 	} \
 }
-
-#define list_ddup_type(__list, __cmp_fn, __type, __node) \
+#define list_ddup3(__list, __cmp_fn, __type, __node) \
 { \
 	struct node *__pr = NULL; \
 	list_for_each_delsafe(*(__list), __nd) { \

@@ -274,6 +274,9 @@ typedef u32 endian_bitwise wsum;
 #define macro_dispatcher__(func, nargs) \
 	func ## nargs
 
+#define varg_dispatch(func, ...) \
+	macro_dispatcher_(func, macro_va_n_args(__VA_ARGS__))
+
 #define va_nargs2(...) ((int)(sizeof((int[]){ __VA_ARGS__ })/sizeof(int)))
 
 #define vmax(...) macro_dispatcher(max, __VA_ARGS__)(__VA_ARGS__)

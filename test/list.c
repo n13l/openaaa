@@ -150,15 +150,15 @@ test2_list(void)
 	list_for_each(list, n)
 		printf("dsc:%s\n", __container_of(n, struct person, n)->name);
 
-	list_sort_type(&list, person_cmp, struct person, n);
+	list_sort(&list, person_cmp, struct person, n);
 	list_for_each(list, n)
 		printf("dfn:%s\n", __container_of(n, struct person, n)->name);
 
-	list_sort_type_asc(&list, person_cmp, struct person, n);
+	list_sort_asc(&list, person_cmp, struct person, n);
 	list_for_each(list, n)
 		printf("asc:%s\n", __container_of(n, struct person, n)->name);
 
-	list_sort_type_dsc(&list, person_cmp, struct person, n);
+	list_sort_dsc(&list, person_cmp, struct person, n);
 	list_for_each(list, n)
 		printf("dsc:%s\n", __container_of(n, struct person, n)->name);
 
@@ -167,13 +167,34 @@ test2_list(void)
 	list_for_each(list, n)
 		printf("dup:%s\n", __container_of(n, struct person, n)->name);
 
-	list_sort_type(&list, person_cmp, struct person, n);
-	list_ddup_type(&list, person_cmp, struct person, n);
+	list_sort(&list, person_cmp, struct person, n);
+	list_ddup(&list, person_cmp, struct person, n);
 	list_for_each(list, n)
 		printf("dup:%s\n", __container_of(n, struct person, n)->name);
 
 	list_for_each_delsafe(list, n)
 		list_del(n);
+}
+
+static void
+test3_list(void)
+{
+	DECLARE_LIST(list);
+
+	struct person daniel  = {.name = "Daniel",  .n = INIT_NODE};
+	struct person adam    = {.name = "Adam",    .n = INIT_NODE};
+	struct person eve     = {.name = "Eve",     .n = INIT_NODE};
+
+	list_add(&list, &daniel.n);
+	list_add(&list, &adam.n);
+	list_add(&list, &eve.n);
+
+	list_for_each(list, it)
+		printf("%s\n", __container_of(it, struct person, n)->name);
+
+	list_for_each(list, it, struct person, n)
+		printf("%s\n", it->name);
+
 }
 
 struct user {
@@ -183,7 +204,7 @@ struct user {
 };
 
 static void
-test3_list(void)
+test4_list(void)
 {
 	/*
 	DECLARE_LIST(list);
@@ -205,5 +226,7 @@ main(int argc, char *argv[])
 	test1_list();
 	test2_list();
 	test3_list();
+	test4_list();
+
 	return 0;
 }
