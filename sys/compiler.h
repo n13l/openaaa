@@ -36,6 +36,20 @@ typedef u32 endian_bitwise be32;
 typedef u64 endian_bitwise le64;
 typedef u64 endian_bitwise be64;
 
+typedef s16 endian_bitwise sl16;
+typedef s16 endian_bitwise sb16;
+typedef s32 endian_bitwise sl32;
+typedef s32 endian_bitwise sb32;
+typedef s64 endian_bitwise sl64;
+typedef s64 endian_bitwise sb64;
+
+typedef u16 endian_bitwise ul16;
+typedef u16 endian_bitwise ub16;
+typedef u32 endian_bitwise ul32;
+typedef u32 endian_bitwise ub32;
+typedef u64 endian_bitwise ul64;
+typedef u64 endian_bitwise ub64;
+
 typedef u16 endian_bitwise sum16;
 typedef u32 endian_bitwise wsum;
 
@@ -264,27 +278,17 @@ typedef u32 endian_bitwise wsum;
 #define __build_bug_on_zero(e) (sizeof(struct { int:-!!(e); }))
 #define __build_bug_on_null(e) ((void *)sizeof(struct { int:-!!(e); }))
 
-#define macro_va_n_args(...) macro_va_n_args_impl(__VA_ARGS__, 5,4,3,2,1)
-#define macro_va_n_args_impl(_1,_2,_3,_4,_5,N,...) N
-
-#define macro_dispatcher(func, ...) \
-	macro_dispatcher_(func, macro_va_n_args(__VA_ARGS__))
-#define macro_dispatcher_(func, nargs) \
-	macro_dispatcher__(func, nargs)
-#define macro_dispatcher__(func, nargs) func ## nargs
-
+#define va_nargs(...) va_nargs_impl(__VA_ARGS__, 5,4,3,2,1)
+#define va_nargs_impl(_1,_2,_3,_4,_5,N,...) N
 #define va_nargs2(...) ((int)(sizeof((int[]){ __VA_ARGS__ })/sizeof(int)))
 
-#define varg_dispatcher(func, ...) \
-	varg_dispatcher_(func, va_nargs2(__VA_ARGS__))
-#define varg_dispatcher_(func, nargs) \
-	varg_dispatcher__(func, nargs)
-#define varg_dispatcher__(func, nargs) func ## nargs
+#define va_dispatch(func, ...) \
+	va_dispatch_(func, va_nargs(__VA_ARGS__))
+#define va_dispatch_(func, nargs) \
+	va_dispatch__(func, nargs)
+#define va_dispatch__(func, nargs) func ## nargs
 
-#define varg_dispatch(func, ...) \
-	varg_dispatcher_(func, macro_va_n_args(__VA_ARGS__))
-
-#define vmax(...) macro_dispatcher(max, __VA_ARGS__)(__VA_ARGS__)
+#define vmax(...) va_dispatch(max, __VA_ARGS__)(__VA_ARGS__)
 #define vmax1(a) a
 #define vmax2(a,b) ((a)>(b)?(a):(b))
 #define vmax3(a,b,c) max2(max2(a,b),c)
