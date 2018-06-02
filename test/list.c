@@ -194,7 +194,6 @@ test3_list(void)
 
 	list_for_each(list, it, struct person, n)
 		printf("%s\n", it->name);
-
 }
 
 struct user {
