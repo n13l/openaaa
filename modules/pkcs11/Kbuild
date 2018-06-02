@@ -6,7 +6,9 @@ always             += $(if $(CONFIG_MODULES),$(libname).$(so),)
 obj-m := $(libname).o
 $(libname)-objs := pk.o
 
+ifeq ($(COMPILER),clang)
 CFLAGS_pk.o := -Wno-attributes
+endif
 
 #swflags           := -debug-module 1
 
