@@ -191,8 +191,7 @@ chld_handler(EV_P_ ev_child *w, int revents)
 
 	task_status(w->rpid, w->rstatus);
 
-	struct task *c;
-	list_for_each_item(task_disp.list, c, node) {
+	list_for_each(task_disp.list, c, struct task, node) {
 		if (w->rpid != c->pid)
 			continue;
 		if (WIFEXITED(w->rstatus) || WIFSIGNALED(w->rstatus)) {
@@ -633,7 +632,7 @@ sched(struct task *task)
 		//debug4("workers=%d running=%d", task->workers, task->running);
 		struct task *child = NULL;
 		int spawned = 1;
-		list_for_each_item(task->list, child, node) {
+		list_walk(task->list, child, node) {
 			if (child->state != TASK_STATE_NONE)
 				continue;
 			spawned = 0;
@@ -701,8 +700,7 @@ again:
 void
 task_fini(struct task *task)
 {
-	struct task *child;
-	list_for_each_item(task->list, child, node) {
+	list_for_each(task->list, child, struct task, node) {
 		kill(child->pid, SIGHUP);
 		wait_subprocess(child->pid, sched_gracefull_timeout);
 	}
@@ -768,9 +766,7 @@ static void
 restart(void)
 {
 	configure();
-	struct task *child;
-
-	list_for_each_item(task_disp.list, child, node) {
+	list_for_each(task_disp.list, child, struct task, node) {
 		kill(child->pid, SIGHUP);
 		int status = wait_subprocess(child->pid, sched_gracefull_timeout);
 		if (WIFEXITED(status) || WIFSIGNALED(status)) {

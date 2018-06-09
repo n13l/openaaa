@@ -86,8 +86,12 @@ test1_list(void)
 
 	struct person *it_person;
 	list_walk(list, it_person, n) {
-		debug("person name=%s", it_person->name);
+		printf("walk: person name=%s\n", it_person->name);
 		break;
+	}
+
+	list_walk_next(list, it_person, n) {
+		printf("walk_next: person name=%s\n", it_person->name);
 	}
 
 	list_walk_delsafe(list, it) {

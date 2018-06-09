@@ -775,7 +775,7 @@ chld_handler(EV_P_ ev_child *w, int revents)
 {
 	process_status(w->rpid, w->rstatus);
 	struct process *c;
-	list_for_each_item(workers.list, c, node) {
+	list_walk(workers.list, c, node) {
 		if (w->rpid != c->self.pid)
 			continue;
 		if (WIFEXITED(w->rstatus))
@@ -850,7 +850,7 @@ do_restart(void)
 	root.self.version = get_timestamp();
 
 	struct process *c;
-	list_for_each_item(workers.list, c, node) {
+	list_walk(workers.list, c, node) {
 		kill(c->self.pid, SIGHUP);
 		int status = subprocess_wait(c->self.pid, timeout_killable);
 		if (WIFEXITED(status) || WIFSIGNALED(status)) {
@@ -874,7 +874,7 @@ static void
 do_idle(void)
 {
 	struct process *c;
-	list_for_each_item(workers.list, c, node) {
+	list_walk(workers.list, c, node) {
 		cache_touch(c->self.id);
 	}
 }
@@ -883,14 +883,14 @@ static void
 do_shutdown(void)
 {
 	struct process *c;
-	list_for_each_item(workers.list, c, node) {
+	list_walk(workers.list, c, node) {
 		kill(c->self.pid, SIGHUP);
 		subprocess_wait(c->self.pid, timeout_killable);
 		workers.running--;
 		subprocess_detach(c);
 	}
 
-	list_for_each_item(workque.run, c, queued) {
+	list_walk(workque.run, c, queued) {
 		kill(c->self.pid, SIGHUP);
 		subprocess_wait(c->self.pid, timeout_killable);
 		workque.running--;
@@ -1094,7 +1094,7 @@ static struct process *
 get_inactive_subprocess(struct process *root)
 {
 	struct process *proc = NULL;
-	list_for_each_item(workers.list, proc, node) {
+	list_walk(workers.list, proc, node) {
 		if (proc->self.state != TASK_INACTIVE)
 			continue;
 		return proc;

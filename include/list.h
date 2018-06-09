@@ -203,16 +203,16 @@ list_size(struct list *list)
 #define list_walk_next(list, ...) \
 	va_dispatch(list_walk_next,__VA_ARGS__)(list,__VA_ARGS__)
 #define list_walk_next1(list, it) \
-	for (; NODE_ITER(list,it); (it) = (it)->next)
+	for ((it) = (it)->next; NODE_ITER(list,it); (it) = (it)->next)
 #define list_walk_next2(list, it, member) \
-	for (; NODE_ITER_TYPE(list, it, member); \
+	for ((it) = NODE_NEXT_TYPE(it, typeof(*it), member); \
+	            NODE_ITER_TYPE(list, it, member); \
 	     (it) = NODE_NEXT_TYPE(it, typeof(*it), member))
 
 /**
  * list_walk_delsafe  - iterate over list with declared iterator
  * @list:       the your list.
  * @it:	        the type safe iterator
- * @type:       the optional structure type
  * @member:	the optional name of the node within the struct.
  */
 
@@ -258,12 +258,12 @@ list_size(struct list *list)
 	    (&(it)->member != &(list).head) && \
 	    ({(__it) = __container_of((it)->member.next, type, member);1;}) ; \
 	    (it) = __it)
-
+/*
 #define list_for_each_item(__list, __it, __node) \
 	for ((__it) = __container_of(NODE_HEAD(__list), typeof(*__it), __node); \
 	     &(__it->__node) != &(__list).head; \
 	     (__it) = __container_of(__it->__node.next, typeof(*__it), __node))
-
+*/
 /**
  * list_sort  - sort list 
  * @list:       the your list.
