@@ -194,6 +194,21 @@ list_size(struct list *list)
 	     (it) = NODE_NEXT_TYPE(it, typeof(*it), member))
 
 /**
+ * list_walk_next - iterate over list with existing iterator
+ * @list:       the your list.
+ * @it:	        the type safe iterator
+ * @member:     the optional name of the node within the struct.
+ */
+
+#define list_walk_next(list, ...) \
+	va_dispatch(list_walk_next,__VA_ARGS__)(list,__VA_ARGS__)
+#define list_walk_next1(list, it) \
+	for (; NODE_ITER(list,it); (it) = (it)->next)
+#define list_walk_next2(list, it, member) \
+	for (; NODE_ITER_TYPE(list, it, member); \
+	     (it) = NODE_NEXT_TYPE(it, typeof(*it), member))
+
+/**
  * list_walk_delsafe  - iterate over list with declared iterator
  * @list:       the your list.
  * @it:	        the type safe iterator
