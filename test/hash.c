@@ -7,30 +7,27 @@
 
 DEFINE_HASHTABLE(table, 9);
 
-//DEFINE_HASHATTR(object, name, node) 
-//
-struct bb {
-	byte *addr;
-	size_t len;
-} bb;
-
 struct person {
 	const char *name;
-	struct hnode node;
+	struct hnode hnode;
 };
 
 int 
 main(int argc, char *argv[]) 
 {
 	hash_init(table);
-/*
-	struct person daniel  = { .name = "Daniel",  .node = init_hnode };
-	struct person daniela = { .name = "Daniela", .node = init_hnode };
-	struct person adam    = { .name = "Adam",    .node = init_hnode };
-	struct person eve     = { .name = "Eve",     .node = init_hnode };
-	struct person robot   = { .name = "Robot",   .node = init_hnode };
-*/
-	//hash_add(table, person.hnode, person.name);
+
+	struct person daniel  = { .name = "Daniel",  .hnode = INIT_HNODE };
+	struct person daniela = { .name = "Daniela", .hnode = INIT_HNODE };
+	struct person adam    = { .name = "Adam",    .hnode = INIT_HNODE };
+	struct person eve     = { .name = "Eve",     .hnode = INIT_HNODE };
+	struct person robot   = { .name = "Robot",   .hnode = INIT_HNODE };
+
+	hash_add(table, &daniel.hnode, hash_string(daniel.name));
+	hash_add(table, &daniela.hnode, hash_string(daniela.name));
+	hash_add(table, &adam.hnode, hash_string(adam.name));
+	hash_add(table, &eve.hnode, hash_string(eve.name));
+	hash_add(table, &robot.hnode, hash_string(robot.name));
 
 	return 0;
 }

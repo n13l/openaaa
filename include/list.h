@@ -158,34 +158,59 @@ static inline unsigned int
 list_size(struct list *list)
 {
 	unsigned int size = 0;
+	if (list_empty(list))
+		return 0;
+
 	for (struct node *n = list->head.next; n != &list->head; n = n->next)
 		size++;
-
 	return size;
 }
 
+#define NODE_HEAD(list) \
+	(list).head.next
+#define NODE_ITER(list, it) \
+	((it) != &(list).head)
+#define NODE_HEAD_TYPE(list, type, member) \
+	__container_of(NODE_HEAD(list),type,member)
+#define NODE_NEXT_TYPE(it, type, member) \
+	__container_of((it)->member.next,type,member)
+#define NODE_ITER_TYPE(list, it, member) \
+	(&(it->member) != &(list).head)
 
-#define __list_walk_first(N) (N)
-#define __list_walk_next(N) (N)
-#define __list_walk_first_delsafe(N) (N)
-#define __list_walk_next_delsafe(N) (N)
+/**
+ * list_walk  - iterate over list with declared iterator
+ * @list:       the your list.
+ * @it:	        the type safe iterator
+ * @member:     the optional name of the node within the struct.
+ */
 
-#define list_for_first(__list) (__list).head.next
-#define list_for_head(list) &(list).head
-#define list_for_last(list, node) &(it->node) != &(list).head
+#define list_walk(list, ...) \
+	va_dispatch(list_walk,__VA_ARGS__)(list,__VA_ARGS__)
+#define list_walk1(list, it) \
+	for ((it) = NODE_HEAD(list); NODE_ITER(list,it); (it) = (it)->next)
+#define list_walk2(list, it, member) \
+	for ((it) = NODE_HEAD_TYPE(list, typeof(*it), member); \
+	            NODE_ITER_TYPE(list, it, member); \
+	     (it) = NODE_NEXT_TYPE(it, typeof(*it), member))
 
-#define list_walk(__list, __node, __it) \
-	for (struct node *(__it) = (__node); (__it) != &__list.head; \
-	     (__it) = (__it)->next)
+/**
+ * list_walk_delsafe  - iterate over list with declared iterator
+ * @list:       the your list.
+ * @it:	        the type safe iterator
+ * @type:       the optional structure type
+ * @member:	the optional name of the node within the struct.
+ */
 
-#define list_walk_delsafe(list, __node, __it) \
-	for (struct node *it, *(__it) = (__node); it = (__it)->next, \
+#define list_walk_delsafe(list, ...) \
+	va_dispatch(list_walk_delsafe,__VA_ARGS__)(list,__VA_ARGS__)
+#define list_walk_delsafe1(list, it) \
+	for (typeof(*it) *(__it) = (it); (it) = (__it)->next, \
 	     (__it) != &list.head; (__it) = it)
 
 /**
  * list_for_each - iterate over list 
  * @list:       the your list.
- * @it:	        the type safe iterator to use as a loop cursor.
+ * @it:	        the type safe iterator
  * @type:       the optional structure type
  * @member:	the optional name of the node within the struct.
  */
@@ -196,31 +221,31 @@ list_size(struct list *list)
 	for (struct node *(it) = (list).head.next; \
 	    (it) != &(list).head; (it) = (it)->next)
 #define list_for_each3(list, it, type, member) \
-	for (type *(it) = __container_of(list_for_first(list), type, member); \
+	for (type *(it) = NODE_HEAD_TYPE(list, type, member); \
 	     &(it->member) != &(list).head; \
-	     (it) = __container_of(it->member.next, type, member))
+	     (it) = NODE_NEXT_TYPE(it, type, member))
 
 /**
  * list_for_each_delsafe - iterate over list with safety against removal
  * @list:       the your list.
- * @it:	        the type safe iterator to use as a loop cursor.
+ * @it:	        the type safe iterator 
  * @type:       the optional structure type
  * @member:	the optional name of the node within the struct.
  */
 
 #define list_for_each_delsafe(list, ...) \
 	va_dispatch(list_for_each_delsafe,__VA_ARGS__)(list,__VA_ARGS__)
-
-#define list_for_each_delsafe1(list, n) \
-	for (struct node *__it, *(n) = (list).head.next; \
-		(__it) = (n)->next, (n) != &(list).head; (n) = __it)
-
-#define list_for_each_delsafe3(list, n, type, member) \
-	for (struct node *__it, *(n) = (list).head.next; \
-		(__it) = (n)->next, (n) != &(list).head; (n) = __it)
+#define list_for_each_delsafe1(list, it) \
+	for (struct node *__it, *it = (list).head.next; \
+	     (__it) = it->next, (it) != &(list).head; (it) = __it)
+#define list_for_each_delsafe3(list, it, type, member) \
+	for (type *__it, *it = NODE_HEAD_TYPE(list, type, member); \
+	    (&(it)->member != &(list).head) && \
+	    ({(__it) = __container_of((it)->member.next, type, member);1;}) ; \
+	    (it) = __it)
 
 #define list_for_each_item(__list, __it, __node) \
-	for ((__it) = __container_of(list_for_first(__list), typeof(*__it), __node); \
+	for ((__it) = __container_of(NODE_HEAD(__list), typeof(*__it), __node); \
 	     &(__it->__node) != &(__list).head; \
 	     (__it) = __container_of(__it->__node.next, typeof(*__it), __node))
 
@@ -255,6 +280,18 @@ list_size(struct list *list)
 			list_del(z); list_add_before(z, x); \
 		} \
         }
+#define list_sort_asc3(list, __cmp_fn, type, member) \
+        for (struct node *z, *y, *x = list_head(list); x; ) { \
+                for (z = y = x; (y = list_next(list, y)); )   \
+                        if (__cmp_fn(__container_of(y, type, member), \
+			             __container_of(z, type, member)) < 0) \
+				z = y; \
+                if (x == z) \
+                        x = list_next(list, x); \
+                else { \
+                        list_del(z); list_add_before(z, x); \
+                } \
+        }
 
 /**
  * list_sort_dsc  - sort list 
@@ -276,25 +313,11 @@ list_size(struct list *list)
                         list_del(z); list_add_before(z, x); \
                 } \
         }
-#define list_sort3(list, __cmp_fn, __type, __node) \
-	list_sort_asc3(list, __cmp_fn, __type, __node)
-#define list_sort_asc3(list, __cmp_fn, __type, __node) \
+#define list_sort_dsc3(list, cmp_fn, __type, member) \
         for (struct node *z, *y, *x = list_head(list); x; ) { \
                 for (z = y = x; (y = list_next(list, y)); )   \
-                        if (__cmp_fn(__container_of(y, __type, __node), \
-			             __container_of(z, __type, __node)) < 0) \
-				z = y; \
-                if (x == z) \
-                        x = list_next(list, x); \
-                else { \
-                        list_del(z); list_add_before(z, x); \
-                } \
-        }
-#define list_sort_dsc3(list, cmp_fn, __type, __node) \
-        for (struct node *z, *y, *x = list_head(list); x; ) { \
-                for (z = y = x; (y = list_next(list, y)); )   \
-                        if (cmp_fn(__container_of(y, __type, __node), \
-			           __container_of(z, __type, __node)) > 0) \
+                        if (cmp_fn(__container_of(y, __type, member), \
+			           __container_of(z, __type, member)) > 0) \
 				z = y; \
                 if (x == z) \
                         x = list_next(list, x); \
@@ -315,25 +338,20 @@ list_size(struct list *list)
 
 #define list_ddup(list, ...) \
 	va_dispatch(list_ddup,__VA_ARGS__)(list,__VA_ARGS__)
-#define list_ddup1(__list, __cmp_fn) \
+#define list_ddup1(list, __cmp_fn) \
 { \
-	struct node *__pr = NULL; \
-	list_for_each_delsafe(*(__list), __node) { \
-		if (__pr && !__cmp_fn(__pr, __node)) \
-			list_del(__node); \
-		else \
-			__pr = __node; \
+	struct node *ddup1_prev = NULL; \
+	list_for_each_delsafe(*(list), it) { \
+		if (ddup1_prev && !__cmp_fn(ddup1_prev, it)) \
+			list_del(it); else ddup1_prev = it; \
 	} \
 }
-#define list_ddup3(__list, __cmp_fn, __type, __node) \
+#define list_ddup3(list, typecmp, type, member) \
 { \
-	struct node *__pr = NULL; \
-	list_for_each_delsafe(*(__list), __nd) { \
-		if (__pr && !__cmp_fn(__container_of(__pr, __type, __node), \
-		                      __container_of(__nd, __type, __node))) \
-			list_del(__nd); \
-		else \
-			__pr = __nd; \
+	type *prev = NULL; \
+	list_for_each_delsafe(*(list), it, type, member) { \
+		if (prev && !typecmp(prev, it)) \
+			list_del(&(it->member)); else prev = it; \
 	} \
 }
 
@@ -380,12 +398,6 @@ hnode_init(struct hnode *hnode)
 	hnode->prev = NULL;
 }
 
-static inline int 
-hnode_unhashed(struct hnode *h)
-{
-	return !h->prev;
-}
-
 static inline void 
 hlist_add(struct hlist *hlist, struct hnode *hnode)
 {
@@ -406,20 +418,16 @@ hlist_empty(const struct hlist *hlist)
 static inline void 
 hlist_del(struct hnode *hnode)
 {
+	if (!hnode->prev)
+		return;
+	
 	struct hnode *next  = hnode->next;
 	struct hnode **prev = hnode->prev;
 	*prev = next;
 	if (next)
 		next->prev = prev;
-}
 
-static inline void
-hlist_del_init(struct hnode *n)
-{
-	if (hnode_unhashed(n))
-		return;
-	hlist_del(n);
-	hnode_init(n);
+	hnode_init(hnode);
 }
 
 static inline void
@@ -442,22 +450,43 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 		next->next->prev  = &next->next;
 }
 
-#define hlist_for_first(___list) ({ ___list->head; })
-#define hlist_for_next(___node)  ({ ___node->next; })
+#define HNODE_HEAD(list) ({ list->head; })
+#define HNODE_NEXT(node) ({ node->next; })
+#define HNODE_ITER_DELSAFE(it, it_next) \
+	((it)&&({(it_next)=(it)->next;1;}))
 
-#define hlist_for_each(__list, __node) \
-	for (struct hnode * __node = hlist_for_first((__list)); __node; \
-	     __node = hlist_for_next(__node))
+/**
+ * hlist_for_each - iterate over list
+ * @list:       the your list.
+ * @it:	        iterator
+ * @type:       the optional structure type
+ * @member:	the optional name of the node within the struct.
+ */
 
-#define hlist_for_each_delsafe(__list, __node) \
-	for (struct hnode *(__node) = hlist_for_first((__list)), *__it; \
-	     (__node) && ({__it = (__node)->next;1;}); \
-	     (__node) = __it)
+#define hlist_for_each(list, ...) \
+	va_dispatch(hlist_for_each,__VA_ARGS__)(list,__VA_ARGS__)
+#define hlist_for_each1(list, it) \
+	for (struct hnode *(it)=HNODE_HEAD((list));it;(it)=HNODE_NEXT((it)))
 
-#define hlist_for_each_item_delsafe(item, n, list, member)                 \
+/**
+ * hlist_for_each_delsafe - iterate over list with safety against removal
+ * @list:       the your list
+ * @it:	        iterator
+ * @type:       the optional structure type
+ * @member:	the optional name of the node within the struct.
+ */
+
+#define hlist_for_each_delsafe(list, ...) \
+	va_dispatch(hlist_for_each_delsafe,__VA_ARGS__)(list,__VA_ARGS__)
+#define hlist_for_each_delsafe1(list, it) \
+	for (struct hnode *(it) = HNODE_HEAD((list)), *__it; \
+	     HNODE_ITER_DELSAFE(it, __it); (it) = __it)
+
+
+#define hlist_for_each_item_delsafe(item, it, list, member)                 \
 	for (item = __container_of_safe((list)->head, typeof(*item), member);\
-	     item && ({ n = item->member.next; 1; });                     \
-	     item = __container_of_safe(n, typeof(*item), member))
+	     item && ({ it = item->member.next;1;});                     \
+	     item = __container_of_safe(it, typeof(*item), member))
 
 __END_DECLS
 

@@ -77,17 +77,22 @@ test1_list(void)
 		debug("node=%p person=%p name=%s", n, p, p->name);
 	}
 
-	struct node *cursor = &daniela.n;
-	/* iterate over rest: starts at daniela node */
-	list_walk(list, cursor, n) {
-		struct person *p = __container_of(n, struct person, n);
-		debug("node=%p person=%p name=%s", n, p, p->name);
+	struct node *it;
+	list_walk(list, it) {
+		struct person *p = __container_of(it, struct person, n);
+		debug("node=%p person=%p name=%s", it, p, p->name);
 		break;
 	}
-	/* iterate over rest with del safety: starts at daniel node */
-	list_walk_delsafe(list, cursor, n) {
-		struct person *p = __container_of(n, struct person, n);
-		debug("node=%p person=%p name=%s", n, p, p->name);
+
+	struct person *it_person;
+	list_walk(list, it_person, n) {
+		debug("person name=%s", it_person->name);
+		break;
+	}
+
+	list_walk_delsafe(list, it) {
+		struct person *p = __container_of(it, struct person, n);
+		debug("node=%p person=%p name=%s", it, p, p->name);
 		list_del(&p->n);
 	}
 
@@ -190,10 +195,17 @@ test3_list(void)
 	list_add(&list, &eve.n);
 
 	list_for_each(list, it)
-		printf("%s\n", __container_of(it, struct person, n)->name);
+		printf("a:%s\n", __container_of(it, struct person, n)->name);
 
 	list_for_each(list, it, struct person, n)
-		printf("%s\n", it->name);
+		printf("b:%s\n", it->name);
+
+	list_for_each_delsafe(list, it)
+		printf("da:%s\n", __container_of(it, struct person, n)->name);
+
+	list_for_each_delsafe(list, it, struct person, n)
+		printf("db:%s\n", it->name);
+
 }
 
 struct user {

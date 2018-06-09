@@ -87,7 +87,7 @@ hash_buffer(const char *ptr, int size)
 #define hash_add(htable, hnode, slot) \
 	hlist_add(& htable[slot], hnode)
 
-#define hash_del(node) hlist_del_init(node);
+#define hash_del(node) hlist_del(node);
 #define hash_get(table, key) &name[hash_data(key, hash_bits(name))]
 
 #define hash_for_each(__table, __it, __key)        \
