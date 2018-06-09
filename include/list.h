@@ -466,7 +466,17 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 
 #define HNODE_HEAD(list) ({ list->head; })
 #define HNODE_NEXT(node) ({ node->next; })
-#define HNODE_ITER_DELSAFE(it, it_next) ((it)&&({(it_next)=(it)->next;1;}))
+#define HNODE_ITER_DELSAFE(it, it_next) \
+	((it)&&({(it_next)=(it)->next;1;}))
+#define HNODE_HEAD_DELSAFE(list, it) \
+	({ it = (list).head; NULL; })
+
+#define HNODE_HEAD_TYPE_DELSAFE(list, it, member) \
+	({it = __container_of_safe((list)->head, typeof(*it), member); NULL; })
+#define HNODE_NEXT_TYPE(it_next, type, member) \
+	__container_of_safe(it_next, type, member)
+#define HNODE_ITER_TYPE_DELSAFE(it, it_next, type, member) \
+	((it)&&({(it_next)=(it)->member.next;1;}))
 
 /**
  * hlist_walk - iterate over list with declared iterator
@@ -483,6 +493,23 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 	for ((it)=HNODE_HEAD((list));it;(it)=HNODE_NEXT((it)))
 
 /**
+ * hlist_walk_delsafe - iterate over list with safety against removal
+ * @list:       the your list.
+ * @it:	        iterator
+ * @member:	the optional name of the node within the struct.
+ */
+
+#define hlist_walk_delsafe(list, ...) \
+	va_dispatch(hlist_walk_delsafe,__VA_ARGS__)(list,__VA_ARGS__)
+#define hlist_walk_delsafe1(list, it) \
+	for (struct hnode *__it = HNODE_HEAD_DELSAFE((list,it)); \
+	                          HNODE_ITER_DELSAFE(it, __it); (it)=__it)
+#define hlist_walk_delsafe2(list, it, member) \
+	for (struct hnode *__it = HNODE_HEAD_TYPE_DELSAFE(list,it,member); \
+	                   ((it)&&({(__it)=(it)->member.next;1;})); \
+	                     it = HNODE_NEXT_TYPE(__it,typeof(*it),member))
+
+/**
  * hlist_for_each - iterate over list
  * @list:       the your list.
  * @it:	        iterator
@@ -493,6 +520,8 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 #define hlist_for_each(list, ...) \
 	va_dispatch(hlist_for_each,__VA_ARGS__)(list,__VA_ARGS__)
 #define hlist_for_each1(list, it) \
+	for (struct hnode *(it)=HNODE_HEAD((list));it;(it)=HNODE_NEXT((it)))
+#define hlist_for_each2(list, it, member) \
 	for (struct hnode *(it)=HNODE_HEAD((list));it;(it)=HNODE_NEXT((it)))
 
 /**
@@ -508,11 +537,9 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 #define hlist_for_each_delsafe1(list, it) \
 	for (struct hnode *(it) = HNODE_HEAD((list)), *__it; \
 	     HNODE_ITER_DELSAFE(it, __it); (it) = __it)
-
-#define hlist_for_each_item_delsafe(item, it, list, member)                 \
-	for (item = __container_of_safe((list)->head, typeof(*item), member);\
-	     item && ({ it = item->member.next;1;});                     \
-	     item = __container_of_safe(it, typeof(*item), member))
+#define hlist_for_each_delsafe3(list, it, type, member) \
+	for (struct hnode *(it) = HNODE_HEAD((list)), *__it; \
+	     HNODE_ITER_DELSAFE(it, __it); (it) = __it)
 
 __END_DECLS
 

@@ -228,9 +228,8 @@ static int
 lookup(struct aaa *aaa, struct cursor *sid)
 {
 	struct session *session = NULL;
-	struct hnode *it = NULL;
 	int rv = -1;
-	hash_for_each_item_delsafe(htable_sid, session, it, sid, sid->slot) {
+	hash_walk_delsafe(htable_sid, sid->slot, session, sid) {
 		int exp = session->expires - sid->now;
 		if (exp < 1) {
 			expired(session);
@@ -312,9 +311,8 @@ static int
 commit(struct aaa *aaa, struct cursor *sid)
 {
 	struct session *session = NULL;
-	struct hnode *it = NULL;
 	int rv = -1;
-	hash_for_each_item_delsafe(htable_sid, session, it, sid, sid->slot) {
+	hash_walk_delsafe(htable_sid, sid->slot, session, sid) {
 		int exp = session->expires - sid->now;
                 debug4("sess id=%s expires in %d sec(s)", session->attrs.sid, exp);
 		if (exp < 1) {

@@ -96,8 +96,8 @@ hash_buffer(const char *ptr, int size)
 #define hash_for_each_delsafe(__table, __it, __key)        \
 	hlist_for_each_delsafe(&__table[__key], __it)
 
-#define hash_for_each_item_delsafe(htable, obj, tmp, member, slot)        \
-	hlist_for_each_item_delsafe(obj, tmp, &htable[slot], member)
+#define hash_walk_delsafe(htable,slot,obj,member) \
+	hlist_walk_delsafe(&htable[slot],obj,member)
 
 #define hash_for_each_slot(__table, __it)
 #define hash_for_each_list(__table, __it)
