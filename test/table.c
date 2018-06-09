@@ -48,11 +48,11 @@ struct person {
 	} n;
 };
 
-struct person daniel  = {.name = "Daniel",  .n.node = INIT_NODE};
-struct person daniela = {.name = "Daniela", .n.node = INIT_NODE};
-struct person adam    = {.name = "Adam",    .n.node = INIT_NODE};
-struct person eve     = {.name = "Eve",     .n.node = INIT_NODE};
-struct person robot   = {.name = "Robot",   .n.node = INIT_NODE};
+struct person daniel  = {.name = "Daniel",  .n.node = NODE_INIT};
+struct person daniela = {.name = "Daniela", .n.node = NODE_INIT};
+struct person adam    = {.name = "Adam",    .n.node = NODE_INIT};
+struct person eve     = {.name = "Eve",     .n.node = NODE_INIT};
+struct person robot   = {.name = "Robot",   .n.node = NODE_INIT};
 
 int
 main(void)

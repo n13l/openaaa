@@ -19,11 +19,11 @@ test0_list(void)
 {
 	DECLARE_LIST(list);
 
-	struct person daniel  = {.name = "Daniel",  .n = INIT_NODE};
-	struct person daniela = {.name = "Daniela", .n = INIT_NODE};
-	struct person adam    = {.name = "Adam",    .n = INIT_NODE};
-	struct person eve     = {.name = "Eve",     .n = INIT_NODE};
-	struct person robot   = {.name = "Robot",   .n = INIT_NODE};
+	struct person daniel  = {.name = "Daniel",  .n = NODE_INIT};
+	struct person daniela = {.name = "Daniela", .n = NODE_INIT};
+	struct person adam    = {.name = "Adam",    .n = NODE_INIT};
+	struct person eve     = {.name = "Eve",     .n = NODE_INIT};
+	struct person robot   = {.name = "Robot",   .n = NODE_INIT};
 
 	list_add(&list, &daniel.n);
 	list_add(&list, &daniela.n);
@@ -31,7 +31,7 @@ test0_list(void)
 	list_add(&list, &eve.n);
 	list_add(&list, &robot.n);
 
-	struct person pepa = {.name = "Daniel", .n = INIT_NODE};
+	struct person pepa = {.name = "Daniel", .n = NODE_INIT};
 
 	list_add(&list, &pepa.n);
 
@@ -51,11 +51,11 @@ test1_list(void)
 	DECLARE_LIST(list);
 	DECLARE_HLIST(hlist);
 
-	struct person daniel  = {.name = "Daniel",  .n = INIT_NODE};
-	struct person daniela = {.name = "Daniela", .n = INIT_NODE};
-	struct person adam    = {.name = "Adam",    .n = INIT_NODE};
-	struct person eve     = {.name = "Eve",     .n = INIT_NODE};
-	struct person robot   = {.name = "Robot",   .n = INIT_NODE};
+	struct person daniel  = {.name = "Daniel",  .n = NODE_INIT};
+	struct person daniela = {.name = "Daniela", .n = NODE_INIT};
+	struct person adam    = {.name = "Adam",    .n = NODE_INIT};
+	struct person eve     = {.name = "Eve",     .n = NODE_INIT};
+	struct person robot   = {.name = "Robot",   .n = NODE_INIT};
 
 	list_add(&list, &daniel.n);
 	list_add(&list, &daniela.n);
@@ -133,12 +133,12 @@ test2_list(void)
 	struct list list;
 	list_init(&list);
 
-	struct person daniel  = {.name = "Daniel",  .n = INIT_NODE};
-	struct person daniela = {.name = "Daniela", .n = INIT_NODE};
-	struct person adam    = {.name = "Adam",    .n = INIT_NODE};
-	struct person eve     = {.name = "Eve",     .n = INIT_NODE};
-	struct person robot   = {.name = "Robot",   .n = INIT_NODE};
-	struct person daniel1 = {.name = "Daniel",  .n = INIT_NODE};
+	struct person daniel  = {.name = "Daniel",  .n = NODE_INIT};
+	struct person daniela = {.name = "Daniela", .n = NODE_INIT};
+	struct person adam    = {.name = "Adam",    .n = NODE_INIT};
+	struct person eve     = {.name = "Eve",     .n = NODE_INIT};
+	struct person robot   = {.name = "Robot",   .n = NODE_INIT};
+	struct person daniel1 = {.name = "Daniel",  .n = NODE_INIT};
 
 	list_add(&list, LIST_ITEM(daniel, n));
 	list_add(&list, LIST_ITEM(daniela, n));
@@ -190,9 +190,9 @@ test3_list(void)
 {
 	DECLARE_LIST(list);
 
-	struct person daniel  = {.name = "Daniel",  .n = INIT_NODE};
-	struct person adam    = {.name = "Adam",    .n = INIT_NODE};
-	struct person eve     = {.name = "Eve",     .n = INIT_NODE};
+	struct person daniel  = {.name = "Daniel",  .n = NODE_INIT};
+	struct person adam    = {.name = "Adam",    .n = NODE_INIT};
+	struct person eve     = {.name = "Eve",     .n = NODE_INIT};
 
 	list_add(&list, &daniel.n);
 	list_add(&list, &adam.n);
