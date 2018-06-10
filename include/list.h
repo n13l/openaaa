@@ -400,11 +400,10 @@ slist_del(struct snode *node, struct snode *prev)
 }
 
 #define slist_for_each(item, member, it) \
-	for (; item ; item = it)
+	for (; item; item = it)
 
 #define slist_for_each_delsafe(item, member, it) \
-	for (; item && ({it = (__typeof__(item))item->member.next; 1;} ); \
-	       item = it)
+	for (; item && ({it=(typeof(item))item->member.next;1;}); item = it)
 
 #define DEFINE_HLIST(name)    struct hlist name;
 #define DECLARE_HLIST(name)   struct hlist name = {  .head = NULL }

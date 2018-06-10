@@ -37,9 +37,9 @@
 
 #define dict_for_each(it, list) \
 	for (struct attr *(it) = \
-	             __container_of( (list).head.next, struct attr , node); \
+	             __container_of( (list).head.next, struct attr, node); \
 	     (it) != __container_of(&(list).head,      struct attr, node); \
-	     (it)  = __container_of( (it)->node.next,       struct attr, node))
+	     (it)  = __container_of( (it)->node.next,  struct attr, node))
 
 struct attr {
 	struct node node;

@@ -25,6 +25,30 @@
 #ifndef __GENERIC_HOOK_H__
 #define __GENERIC_HOOK_H__
 
-#define DEFINE_HOOK(fn,args)
+#include <list.h>
+
+#define HOOK_OK      0x0000
+#define HOOK_DECLINE 0x0001
+#define HOOK_FIRST   0x0001
+#define HOOK_MIDDLE  0x0002
+#define HOOK_LAST    0x0003
+
+#define DEFINE_HOOK(rv,name,args)
+
+struct hook {
+	struct node n;
+	const char *name;
+	void(*fn)(void);
+	int order;
+};
+
+int
+hook_lookup(const char *name);
+
+int
+hook_sort_all(void);
+
+int
+hook_add(const char *name, void(*fn)(void), char **pre, char **succ, int order);
 
 #endif/*__GENERIC_HOOK_H__*/
