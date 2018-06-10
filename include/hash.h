@@ -6,12 +6,6 @@
 #include <math.h>
 #include <limits.h>
 
-#if CPU_ARCH_BITS == 32
-#define hash_long(val, bits) hash_u32((u32)val, bits)
-#elif CPU_ARCH_BITS == 64
-#define hash_long(val, bits) hash_u64((u64)val, bits)
-#endif
-
 static inline u64
 hash_u64(u64 x, unsigned int bits)
 {
@@ -33,7 +27,11 @@ hash_u32(u32 x, unsigned int bits)
 static inline unsigned long
 hash_ptr(const void *ptr, unsigned int bits)
 {
-	return (unsigned long)hash_long(ptr, bits);
+#if CPU_ARCH_BITS == 32
+	return (unsigned long)hash_u32((u32)ptr, bits);
+#elif CPU_ARCH_BITS == 64
+	return (unsigned long)hash_u64((u64)ptr, bits);
+#endif
 }
 
 static inline unsigned long
