@@ -29,6 +29,7 @@
 
 #include <sys/compiler.h>
 #include <sys/decls.h>
+#include <sort.h>
 
 __BEGIN_DECLS
 
@@ -278,7 +279,7 @@ list_size(struct list *list)
  */
 
 #define list_sort(list, ...) \
-	va_dispatch(list_sort_asc,__VA_ARGS__)(list,__VA_ARGS__)
+	va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__VA_ARGS__)
 
 /**
  * list_sort_asc  - sort list 
@@ -290,29 +291,7 @@ list_size(struct list *list)
  */
 
 #define list_sort_asc(list, ...) \
-	va_dispatch(list_sort_asc,__VA_ARGS__)(list,__VA_ARGS__)
-#define list_sort_asc1(list, __cmp_fn) \
-        for (struct node *z, *y, *x = list_head(list); x; ) { \
-                for (z = y = x; (y = list_next(list, y)); )   \
-                        if (__cmp_fn(y, z) < 0) z = y; \
-                if (x == z) \
-			x = list_next(list, x); \
-		else { \
-			list_del(z); list_add_before(z, x); \
-		} \
-        }
-#define list_sort_asc3(list, __cmp_fn, type, member) \
-        for (struct node *z, *y, *x = list_head(list); x; ) { \
-                for (z = y = x; (y = list_next(list, y)); )   \
-                        if (__cmp_fn(__container_of(y, type, member), \
-			             __container_of(z, type, member)) < 0) \
-				z = y; \
-                if (x == z) \
-                        x = list_next(list, x); \
-                else { \
-                        list_del(z); list_add_before(z, x); \
-                } \
-        }
+	va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__VA_ARGS__)
 
 /**
  * list_sort_dsc  - sort list 
@@ -324,29 +303,7 @@ list_size(struct list *list)
  */
 
 #define list_sort_dsc(list, ...) \
-	va_dispatch(list_sort_dsc,__VA_ARGS__)(list,__VA_ARGS__)
-#define list_sort_dsc1(list, __cmp_fn) \
-        for (struct node *z, *y, *x = list_head(list); x; ) { \
-                for (z = y = x; (y = list_next(list, y)); )   \
-                        if (__cmp_fn(y, z) > 0) z = y; \
-                if (x == z) \
-                        x = list_next(list, x); \
-                else { \
-                        list_del(z); list_add_before(z, x); \
-                } \
-        }
-#define list_sort_dsc3(list, cmp_fn, __type, member) \
-        for (struct node *z, *y, *x = list_head(list); x; ) { \
-                for (z = y = x; (y = list_next(list, y)); )   \
-                        if (cmp_fn(__container_of(y, __type, member), \
-			           __container_of(z, __type, member)) > 0) \
-				z = y; \
-                if (x == z) \
-                        x = list_next(list, x); \
-                else { \
-                        list_del(z); list_add_before(z, x); \
-                } \
-        }
+	va_dispatch(bubble_sort_dsc,__VA_ARGS__)(list,__VA_ARGS__)
 
 /**
  * list_ddup  - deduplicate list
