@@ -83,7 +83,6 @@ child_init(apr_pool_t *p, server_rec *s)
 		srv->pid = getpid();
 		srv->aaa = a;
 		srv->mod_ssl = ap_find_linked_module("mod_ssl.c");
-		srv->mod_mpm_prefork = ap_find_linked_module("mod_mpm_prefork.c");
 	}
 
 	apr_pool_cleanup_register(p, a, child_fini, child_fini);
@@ -117,12 +116,17 @@ post_config(apr_pool_t *p, apr_pool_t *l, apr_pool_t *t, server_rec *s)
 	ap_add_version_component(p, MODULE_VERSION);
 
 	struct srv *srv = ap_get_module_config(s->module_config, &MODULE_ENTRY);
-	if (!srv->mod_ssl) {
-		ap_log_error(APLOG_MARK, APLOG_CRIT, -1, s, "module depends on mod_ssl");
+
+	module *mod_ssl = ap_find_linked_module("mod_ssl.c");
+	module *mod_mpm_prefork = ap_find_linked_module("prefork.c");
+
+	if (!mod_ssl) {
+		ap_log_error(APLOG_MARK, APLOG_CRIT, 0, s, "required module mod_ssl not found.");
 		return HTTP_INTERNAL_SERVER_ERROR;
 	}
-	if (!srv->mod_mpm_prefork) {
-		ap_log_error(APLOG_MARK, APLOG_CRIT, -1, s, "module depends on mod_mpm_prefork");
+
+	if (!mod_mpm_prefork) {
+		ap_log_error(APLOG_MARK, APLOG_CRIT, 0, s, "required module mpm prefork not found.");
 		return HTTP_INTERNAL_SERVER_ERROR;
 	}
 
