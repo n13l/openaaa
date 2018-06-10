@@ -184,6 +184,7 @@ list_size(struct list *list)
 
 /**
  * list_walk  - iterate over list with declared iterator
+ *
  * @list:       the your list.
  * @it:	        the type safe iterator
  * @member:     the optional name of the node within the struct.
@@ -200,6 +201,7 @@ list_size(struct list *list)
 
 /**
  * list_walk_next - iterate over list with existing iterator
+ *
  * @list:       the your list.
  * @it:	        the type safe iterator
  * @member:     the optional name of the node within the struct.
@@ -216,6 +218,7 @@ list_size(struct list *list)
 
 /**
  * list_walk_delsafe  - iterate over list with declared iterator
+ *
  * @list:       the your list.
  * @it:	        the type safe iterator
  * @member:	the optional name of the node within the struct.
@@ -230,6 +233,7 @@ list_size(struct list *list)
 
 /**
  * list_for_each - iterate over list 
+ *
  * @list:       the your list.
  * @it:	        the type safe iterator
  * @type:       the optional structure type
@@ -248,6 +252,7 @@ list_size(struct list *list)
 
 /**
  * list_for_each_delsafe - iterate over list with safety against removal
+ *
  * @list:       the your list.
  * @it:	        the type safe iterator 
  * @type:       the optional structure type
@@ -265,6 +270,7 @@ list_size(struct list *list)
 
 /**
  * list_sort  - sort list 
+ *
  * @list:       the your list.
  * @fn:	        the type safe comparator
  * @type:       the optional structure type
@@ -276,6 +282,7 @@ list_size(struct list *list)
 
 /**
  * list_sort_asc  - sort list 
+ *
  * @list:       the your list.
  * @fn:	        the type safe comparator
  * @type:       the optional structure type
@@ -309,6 +316,7 @@ list_size(struct list *list)
 
 /**
  * list_sort_dsc  - sort list 
+ *
  * @list:       the your list.
  * @fn:	        the type safe comparator
  * @type:       the optional structure type
@@ -480,6 +488,7 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 
 /**
  * hlist_walk - iterate over list with declared iterator
+ *
  * @list:       the your list.
  * @it:	        iterator
  * @member:	the optional name of the node within the struct.
@@ -494,6 +503,7 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 
 /**
  * hlist_walk_delsafe - iterate over list with safety against removal
+ *
  * @list:       the your list.
  * @it:	        iterator
  * @member:	the optional name of the node within the struct.
@@ -511,6 +521,7 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 
 /**
  * hlist_for_each - iterate over list
+ *
  * @list:       the your list.
  * @it:	        iterator
  * @type:       the optional structure type
@@ -526,6 +537,7 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 
 /**
  * hlist_for_each_delsafe - iterate over list with safety against removal
+ *
  * @list:       the your list
  * @it:	        iterator
  * @type:       the optional structure type

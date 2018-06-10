@@ -1,5 +1,5 @@
 /*
- * Generic iterator
+ * Generic hooks
  *
  * The MIT License (MIT)         Copyright (c) 2017 Daniel Kubec <niel@rtfm.cz> 
  *
@@ -22,22 +22,9 @@
  * THE SOFTWARE.
  */
 
-#ifndef __GENERIC_ITERATOR_H__
-#define __GENERIC_ITERATOR_H__
+#ifndef __GENERIC_HOOK_H__
+#define __GENERIC_HOOK_H__
 
-#include <list.h>
+#define DEFINE_HOOK(fn,args)
 
-#define it_begin(container, type, member) NULL
-#define it_next(container, type, member) NULL
-#define it_for_each(container, type, member)
-
-
-/*
-#define it_for_each(it, container) \
-	for (struct attr *(it) = \
-	             __container_of( (list).head.next, struct attr , node); \
-	     (it) != __container_of(&(list).head,      struct attr, node); \
-	     (it)  = __container_of( (it)->node.next,       struct attr, node))
-*/
-
-#endif/*__ITERATOR_FILE_LIB_H__*/
+#endif/*__GENERIC_HOOK_H__*/

@@ -1,9 +1,7 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/log.h>
-
 #include <list.h>
-#include <iter.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -32,17 +30,7 @@ test0_list(void)
 	list_add(&list, &robot.n);
 
 	struct person pepa = {.name = "Daniel", .n = NODE_INIT};
-
 	list_add(&list, &pepa.n);
-
-	struct person *p;
-	for (p = it_begin(list, p, n); p; p = it_next(list, p, n)) {
-		debug("person=%p name=%s", p, p->name);
-	}
-
-	it_for_each(list, p, n) {
-		debug("person=%p name=%s", p, p->name);
-	}
 }
 
 static void

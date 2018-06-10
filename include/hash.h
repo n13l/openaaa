@@ -1,56 +1,33 @@
-/* Fast hashing routine for ints, longs and pointers.
- *    (C) 2002 William Lee Irwin III, IBM 
- *
- * Knuth recommends primes in approximately golden ratio to the maximum
- * integer representable by a machine word for multiplicative hashing.
- * Chuck Lever verified the effectiveness of this technique:
- * http://www.citi.umich.edu/techreports/reports/citi-tr-00-1.pdf
- *
- * These primes are chosen to be bit-sparse, that is operations on
- * them can use shifts and additions instead of multiplications for
- * machines where multiplications are slow.
- */
-
 #ifndef __HASH_GENERIC_H__
 #define __HASH_GENERIC_H__
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
-#include <list.h>
 #include <math.h>
 #include <limits.h>
 
-#define HASH_RATIO_PRIME_32 0x9e370001UL
-#define HASH_RATIO_PRIME_64 0x9e37fffffffc0001UL
 #if CPU_ARCH_BITS == 32
-#define HASH_RATIO_PRIME HASH_RATIO_PRIME_32
 #define hash_long(val, bits) hash_u32((u32)val, bits)
 #elif CPU_ARCH_BITS == 64
 #define hash_long(val, bits) hash_u64((u64)val, bits)
-#define HASH_RATIO_PRIME HASH_RATIO_PRIME_64
-#else
-#error not supported architecture
 #endif
 
 static inline u64
-hash_u64(u64 val, unsigned int bits)
+hash_u64(u64 x, unsigned int bits)
 {
-	u64 hash = val;
-	u64 n = hash; n <<= 18;
-	hash -= n; n <<= 33;
-	hash -= n; n <<= 3;
-	hash += n; n <<= 3; 
-	hash -= n; n <<= 4;
-	hash += n; n <<= 2;
-	hash += n;
-	return hash >> (64 - bits);
+	x = (x ^ (x >> 30)) * (u64)(0xbf58476d1ce4e5b9);
+	x = (x ^ (x >> 27)) * (u64)(0x94d049bb133111eb);
+	x = x ^ (x >> 31);
+	return x >> (64 - bits);
 }
 
 static inline u32
-hash_u32(u32 val, unsigned int bits)
+hash_u32(u32 x, unsigned int bits) 
 {
-	u32 hash = val * HASH_RATIO_PRIME_32;
-	return hash >> (32 - bits);
+	x = ((x >> 16) ^ x) * 0x45d9f3b;
+	x = ((x >> 16) ^ x) * 0x45d9f3b;
+	x = (x >> 16) ^ x;
+	return x >> (32 - bits);
 }
 
 static inline unsigned long
@@ -97,22 +74,20 @@ hash_buffer(const char *ptr, int size)
 	for (unsigned __i = 0; __i < (1 << shift); __i++) \
 		INIT_HLIST_PTR(&table[__i]);
 
-#define hash_add(htable, hnode, slot) \
-	hlist_add(& htable[slot], hnode)
+#define hash_add(htable, hnode, slot) hlist_add(&htable[slot],hnode)
 
 #define hash_del(node) hlist_del(node);
 #define hash_get(table, key) &name[hash_data(key, hash_bits(name))]
 
-#define hash_for_each(__table, __it, __key)        \
+#define hash_for_each(__table, __it, __key) \
 	hlist_for_each(&__table[__key], __it)
 
-#define hash_for_each_delsafe(__table, __it, __key)        \
+#define hash_for_each_delsafe(__table, __it, __key) \
 	hlist_for_each_delsafe(&__table[__key], __it)
 
-#define hash_walk_delsafe(htable,slot,obj,member) \
-	hlist_walk_delsafe(&htable[slot],obj,member)
-
-#define hash_for_each_slot(__table, __it)
-#define hash_for_each_list(__table, __it)
+#define hash_walk_delsafe(list, ...) \
+	va_dispatch(hash_walk_delsafe,__VA_ARGS__)(list,__VA_ARGS__)
+#define hash_walk_delsafe3(htable,slot,it,member) \
+	hlist_walk_delsafe(&htable[slot],it,member)
 
 #endif
