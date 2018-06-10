@@ -412,6 +412,21 @@ slist_del(struct snode *node, struct snode *prev)
 #define INIT_HLIST_HEAD(name) { &(name), &(name) }
 #define INIT_HNODE            (struct hnode) {.next = NULL, .prev = NULL}
 
+#define HNODE_HEAD(list) ({ list->head; })
+#define HNODE_NEXT(node) ({ node->next; })
+#define HNODE_ITER_DELSAFE(it, it_next) \
+	((it)&&({(it_next)=(it)->next;1;}))
+#define HNODE_HEAD_DELSAFE(list, it) \
+	({ it = (list).head; NULL; })
+
+#define HNODE_HEAD_TYPE_DELSAFE(list, it, member) \
+	({it = __container_of_safe((list)->head, typeof(*it), member); NULL; })
+#define HNODE_NEXT_TYPE(it_next, type, member) \
+	__container_of_safe(it_next, type, member)
+#define HNODE_ITER_TYPE_DELSAFE(it, it_next, type, member) \
+	((it)&&({(it_next)=(it)->member.next;1;}))
+
+
 static inline void
 hnode_init(struct hnode *hnode)
 {
@@ -470,20 +485,6 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
 	if(next->next)
 		next->next->prev  = &next->next;
 }
-
-#define HNODE_HEAD(list) ({ list->head; })
-#define HNODE_NEXT(node) ({ node->next; })
-#define HNODE_ITER_DELSAFE(it, it_next) \
-	((it)&&({(it_next)=(it)->next;1;}))
-#define HNODE_HEAD_DELSAFE(list, it) \
-	({ it = (list).head; NULL; })
-
-#define HNODE_HEAD_TYPE_DELSAFE(list, it, member) \
-	({it = __container_of_safe((list)->head, typeof(*it), member); NULL; })
-#define HNODE_NEXT_TYPE(it_next, type, member) \
-	__container_of_safe(it_next, type, member)
-#define HNODE_ITER_TYPE_DELSAFE(it, it_next, type, member) \
-	((it)&&({(it_next)=(it)->member.next;1;}))
 
 /**
  * hlist_walk - iterate over list with declared iterator
