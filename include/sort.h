@@ -27,8 +27,12 @@
 
 #include <sys/compiler.h>
 
+/* 
+ * TODO: use container type, node type instead of depend on list ops.
+ */
+
 /**
- * bubble_sort  - sort list 
+ * bubble_sort  - sort container items sort container items in ascending order
  *
  * @list:       the your list.
  * @fn:	        the type safe comparator
@@ -40,7 +44,7 @@
 	va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__VA_ARGS__)
 
 /**
- * bubble_sort_asc  - sort list 
+ * bubble_sort_asc  - sort container items in ascending order
  *
  * @list:       the your list.
  * @fn:	        the type safe comparator
@@ -50,20 +54,20 @@
 
 #define bubble_sort_asc(list, ...) \
 	va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__VA_ARGS__)
-#define bubble_sort_asc1(list, __cmp_fn) \
+#define bubble_sort_asc1(list, comparator) \
         for (struct node *z, *y, *x = list_head(list); x; ) { \
                 for (z = y = x; (y = list_next(list, y)); )   \
-                        if (__cmp_fn(y, z) < 0) z = y; \
+                        if (comparator(y, z) < 0) z = y; \
                 if (x == z) \
 			x = list_next(list, x); \
 		else { \
 			list_del(z); list_add_before(z, x); \
 		} \
         }
-#define bubble_sort_asc3(list, __cmp_fn, type, member) \
+#define bubble_sort_asc3(list, comparator, type, member) \
         for (struct node *z, *y, *x = list_head(list); x; ) { \
                 for (z = y = x; (y = list_next(list, y)); )   \
-                        if (__cmp_fn(__container_of(y, type, member), \
+                        if (comparator(__container_of(y, type, member), \
 			             __container_of(z, type, member)) < 0) \
 				z = y; \
                 if (x == z) \
@@ -74,7 +78,7 @@
         }
 
 /**
- * bubble_sort_dsc  - sort list 
+ * bubble_sort_dsc  - sort container items in descending order
  *
  * @list:       the your list.
  * @fn:	        the type safe comparator
@@ -84,10 +88,10 @@
 
 #define bubble_sort_dsc(list, ...) \
 	va_dispatch(bubble_sort_dsc,__VA_ARGS__)(list,__VA_ARGS__)
-#define bubble_sort_dsc1(list, __cmp_fn) \
+#define bubble_sort_dsc1(list, comparator) \
         for (struct node *z, *y, *x = list_head(list); x; ) { \
                 for (z = y = x; (y = list_next(list, y)); )   \
-                        if (__cmp_fn(y, z) > 0) z = y; \
+                        if (comparator(y, z) > 0) z = y; \
                 if (x == z) \
                         x = list_next(list, x); \
                 else { \

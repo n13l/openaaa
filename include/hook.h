@@ -27,8 +27,14 @@
 
 #include <list.h>
 
-#define HOOK_OK      0x0000
-#define HOOK_DECLINE 0x0001
+#ifndef OK
+#define OK      0x0000
+#endif
+
+#ifndef DECLINE
+#define DECLINE 0x0001
+#endif
+
 #define HOOK_FIRST   0x0001
 #define HOOK_MIDDLE  0x0002
 #define HOOK_LAST    0x0003

@@ -33,25 +33,22 @@
 
 __BEGIN_DECLS
 
-#define DECLARE_LIST(name)   struct list name = INIT_LIST(name)
-#define DECLARE_NODE(name)   struct node name = NODE_INIT
-#define DEFINE_LIST(name)    struct list name
-#define DECLARE_ITEM(type1, node, ...) \
+#define DEFINE_LIST(name)   struct list name = LIST_INIT(name)
+#define DEFINE_NODE(name)   struct node name = NODE_INIT
+#define DEFINE_LIST_ITEM(type,member, ...) \
 ({ \
-	type1 __o = (type1) { .node = NODE_INIT, ## __VA_ARGS__ }; \
-	& __o.node; \
+	type __item = (type) { .member = NODE_INIT, ## __VA_ARGS__ }; \
+	& __item.node; \
 })
 
 #define LIST_ITEM(item, node) &(item.node)
 #define NODE_INIT            { .next = NULL, .prev = NULL } 
-#define INIT_LIST(name)      {{(struct node *)&(name), (struct node *)&(name)}}
+#define LIST_INIT(name)      {{(struct node *)&(name), (struct node *)&(name)}}
 
-#define NODE_HEAD(list) \
-	(list).head.next
-#define NODE_HEAD_DELSAFE(list, it) \
-	({ it = (list).head.next; NULL; })
-#define NODE_ITER(list, it) \
-	((it) != &(list).head)
+#define NODE_HEAD(list)             (list).head.next
+#define NODE_HEAD_DELSAFE(list, it) ({it=(list).head.next;NULL;})
+#define NODE_ITER(list, it)         ((it)!=&(list).head)
+
 #define NODE_HEAD_TYPE(list, type, member) \
 	__container_of(NODE_HEAD(list),type,member)
 #define NODE_NEXT_TYPE(it, type, member) \
@@ -318,23 +315,19 @@ list_size(struct list *list)
 #define list_ddup(list, ...) \
 	va_dispatch(list_ddup,__VA_ARGS__)(list,__VA_ARGS__)
 #define list_ddup1(list, typecmp) \
-{ \
+({ \
 	struct node *ddup1_prev = NULL; \
-	list_for_each_delsafe(*(list), it) { \
+	list_for_each_delsafe(*(list), it) \
 		if (ddup1_prev && !typecmp(ddup1_prev, it)) \
 			list_del(it); else ddup1_prev = it; \
-	} \
-}
+})
 #define list_ddup3(list, typecmp, type, member) \
-{ \
+({ \
 	type *ddup3_prev = NULL; \
-	list_for_each_delsafe(*(list), it, type, member) { \
+	list_for_each_delsafe(*(list), it, type, member) \
 		if (ddup3_prev && !typecmp(ddup3_prev, it)) \
 			list_del(&(it->member)); else ddup3_prev = it; \
-	} \
-}
-
-#define list_ddup_copy(__list, __cmp_fn, __cp_fn)
+})
 
 static inline void
 snode_init(struct snode *snode)

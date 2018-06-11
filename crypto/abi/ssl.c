@@ -76,7 +76,7 @@ static const char *aaa_attr_names[] = {
 	[AAA_ATTR_VERSION]   = "aaa.version"
 };
 	
-DECLARE_LIST(openssl_symtab);
+DEFINE_LIST(openssl_symtab);
 
 DEFINE_ABI(SSLeay);
 DEFINE_ABI(SSL_CTX_new);

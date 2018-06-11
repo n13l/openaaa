@@ -15,7 +15,7 @@ struct person {
 _unused static void
 test0_list(void)
 {
-	DECLARE_LIST(list);
+	DEFINE_LIST(list);
 
 	struct person daniel  = {.name = "Daniel",  .n = NODE_INIT};
 	struct person daniela = {.name = "Daniela", .n = NODE_INIT};
@@ -36,7 +36,7 @@ test0_list(void)
 static void
 test1_list(void)
 {
-	DECLARE_LIST(list);
+	DEFINE_LIST(list);
 	DECLARE_HLIST(hlist);
 
 	struct person daniel  = {.name = "Daniel",  .n = NODE_INIT};
@@ -176,7 +176,7 @@ test2_list(void)
 static void
 test3_list(void)
 {
-	DECLARE_LIST(list);
+	DEFINE_LIST(list);
 
 	struct person daniel  = {.name = "Daniel",  .n = NODE_INIT};
 	struct person adam    = {.name = "Adam",    .n = NODE_INIT};
