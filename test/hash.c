@@ -17,11 +17,11 @@ main(int argc, char *argv[])
 {
 	hash_init(table);
 
-	struct person daniel  = { .name = "Daniel",  .hnode = INIT_HNODE };
-	struct person daniela = { .name = "Daniela", .hnode = INIT_HNODE };
-	struct person adam    = { .name = "Adam",    .hnode = INIT_HNODE };
-	struct person eve     = { .name = "Eve",     .hnode = INIT_HNODE };
-	struct person robot   = { .name = "Robot",   .hnode = INIT_HNODE };
+	struct person daniel  = { .name = "Daniel",  .hnode = HNODE_INIT };
+	struct person daniela = { .name = "Daniela", .hnode = HNODE_INIT };
+	struct person adam    = { .name = "Adam",    .hnode = HNODE_INIT };
+	struct person eve     = { .name = "Eve",     .hnode = HNODE_INIT };
+	struct person robot   = { .name = "Robot",   .hnode = HNODE_INIT };
 
 	hash_add(table, &daniel.hnode, hash_string(daniel.name));
 	hash_add(table, &daniela.hnode, hash_string(daniela.name));

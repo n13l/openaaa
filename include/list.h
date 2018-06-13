@@ -1,5 +1,5 @@
 /*
- * Generic Single linked, Double linked and Circular doubly-linked list
+ * Intrusive containers for single, double and circular doubly-linked list
  *
  * The MIT License (MIT)         
  *
@@ -180,6 +180,15 @@ list_size(struct list *list)
 	return size;
 }
 
+#define __list_first(list) \
+	({ list_first(list); })
+#define __list_next(list,x) \
+	({ list_next(list,x); })
+#define list_move_before(x, y) \
+	({ list_del(x); list_add_before(x, y); })
+#define __list_move_before(x, y) \
+	({ list_move_before(x,y); })
+
 /**
  * list_walk  - iterate over list with declared iterator
  *
@@ -218,8 +227,8 @@ list_size(struct list *list)
  * list_walk_delsafe  - iterate over list with declared iterator
  *
  * @list:       the your list.
- * @it:	        the type safe iterator
- * @member:	the optional name of the node within the struct.
+ * @it:         the type safe iterator
+ * @member:     the optional name of the node within the struct.
  */
 
 #define list_walk_delsafe(list, ...) \
@@ -235,7 +244,7 @@ list_size(struct list *list)
  * @list:       the your list.
  * @it:	        the type safe iterator
  * @type:       the optional structure type
- * @member:	the optional name of the node within the struct.
+ * @member:     the optional name of the node within the struct.
  */
 
 #define list_for_each(list, ...) \
@@ -252,9 +261,9 @@ list_size(struct list *list)
  * list_for_each_delsafe - iterate over list with safety against removal
  *
  * @list:       the your list.
- * @it:	        the type safe iterator 
+ * @it:         the type safe iterator 
  * @type:       the optional structure type
- * @member:	the optional name of the node within the struct.
+ * @member:     the optional name of the node within the struct.
  */
 
 #define list_for_each_delsafe(list, ...) \
@@ -272,11 +281,11 @@ list_size(struct list *list)
  * @list:       the your list.
  * @fn:	        the type safe comparator
  * @type:       the optional structure type
- * @member:	the optional name of the node within the struct.
+ * @member:     the optional name of the node within the struct.
  */
 
 #define list_sort(list, ...) \
-	va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__VA_ARGS__)
+  va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__list,struct node,__VA_ARGS__)
 
 /**
  * list_sort_asc  - sort list 
@@ -284,11 +293,11 @@ list_size(struct list *list)
  * @list:       the your list.
  * @fn:	        the type safe comparator
  * @type:       the optional structure type
- * @member:	the optional name of the node within the struct.
+ * @member:     the optional name of the node within the struct.
  */
 
 #define list_sort_asc(list, ...) \
-	va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__VA_ARGS__)
+  va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__list,struct node,__VA_ARGS__)
 
 /**
  * list_sort_dsc  - sort list 
@@ -296,11 +305,11 @@ list_size(struct list *list)
  * @list:       the your list.
  * @fn:	        the type safe comparator
  * @type:       the optional structure type
- * @member:	the optional name of the node within the struct.
+ * @member:     the optional name of the node within the struct.
  */
 
 #define list_sort_dsc(list, ...) \
-	va_dispatch(bubble_sort_dsc,__VA_ARGS__)(list,__VA_ARGS__)
+  va_dispatch(bubble_sort_dsc,__VA_ARGS__)(list,__list,struct node, __VA_ARGS__)
 
 /**
  * list_ddup  - deduplicate list
@@ -316,17 +325,15 @@ list_size(struct list *list)
 	va_dispatch(list_ddup,__VA_ARGS__)(list,__VA_ARGS__)
 #define list_ddup1(list, typecmp) \
 ({ \
-	struct node *ddup1_prev = NULL; \
-	list_for_each_delsafe(*(list), it) \
-		if (ddup1_prev && !typecmp(ddup1_prev, it)) \
-			list_del(it); else ddup1_prev = it; \
+	struct node *__prev = NULL; list_for_each_delsafe(*(list), it) \
+		if (__prev && !typecmp(__prev, it)) \
+			list_del(it); else __prev = it; \
 })
 #define list_ddup3(list, typecmp, type, member) \
 ({ \
-	type *ddup3_prev = NULL; \
-	list_for_each_delsafe(*(list), it, type, member) \
-		if (ddup3_prev && !typecmp(ddup3_prev, it)) \
-			list_del(&(it->member)); else ddup3_prev = it; \
+	type *__prev = NULL; list_for_each_delsafe(*(list), it, type, member) \
+		if (__prev && !typecmp(__prev, it)) \
+			list_del(&(it->member)); else __prev = it; \
 })
 
 static inline void
@@ -355,27 +362,28 @@ slist_del(struct snode *node, struct snode *prev)
 #define slist_for_each_delsafe(item, member, it) \
 	for (; item && ({it=(typeof(item))item->member.next;1;}); item = it)
 
-#define DEFINE_HLIST(name)    struct hlist name;
-#define DECLARE_HLIST(name)   struct hlist name = {  .head = NULL }
-#define INIT_HLIST            { .head = NULL }
-#define INIT_HLIST_PTR(ptr)   ((ptr)->head = NULL)
-#define INIT_HLIST_HEAD(name) { &(name), &(name) }
-#define INIT_HNODE            (struct hnode) {.next = NULL, .prev = NULL}
-
-#define HNODE_HEAD(list) ({ list->head; })
-#define HNODE_NEXT(node) ({ node->next; })
+#define DEFINE_HLIST(name) \
+     	struct hlist name = {  .head = NULL }
+#define HLIST_INIT            \
+	(struct hlist) { .head = NULL }
+#define HLIST_INIT_HEAD(name) \
+	{ &(name), &(name) }
+#define HNODE_INIT \
+	(struct hnode) {.next = NULL, .prev = NULL}
+#define HNODE_HEAD(list) \
+	({ list->head; })
+#define HNODE_NEXT(node) \
+	({ node->next; })
 #define HNODE_ITER_DELSAFE(it, it_next) \
 	((it)&&({(it_next)=(it)->next;1;}))
 #define HNODE_HEAD_DELSAFE(list, it) \
 	({ it = (list).head; NULL; })
-
 #define HNODE_HEAD_TYPE_DELSAFE(list, it, member) \
 	({it = __container_of_safe((list)->head, typeof(*it), member); NULL; })
 #define HNODE_NEXT_TYPE(it_next, type, member) \
 	__container_of_safe(it_next, type, member)
 #define HNODE_ITER_TYPE_DELSAFE(it, it_next, type, member) \
 	((it)&&({(it_next)=(it)->member.next;1;}))
-
 
 static inline void
 hnode_init(struct hnode *hnode)
@@ -440,8 +448,8 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
  * hlist_walk - iterate over list with declared iterator
  *
  * @list:       the your list.
- * @it:	        iterator
- * @member:	the optional name of the node within the struct.
+ * @it:         iterator
+ * @member:     the optional name of the node within the struct.
  */
 
 #define hlist_walk(list, ...) \
@@ -455,8 +463,8 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
  * hlist_walk_delsafe - iterate over list with safety against removal
  *
  * @list:       the your list.
- * @it:	        iterator
- * @member:	the optional name of the node within the struct.
+ * @it:         iterator
+ * @member:     the optional name of the node within the struct.
  */
 
 #define hlist_walk_delsafe(list, ...) \
@@ -473,9 +481,9 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
  * hlist_for_each - iterate over list
  *
  * @list:       the your list.
- * @it:	        iterator
+ * @it:         iterator
  * @type:       the optional structure type
- * @member:	the optional name of the node within the struct.
+ * @member:     the optional name of the node within the struct.
  */
 
 #define hlist_for_each(list, ...) \
@@ -489,9 +497,9 @@ hlist_add_after(struct hnode *hnode, struct hnode *next)
  * hlist_for_each_delsafe - iterate over list with safety against removal
  *
  * @list:       the your list
- * @it:	        iterator
+ * @it:         iterator
  * @type:       the optional structure type
- * @member:	the optional name of the node within the struct.
+ * @member:     the optional name of the node within the struct.
  */
 
 #define hlist_for_each_delsafe(list, ...) \

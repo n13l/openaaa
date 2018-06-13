@@ -37,7 +37,7 @@ static void
 test1_list(void)
 {
 	DEFINE_LIST(list);
-	DECLARE_HLIST(hlist);
+	DEFINE_HLIST(hlist);
 
 	struct person daniel  = {.name = "Daniel",  .n = NODE_INIT};
 	struct person daniela = {.name = "Daniela", .n = NODE_INIT};

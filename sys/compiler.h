@@ -211,6 +211,22 @@ typedef u32 endian_bitwise wsum;
 	____ptr ? __container_of(____ptr, type, member): NULL; \
 })
 
+#define container_cmp(fn, a, b, type, member) \
+({ \
+ 	fn( \
+	(type *)((byte *)a - offsetof(type, member)), \
+	(type *)((byte *)b - offsetof(type, member)) \
+	); \
+})
+
+#define __container_cmp(fn, a, b, type, member) \
+({ \
+ 	fn( \
+	(type *)((byte *)a - offsetof(type, member)), \
+	(type *)((byte *)b - offsetof(type, member)) \
+	); \
+})
+
 #if __STDC_VERSION__ >= 201112L
 #define instance_of(X, T) \
 	_Generic((X), T: 1, const T: 1, default: 0)

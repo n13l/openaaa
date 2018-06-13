@@ -27,89 +27,137 @@
 
 #include <sys/compiler.h>
 
-/* 
- * TODO: use container type, node type instead of depend on list ops.
+/**
+ * bubble_sort
+ *
+ * sort container items in ascending order
+ *
+ * @self:       the instance
+ * @prefix      the prefix of _first(), _next() and _move_before() methods
+ * @node:       the node type of container set
+ * @cmp:        the type safe cmp
+ * @type:       the optional structure type of container
+ * @member:     the optional name of the node within the struct.
+ *
+ * container set requires defined _first(), _next(), _move_before() methods 
  */
+
+#define bubble_sort(self,prefix,node, ...) \
+	va_dispatch(bubble_sort_asc,__VA_ARGS__)(self,prefix,node,__VA_ARGS__)
 
 /**
- * bubble_sort  - sort container items sort container items in ascending order
+ * bubble_sort_asc
  *
- * @list:       the your list.
- * @fn:	        the type safe comparator
- * @type:       the optional structure type
- * @member:	the optional name of the node within the struct.
+ * sort container items in ascending order
+ *
+ * @self:       the instance
+ * @prefix      the prefix of _first(), _next() and _move_before() methods
+ * @node:       the node type of container set
+ * @cmp:        the type safe cmp
+ * @type:       the optional structure type of container
+ * @member:     the optional name of the node within the struct.
+ *
+ * container set requires defined _first(), _next(), _move_before() methods
  */
 
-#define bubble_sort(list, ...) \
-	va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__VA_ARGS__)
+#define bubble_sort_asc(self,prefix,node,...) \
+	va_dispatch(bubble_sort_asc,__VA_ARGS__)(self,prefix,node,__VA_ARGS__)
+#define bubble_sort_asc1(self,prefix,node,cmp) \
+({ \
+	for (node *z, *y, *x = prefix##_first(self); x; ) { \
+		for (z = y = x; (y = prefix##_next(self, y)); )   \
+			if (cmp(y, z) < 0) z = y; \
+		if (x == z) \
+			x = prefix##_next(self, x); \
+		else \
+			prefix##_move_before(z, x); \
+	} \
+})
+#define bubble_sort_asc3(self,prefix,node,cmp,type,member) \
+({ \
+	for (node *z, *y, *x = prefix##_first(self); x; ) { \
+		for (z = y = x; (y = prefix##_next(self, y)); )   \
+			if (container_cmp(cmp, y, z, type, member) < 0) z = y;\
+		if (x == z) \
+			x = prefix##_next(self, x); \
+		else \
+			prefix##_move_before(z, x); \
+	} \
+})
 
 /**
- * bubble_sort_asc  - sort container items in ascending order
+ * bubble_sort_dsc
  *
- * @list:       the your list.
- * @fn:	        the type safe comparator
- * @type:       the optional structure type
- * @member:	the optional name of the node within the struct.
+ * sort container items in descending order
+ *
+ * @self:       the instance
+ * @prefix      the prefix of _first(), _next() and _move_before() methods
+ * @node:       the node type of container set
+ * @cmp:        the type safe cmp
+ * @type:       the optional structure type of container
+ * @member:     the optional name of the node within the struct.
+ *
+ * container set requires defined _first(), _next(), _move_before() methods
+ * 
  */
 
-#define bubble_sort_asc(list, ...) \
-	va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__VA_ARGS__)
-#define bubble_sort_asc1(list, comparator) \
-        for (struct node *z, *y, *x = list_head(list); x; ) { \
-                for (z = y = x; (y = list_next(list, y)); )   \
-                        if (comparator(y, z) < 0) z = y; \
-                if (x == z) \
-			x = list_next(list, x); \
-		else { \
-			list_del(z); list_add_before(z, x); \
-		} \
-        }
-#define bubble_sort_asc3(list, comparator, type, member) \
-        for (struct node *z, *y, *x = list_head(list); x; ) { \
-                for (z = y = x; (y = list_next(list, y)); )   \
-                        if (comparator(__container_of(y, type, member), \
-			             __container_of(z, type, member)) < 0) \
-				z = y; \
-                if (x == z) \
-                        x = list_next(list, x); \
-                else { \
-                        list_del(z); list_add_before(z, x); \
-                } \
-        }
+#define bubble_sort_dsc(self,prefix,node, ...) \
+	va_dispatch(bubble_sort_dsc,__VA_ARGS__)(self,prefix,node,__VA_ARGS__)
+#define bubble_sort_dsc1(self,prefix,node,cmp) \
+({ \
+	for (node *z, *y, *x = prefix##_first(self); x; ) { \
+		for (z = y = x; (y = prefix##_next(self, y)); )   \
+			if (cmp(y, z) > 0) z = y; \
+		if (x == z) \
+			x = prefix##_next(self, x); \
+		else \
+			prefix##_move_before(z, x); \
+	} \
+})
+#define bubble_sort_dsc3(self,prefix,node,cmp, type, member) \
+({ \
+	for (node *z, *y, *x = prefix##_first(self); x; ) { \
+		for (z = y = x; (y = prefix##_next(self, y)); )   \
+			if (container_cmp(cmp, y, z, type, member) > 0) z = y;\
+		if (x == z) \
+			x = prefix##_next(self, x); \
+		else \
+			prefix##_move_before(z, x); \
+	} \
+})
 
 /**
- * bubble_sort_dsc  - sort container items in descending order
+ * merge_sort
  *
- * @list:       the your list.
- * @fn:	        the type safe comparator
+ * sort container items in ascending order
+ *
+ * @self:       the container
+ * @cmp:        the type safe cmp
  * @type:       the optional structure type
- * @member:	the optional name of the node within the struct.
+ * @member:     the optional name of the node within the struct.
  */
 
-#define bubble_sort_dsc(list, ...) \
-	va_dispatch(bubble_sort_dsc,__VA_ARGS__)(list,__VA_ARGS__)
-#define bubble_sort_dsc1(list, comparator) \
-        for (struct node *z, *y, *x = list_head(list); x; ) { \
-                for (z = y = x; (y = list_next(list, y)); )   \
-                        if (comparator(y, z) > 0) z = y; \
-                if (x == z) \
-                        x = list_next(list, x); \
-                else { \
-                        list_del(z); list_add_before(z, x); \
-                } \
-        }
-#define bubble_sort_dsc3(list, cmp_fn, __type, member) \
-        for (struct node *z, *y, *x = list_head(list); x; ) { \
-                for (z = y = x; (y = list_next(list, y)); )   \
-                        if (cmp_fn(__container_of(y, __type, member), \
-			           __container_of(z, __type, member)) > 0) \
-				z = y; \
-                if (x == z) \
-                        x = list_next(list, x); \
-                else { \
-                        list_del(z); list_add_before(z, x); \
-                } \
-        }
+#define merge_sort(self, ...) \
+	va_dispatch(merge_sort_asc,__VA_ARGS__)(self,__VA_ARGS__)
 
+/**
+ * merge_sort_asc
+ *
+ * sort container items in ascending order
+ *
+ * @self:       the your list.
+ * @cmp:        the type safe cmp
+ * @type:       the optional structure type
+ * @member:     the optional name of the node within the struct.
+ */
+
+#define merge_sort_asc(self, ...) \
+	va_dispatch(merge_sort_asc,__VA_ARGS__)(self,__VA_ARGS__)
+
+#define merge_sort_asc_recursive(self,...)
+#define merge_sort_asc1(self,cmp)
+
+#define merge_sort_dsc_recursive(self,...)
+#define merge_sort_dsc1(self,cmp)
 
 #endif/*__CCE_GENERIC_SORT_H__*/

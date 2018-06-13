@@ -1,3 +1,29 @@
+/*
+ * Generic hash functions 
+ *
+ * The MIT License (MIT)         
+ *
+ * Copyright (c) 2013 - 2019                        Daniel Kubec <niel@rtfm.cz>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"),to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ **/
+
 #ifndef __HASH_GENERIC_H__
 #define __HASH_GENERIC_H__
 
@@ -22,6 +48,33 @@ hash_u32(u32 x, unsigned int bits)
 	x = ((x >> 16) ^ x) * 0x45d9f3b;
 	x = (x >> 16) ^ x;
 	return x >> (32 - bits);
+}
+
+/*
+ * http://www.burtleburtle.net/bob/hash/doobs.html
+ *
+ * Bernstein's hash
+ *
+ * If your keys are lowercase English words, this will fit 6 characters into a 
+ * 32-bit hash with no collisions (you'd have to compare all 32 bits). If your 
+ * keys are mixed case English words, 65*hash+key[i] fits 5 characters into a 
+ * 32-bit hash with no collisions. That means this type of hash can produce 
+ * (for the right type of keys) fewer collisions than a hash that gives a more 
+ * truly random distribution. If your platform doesn't have fast multiplies, 
+ * no sweat, 33*hash = hash+(hash<<5) and most compilers will figure that out 
+ * for you.
+ *
+ * On the down side, if you don't have short text keys, this hash has a easily 
+ * detectable flaws. For example, there's a 3-into-2 funnel that 0x0021 and 
+ * 0x0100 both have the same hash (hex 0x21, decimal 33)
+ */
+
+static inline u32
+hash_u32_bernstein(u8 *key, u32 len, u32 level)
+{
+	u32 i, hash = level;
+	for (i = 0; i < len; ++i) hash = 33 * hash + key[i];
+		return hash;
 }
 
 static inline unsigned long
@@ -82,11 +135,11 @@ hash_buffer(const char *ptr, int size)
 
 #define hash_init(table) \
 	for (unsigned __i = 0; __i < array_size(table); __i++) \
-		INIT_HLIST_PTR(&table[__i]);
+		table[__i] = HLIST_INIT;
 
 #define hash_init_shared(table, shift) \
 	for (unsigned __i = 0; __i < (1 << shift); __i++) \
-		INIT_HLIST_PTR(&table[__i]);
+		table[__i] = HLIST_INIT;
 
 #define hash_add(htable, hnode, slot) hlist_add(&htable[slot],hnode)
 
