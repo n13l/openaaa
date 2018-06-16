@@ -33,7 +33,7 @@ test0_list(void)
 	list_add(&list, &pepa.n);
 }
 
-static void
+_unused static void
 test1_list(void)
 {
 	DEFINE_LIST(list);
@@ -115,7 +115,7 @@ person_node_cmp(struct node *a, struct node *b)
 	              __container_of(b, struct person, n)->name);
 }
 
-static void
+_unused static void
 test2_list(void)
 {
 	struct list list;
@@ -173,7 +173,7 @@ test2_list(void)
 		list_del(n);
 }
 
-static void
+_unused static void
 test3_list(void)
 {
 	DEFINE_LIST(list);
@@ -186,11 +186,15 @@ test3_list(void)
 	list_add(&list, &adam.n);
 	list_add(&list, &eve.n);
 
+	list_sort(&list, person_node_cmp);
+
 	list_for_each(list, it)
 		printf("a:%s\n", __container_of(it, struct person, n)->name);
 
 	list_for_each(list, it, struct person, n)
 		printf("b:%s\n", it->name);
+
+	list_sort_dsc(&list, person_node_cmp);
 
 	list_for_each_delsafe(list, it)
 		printf("da:%s\n", __container_of(it, struct person, n)->name);
@@ -200,35 +204,83 @@ test3_list(void)
 
 }
 
+_unused static void
+test4_list(void)
+{
+	DEFINE_LIST(list);
+
+	struct person daniel = { .name = "Daniel", .n = NODE_INIT};
+	struct person adam = { .name = "Adam", .n = NODE_INIT};
+	struct person eve = { .name = "Eve", .n = NODE_INIT};
+
+	list_add(&list, &daniel.n);
+	list_add(&list, &adam.n);
+	list_add(&list, &eve.n);
+
+	list_sort_asc(&list, person_node_cmp);
+	list_sort_asc(&list, person_cmp, struct person, n);
+
+	struct person *it;
+	list_walk(list, it, n) {
+		printf("a:%s\n", it->name); break;
+	}
+
+	list_walk_next(list, it, n) {
+		printf("b:%s\n", it->name); break;
+	}
+
+	list_walk_next(list, it, n)
+		printf("c:%s\n", it->name);
+
+	list_walk_next(list, it, n)
+		printf("d:%s\n", it->name);
+
+	list_walk(list, it, n) {
+		printf("e:%s\n", it->name); break;
+	}
+
+	list_walk_next(list, it, n)
+		printf("f:%s\n", it->name);
+
+}
+
 struct user {
 	char *name;
 	int id;
 	struct node n;
 };
 
-static void
-test4_list(void)
+static inline int
+user_name_cmp(struct user *a, struct user *b)
 {
-	/*
-	DECLARE_LIST(list);
+	return strcmp(a->name, b->name);
+}
 
-	list_add(&list, DECLARE_ITEM(struct user, n));
-	list_add(&list, DECLARE_ITEM(struct user, n, .name = "Daniel"));
-	list_add(&list, DECLARE_ITEM(struct user, n, .name = "Adam", .id = 1));
+_unused static void
+test5_list(void)
+{
+/*	
+	DEFINE_LIST(list);
 
-	struct user *user;
-	list_for_each_item(list, user, n) {
-		debug("user name=%s", user->name);
+	list_add(&list, DEFINE_LIST_ITEM(struct user, n));
+	list_add(&list, DEFINE_LIST_ITEM(struct user, n, .name = "Daniel"));
+	list_add(&list, DEFINE_LIST_ITEM(struct user, n, .name = "Adam", .id = 1));
+
+	list_sort_asc(&list, user_name_cmp, struct user, n);
+
+	struct user *it;
+	list_walk(list, it, n) {
+		printf("user name=%s\n", it->name);
 	};
-	*/
+*/	
 }
 
 int 
 main(int argc, char *argv[]) 
 {
-	test1_list();
-	test2_list();
-	test3_list();
+//	test1_list();
+//	test2_list();
+//	test3_list();
 	test4_list();
 
 	return 0;

@@ -38,7 +38,7 @@ __BEGIN_DECLS
 #define DEFINE_LIST_ITEM(type,member, ...) \
 ({ \
 	type __item = (type) { .member = NODE_INIT, ## __VA_ARGS__ }; \
-	& __item.node; \
+	& __item.member; \
 })
 
 #define LIST_ITEM(item, node) &(item.node)
@@ -171,23 +171,50 @@ list_del(struct node *node)
 static inline unsigned int
 list_size(struct list *list)
 {
-	unsigned int size = 0;
 	if (list_empty(list))
 		return 0;
 
+	unsigned int size = 0;
 	for (struct node *n = list->head.next; n != &list->head; n = n->next)
 		size++;
 	return size;
 }
 
-#define __list_first(list) \
-	({ list_first(list); })
-#define __list_next(list,x) \
-	({ list_next(list,x); })
-#define list_move_before(x, y) \
-	({ list_del(x); list_add_before(x, y); })
-#define __list_move_before(x, y) \
-	({ list_move_before(x,y); })
+static inline void
+list_split_after(struct node *node, struct list *list)
+{
+	struct node *before = node->prev;
+	struct node *after  = node->next;
+	before->next = after->prev = NULL;
+
+	list_add_head(list, after);
+}
+
+static inline void
+list_split(struct node *node, struct list *list)
+{
+	list_split_after(node, list);
+}
+
+static inline void
+list_join(struct list *x, struct list *y)
+{
+	if (list_empty(x) || list_empty(y))
+		return;
+}
+
+static inline struct node *
+list_pivot(struct list *list)
+{
+	return list_tail(list);
+}
+
+#define list_move_before(x, y)   ({ list_del(x); list_add_before(x, y); })
+
+/* used internally */
+#define __list_first(list)       ({ list_first(list); })
+#define __list_next(list,x)      ({ list_next(list,x); })
+#define __list_move_before(x, y) ({ list_move_before(x,y); })
 
 /**
  * list_walk  - iterate over list with declared iterator
@@ -217,8 +244,10 @@ list_size(struct list *list)
 #define list_walk_next(list, ...) \
 	va_dispatch(list_walk_next,__VA_ARGS__)(list,__VA_ARGS__)
 #define list_walk_next1(list, it) \
+	if ((it) != &(list).head) \
 	for ((it) = (it)->next; NODE_ITER(list,it); (it) = (it)->next)
 #define list_walk_next2(list, it, member) \
+	if (&(it)->member != &(list).head) \
 	for ((it) = NODE_NEXT_TYPE(it, typeof(*it), member); \
 	            NODE_ITER_TYPE(list, it, member); \
 	     (it) = NODE_NEXT_TYPE(it, typeof(*it), member))

@@ -227,6 +227,10 @@ typedef u32 endian_bitwise wsum;
 	); \
 })
 
+#define MACRO_EMPTY()
+#define MACRO_DEFER(id) id MACRO_EMPTY()
+#define MACRO_EXPAND(...) __VA_ARGS__
+
 #if __STDC_VERSION__ >= 201112L
 #define instance_of(X, T) \
 	_Generic((X), T: 1, const T: 1, default: 0)

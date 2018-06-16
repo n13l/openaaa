@@ -27,6 +27,15 @@
 #define array_size(a) (sizeof(a)/sizeof(*(a)))
 #endif
 
+#define array_first(array) \
+({ array[0]; })
+	
+#define array_next(array, x) \
+({ typeof(*x) y = x; y++; })
+
+#define array_move_before(x, y) \
+({ })
+
 #define array_for_each(ary, it) \
 	for (struct { typeof(*(ary)) it; int i } __it = {*(ary), 0};\
 	     __it.i < array_size(ary); \

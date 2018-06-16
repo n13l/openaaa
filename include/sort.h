@@ -40,6 +40,7 @@
  * @member:     the optional name of the node within the struct.
  *
  * container set requires defined _first(), _next(), _move_before() methods 
+ *
  */
 
 #define bubble_sort(self,prefix,node, ...) \
