@@ -1,5 +1,5 @@
 subdir-y := crypto/ perf/ mem/
-testprogs-y += array sandbox hash list dict hash table bb
+testprogs-y += array sandbox hash list sort dict hash table bb
 
 ifneq ($(PLATFORM),windows)
 testprogs-y += mpm

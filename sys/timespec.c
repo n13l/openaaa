@@ -78,6 +78,20 @@ timespec_sub(struct timespec *a, struct timespec *b)
 	a->tv_sec = a->tv_sec - b->tv_sec;
 }
 
+struct timespec
+timespec_diff(struct timespec *x, struct timespec *y)
+{
+	struct timespec diff;
+	if ((y->tv_nsec - x->tv_nsec) < 0) {
+		diff.tv_sec = y->tv_sec - x->tv_sec - 1;
+		diff.tv_nsec = 1000000000 + y->tv_nsec - x->tv_nsec;
+	} else {
+		diff.tv_sec = y->tv_sec - x->tv_sec;
+		diff.tv_nsec = y->tv_nsec - x->tv_nsec;
+	}
+	return diff;
+}
+
 int
 timespec_milliseconds(struct timespec *ts) 
 {

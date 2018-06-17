@@ -118,8 +118,7 @@ person_node_cmp(struct node *a, struct node *b)
 _unused static void
 test2_list(void)
 {
-	struct list list;
-	list_init(&list);
+	DEFINE_LIST(list);
 
 	struct person daniel  = {.name = "Daniel",  .n = NODE_INIT};
 	struct person daniela = {.name = "Daniela", .n = NODE_INIT};

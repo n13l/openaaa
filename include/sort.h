@@ -34,17 +34,18 @@
  *
  * @self:       the instance
  * @prefix      the prefix of _first(), _next() and _move_before() methods
- * @node:       the node type of container set
  * @cmp:        the type safe cmp
  * @type:       the optional structure type of container
  * @member:     the optional name of the node within the struct.
  *
  * container set requires defined _first(), _next(), _move_before() methods 
  *
+ * Time complexity: Θ(n^2) Space complexity: 0(n)
+ *
  */
 
-#define bubble_sort(self,prefix,node, ...) \
-	va_dispatch(bubble_sort_asc,__VA_ARGS__)(self,prefix,node,__VA_ARGS__)
+#define bubble_sort(self,prefix, ...) \
+	va_dispatch(bubble_sort_asc,__VA_ARGS__)(self,prefix,__VA_ARGS__)
 
 /**
  * bubble_sort_asc
@@ -53,19 +54,20 @@
  *
  * @self:       the instance
  * @prefix      the prefix of _first(), _next() and _move_before() methods
- * @node:       the node type of container set
  * @cmp:        the type safe cmp
  * @type:       the optional structure type of container
  * @member:     the optional name of the node within the struct.
  *
  * container set requires defined _first(), _next(), _move_before() methods
+ *
+ * Time complexity: Θ(n^2) Space complexity: 0(n)
  */
 
-#define bubble_sort_asc(self,prefix,node,...) \
-	va_dispatch(bubble_sort_asc,__VA_ARGS__)(self,prefix,node,__VA_ARGS__)
-#define bubble_sort_asc1(self,prefix,node,cmp) \
+#define bubble_sort_asc(self,prefix,...) \
+	va_dispatch(bubble_sort_asc,__VA_ARGS__)(self,prefix,__VA_ARGS__)
+#define bubble_sort_asc1(self,prefix,cmp) \
 ({ \
-	for (node *z, *y, *x = prefix##_first(self); x; ) { \
+	for (prefix##_node *z, *y, *x = prefix##_first(self); x; ) { \
 		for (z = y = x; (y = prefix##_next(self, y)); )   \
 			if (cmp(y, z) < 0) z = y; \
 		if (x == z) \
@@ -74,9 +76,9 @@
 			prefix##_move_before(z, x); \
 	} \
 })
-#define bubble_sort_asc3(self,prefix,node,cmp,type,member) \
+#define bubble_sort_asc3(self,prefix,cmp,type,member) \
 ({ \
-	for (node *z, *y, *x = prefix##_first(self); x; ) { \
+	for (prefix##_node *z, *y, *x = prefix##_first(self); x; ) { \
 		for (z = y = x; (y = prefix##_next(self, y)); )   \
 			if (container_cmp(cmp, y, z, type, member) < 0) z = y;\
 		if (x == z) \
@@ -93,7 +95,6 @@
  *
  * @self:       the instance
  * @prefix      the prefix of _first(), _next() and _move_before() methods
- * @node:       the node type of container set
  * @cmp:        the type safe cmp
  * @type:       the optional structure type of container
  * @member:     the optional name of the node within the struct.
@@ -102,11 +103,11 @@
  * 
  */
 
-#define bubble_sort_dsc(self,prefix,node, ...) \
-	va_dispatch(bubble_sort_dsc,__VA_ARGS__)(self,prefix,node,__VA_ARGS__)
-#define bubble_sort_dsc1(self,prefix,node,cmp) \
+#define bubble_sort_dsc(self,prefix, ...) \
+	va_dispatch(bubble_sort_dsc,__VA_ARGS__)(self,prefix,__VA_ARGS__)
+#define bubble_sort_dsc1(self,prefix,cmp) \
 ({ \
-	for (node *z, *y, *x = prefix##_first(self); x; ) { \
+	for (prefix##_node *z, *y, *x = prefix##_first(self); x; ) { \
 		for (z = y = x; (y = prefix##_next(self, y)); )   \
 			if (cmp(y, z) > 0) z = y; \
 		if (x == z) \
@@ -115,9 +116,9 @@
 			prefix##_move_before(z, x); \
 	} \
 })
-#define bubble_sort_dsc3(self,prefix,node,cmp, type, member) \
+#define bubble_sort_dsc3(self,prefix,cmp,type,member) \
 ({ \
-	for (node *z, *y, *x = prefix##_first(self); x; ) { \
+	for (prefix##_node *z, *y, *x = prefix##_first(self); x; ) { \
 		for (z = y = x; (y = prefix##_next(self, y)); )   \
 			if (container_cmp(cmp, y, z, type, member) > 0) z = y;\
 		if (x == z) \

@@ -63,6 +63,7 @@ struct node  { struct node  *next, *prev; };
 struct snode { struct snode *next; };
 struct hnode { struct hnode *next, **prev; };
 struct list  { struct node   head; };
+struct clist { struct node   head; unsigned int size; };
 struct slist { struct snode *head; };
 struct hlist { struct hnode *head; };
 
@@ -210,12 +211,13 @@ list_pivot(struct list *list)
 }
 
 #define list_move_before(x, y)   ({ list_del(x); list_add_before(x, y); })
+#define list_node struct node
 
 /* used internally */
 #define __list_first(list)       ({ list_first(list); })
 #define __list_next(list,x)      ({ list_next(list,x); })
 #define __list_move_before(x, y) ({ list_move_before(x,y); })
-
+#define __list_node list_node
 /**
  * list_walk  - iterate over list with declared iterator
  *
@@ -314,7 +316,7 @@ list_pivot(struct list *list)
  */
 
 #define list_sort(list, ...) \
-  va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__list,struct node,__VA_ARGS__)
+  va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__list,__VA_ARGS__)
 
 /**
  * list_sort_asc  - sort list 
@@ -326,7 +328,7 @@ list_pivot(struct list *list)
  */
 
 #define list_sort_asc(list, ...) \
-  va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__list,struct node,__VA_ARGS__)
+  va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__list,__VA_ARGS__)
 
 /**
  * list_sort_dsc  - sort list 
@@ -338,7 +340,7 @@ list_pivot(struct list *list)
  */
 
 #define list_sort_dsc(list, ...) \
-  va_dispatch(bubble_sort_dsc,__VA_ARGS__)(list,__list,struct node, __VA_ARGS__)
+  va_dispatch(bubble_sort_dsc,__VA_ARGS__)(list,__list, __VA_ARGS__)
 
 /**
  * list_ddup  - deduplicate list

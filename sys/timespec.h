@@ -25,7 +25,29 @@
 #ifndef __SYS_TIMESPEC_H__
 #define __SYS_TIMESPEC_H__
 
-struct timespec;
+#include <time.h>
+
+#define DEFINE_BENCHMARK(name) struct benchmark name = {0};
+
+#define BENCHMARK_INIT(name) \
+	timespec_now((struct timespec *)&name.init);
+#define BENCHMARK_FINI(name) \
+	timespec_now((struct timespec *)&name.fini); \
+	name.elapsed = timespec_diff(&name.init, &name.fini); \
+
+#define BENCHMARK_PRINT(name,call,fmt,...) \
+({ \
+	fprintf(stdout, fmt, ## __VA_ARGS__); fflush(stdout); \
+ 	BENCHMARK_INIT(name); call; BENCHMARK_FINI(name); \
+ 	double __elapsed = timespec_milliseconds(&name.elapsed); \
+	fprintf(stdout, "\telapsed: %4.2f secs\n", ((double)__elapsed) / 1000.);\
+})
+
+struct benchmark {
+	struct timespec init;
+	struct timespec fini;
+	struct timespec elapsed;
+};
 
 void
 timespec_now(struct timespec *ts);
@@ -38,6 +60,9 @@ timespec_add_ns(struct timespec *ts, long ns);
 
 void
 timeval_set(struct timeval *tv, double d);
+
+struct timespec
+timespec_diff(struct timespec *x, struct timespec *y);
 
 void
 timespec_adj(struct timespec *ts, double d);
