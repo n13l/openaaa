@@ -32,6 +32,9 @@
 #include <math.h>
 #include <limits.h>
 
+#define XXH_INLINE_ALL
+#include "xxhash.h"
+
 static inline u64
 hash_u64(u64 x, unsigned int bits)
 {
