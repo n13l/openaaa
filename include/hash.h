@@ -92,22 +92,23 @@ hash_ptr(const void *ptr, unsigned int bits)
 #endif
 }
 
-static inline unsigned long
-hash_string(const char *str)
-{
-	unsigned long v = 0;
-	for (const char *c = str; *c; )
-		v = (((v << 1) + (v >> 14)) ^ (*c++)) & 0x3fff;
-	return(v);
-}
-
-static inline unsigned long
+static inline unsigned long long
 hash_buffer(const char *ptr, int size)
 {
-	unsigned long v = 0;
-	for (const char *c = ptr; size; size--)
-		v = (((v << 1) + (v >> 14)) ^ (*c++)) & 0x3fff;
-	return(v);
+    unsigned long long const seed = 0;
+#if CPU_ARCH_BITS == 32    
+    unsigned long long const hash = XXH32(ptr, size, seed);
+#elif CPU_ARCH_BITS == 64
+    unsigned long long const hash = XXH64(ptr, size, seed);
+#endif    
+    return hash;
+}
+
+static inline unsigned long long
+hash_string(const char *str)
+{
+	size_t size = strlen(str);
+	return hash_buffer(str, size);
 }
 
 /* 
