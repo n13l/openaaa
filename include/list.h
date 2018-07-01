@@ -453,7 +453,7 @@ slist_del(struct snode *node, struct snode *prev)
 	va_dispatch(slist_merge_sorted_asc,__VA_ARGS__)(head1,head2,__VA_ARGS__)
 #define slist_merge_sorted_asc1(head1, head2, cmp) \
 ({ \
-	struct node *x = head1, *y = head2, *n = NULL, **z = &n; \
+	typeof(*head1) *x = head1, *y = head2, *n = NULL, **z = &n; \
 	for (; x && y; z = &((*z)->next) ) { \
 		if (cmp(x, y) > 0) \
 			{ *z = y; y = y->next; } \
@@ -465,7 +465,7 @@ slist_del(struct snode *node, struct snode *prev)
 })
 #define slist_merge_sorted_asc3(head1, head2, cmp, type, member) \
 ({ \
-	struct node *x = head1, *y = head2, *n = NULL, **z = &n; \
+	typeof(*head1) *x = head1, *y = head2, *n = NULL, **z = &n; \
 	for (; x && y; z = &((*z)->next) ) { \
 		if (container_cmp(cmp, x, y, type, member) > 0) \
 			{ *z = y; y = y->next; } \
@@ -490,7 +490,7 @@ slist_del(struct snode *node, struct snode *prev)
 	va_dispatch(slist_merge_sorted_dsc,__VA_ARGS__)(head1,head2,__VA_ARGS__)
 #define slist_merge_sorted_dsc1(head1, head2, cmp) \
 ({ \
-	struct node *x = head1, *y = head2, *n = NULL, **z = &n; \
+	typeof(*head1) *x = head1, *y = head2, *n = NULL, **z = &n; \
 	for (; x && y; z = &((*z)->next) ) { \
 		if (cmp(x, y) < 0) \
 			{ *z = y; y = y->next; } \
@@ -502,7 +502,7 @@ slist_del(struct snode *node, struct snode *prev)
 })
 #define slist_merge_sorted_dsc3(head1, head2, cmp, type, member) \
 ({ \
-	struct node *x = head1, *y = head2, *n = NULL, **z = &n; \
+	typeof(*head1) *x = head1, *y = head2, *n = NULL, **z = &n; \
 	for (; x && y; z = &((*z)->next) ) { \
 		if (container_cmp(cmp, x, y, type, member) < 0) \
 			{ *z = y; y = y->next; } \
