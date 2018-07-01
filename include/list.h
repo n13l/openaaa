@@ -1,5 +1,5 @@
 /*
- * Intrusive containers for single, double and circular doubly-linked list
+ * Intrusive containers for single, double and circular linked list
  *
  * The MIT License (MIT)         
  *
@@ -181,34 +181,70 @@ list_size(struct list *list)
 	return size;
 }
 
-static inline void
-list_split_after(struct node *node, struct list *list)
+static inline int
+list_singular(struct list *list)
 {
-	struct node *before = node->prev;
-	struct node *after  = node->next;
-	before->next = after->prev = NULL;
+	return (list->head.next->next == &list->head);
+}
 
-	list_add_head(list, after);
+static inline int
+list_order(struct list *list)
+{
+	int order = 0;
+	if (list_empty(list) || list_singular(list))
+		return order;
+
+	struct node *n;
+	for (n = list->head.next; n != &list->head; n = n->next) {
+	}
+
+	return 0;
 }
 
 static inline void
-list_split(struct node *node, struct list *list)
+list_enable_prev(struct list *list, struct node *head)
 {
-	list_split_after(node, list);
-}
+	struct node *node;
+	for (node = head; node->next; node = node->next);
 
-static inline void
-list_join(struct list *x, struct list *y)
-{
-	if (list_empty(x) || list_empty(y))
-		return;
+	list->head.prev = node;
+	list->head.next = head;
+	node->next = &list->head;
 }
 
 static inline struct node *
-list_pivot(struct list *list)
+list_disable_prev(struct list *list)
 {
-	return list_tail(list);
+	list->head.prev->next = NULL;
+	return list->head.next;
 }
+
+/**
+ * list_del_cmp - compare two lists and delete same items
+ *
+ * @a:          the first list.
+ * @b:          the second list.
+ * @fn:	        the strcmp() like function which return zero for equal items
+ * @type:       the optional structure type
+ * @member:     the optional name of the node within the struct.
+ *
+ */
+
+#define list_del_cmp(a, b, ...) \
+	va_dispatch(list_del_cmp,__VA_ARGS__)(a,b,__VA_ARGS__)
+#define list_del_cmp1(a, b, fn) \
+({ \
+	list_for_each_delsafe(a, x) list_for_each_delsafe(b, y) { \
+		if (fn(x, y)) continue; list_del(x); list_del(y); \
+	} \
+})
+#define list_del_cmp3(a, b, fn, type, member) \
+({ \
+	list_for_each_delsafe(a, x) list_for_each_delsafe(b, y) { \
+		if (container_cmp(fn,x, y, type, member)) continue; \
+		list_del(x); list_del(y); \
+	} \
+})
 
 #define list_move_before(x, y)   ({ list_del(x); list_add_before(x, y); })
 #define list_node struct node
@@ -218,6 +254,7 @@ list_pivot(struct list *list)
 #define __list_next(list,x)      ({ list_next(list,x); })
 #define __list_move_before(x, y) ({ list_move_before(x,y); })
 #define __list_node list_node
+
 /**
  * list_walk  - iterate over list with declared iterator
  *
@@ -316,7 +353,7 @@ list_pivot(struct list *list)
  */
 
 #define list_sort(list, ...) \
-  va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__list,__VA_ARGS__)
+  va_dispatch(insert_sort_asc,__VA_ARGS__)(list,__list,__VA_ARGS__)
 
 /**
  * list_sort_asc  - sort list 
@@ -328,7 +365,7 @@ list_pivot(struct list *list)
  */
 
 #define list_sort_asc(list, ...) \
-  va_dispatch(bubble_sort_asc,__VA_ARGS__)(list,__list,__VA_ARGS__)
+  va_dispatch(insert_sort_asc,__VA_ARGS__)(list,__list,__VA_ARGS__)
 
 /**
  * list_sort_dsc  - sort list 
@@ -340,10 +377,11 @@ list_pivot(struct list *list)
  */
 
 #define list_sort_dsc(list, ...) \
-  va_dispatch(bubble_sort_dsc,__VA_ARGS__)(list,__list, __VA_ARGS__)
+  va_dispatch(insert_sort_dsc,__VA_ARGS__)(list,__list, __VA_ARGS__)
 
 /**
  * list_ddup  - deduplicate list
+ *
  * @list:       the your list.
  * @fn:	        the type safe comparator
  * @type:       the optional structure type
@@ -386,6 +424,132 @@ slist_del(struct snode *node, struct snode *prev)
 		return;
 	prev->next = node->next;
 }
+
+/**
+ * snode_split - split single-linked list 
+ * @head:          the first list.
+ */
+
+#define snode_split(head) \
+({ \
+	typeof(*head) *node, *fast, *slow; \
+	for (fast = slow = head; fast->next && fast->next->next; ) { \
+		fast = fast->next->next; slow = slow->next; \
+	} \
+	node = slow->next; slow->next = NULL; node; \
+})
+
+/**
+ * slist_merge_sorted_asc - merge sorted single linked-list
+ *
+ * @head1:      the head of first list
+ * @head2:      the head of second list
+ * @cmp:        the type safe comparator
+ * @type:       the optional structure type
+ * @member:     the optional name of the node within the struct.
+ */
+
+#define slist_merge_sorted_asc(head1,head2, ...) \
+	va_dispatch(slist_merge_sorted_asc,__VA_ARGS__)(head1,head2,__VA_ARGS__)
+#define slist_merge_sorted_asc1(head1, head2, cmp) \
+({ \
+	struct node *x = head1, *y = head2, *n = NULL, **z = &n; \
+	for (; x && y; z = &((*z)->next) ) { \
+		if (cmp(x, y) > 0) \
+			{ *z = y; y = y->next; } \
+		else \
+			{ *z = x; x = x->next; } \
+	} \
+	*z = x ? x: y; \
+	n; \
+})
+#define slist_merge_sorted_asc3(head1, head2, cmp, type, member) \
+({ \
+	struct node *x = head1, *y = head2, *n = NULL, **z = &n; \
+	for (; x && y; z = &((*z)->next) ) { \
+		if (container_cmp(cmp, x, y, type, member) > 0) \
+			{ *z = y; y = y->next; } \
+		else \
+			{ *z = x; x = x->next; } \
+	} \
+	*z = x ? x: y; \
+	n; \
+})
+
+/**
+ * slist_merge_sorted_dsc - merge sorted single linked-list
+ *
+ * @head1:      the head of first list
+ * @head2:      the head of second list
+ * @cmp:        the type safe comparator
+ * @type:       the optional structure type
+ * @member:     the optional name of the node within the struct.
+ */
+
+#define slist_merge_sorted_dsc(head1,head2, ...) \
+	va_dispatch(slist_merge_sorted_dsc,__VA_ARGS__)(head1,head2,__VA_ARGS__)
+#define slist_merge_sorted_dsc1(head1, head2, cmp) \
+({ \
+	struct node *x = head1, *y = head2, *n = NULL, **z = &n; \
+	for (; x && y; z = &((*z)->next) ) { \
+		if (cmp(x, y) < 0) \
+			{ *z = y; y = y->next; } \
+		else \
+			{ *z = x; x = x->next; } \
+	} \
+	*z = x ? x: y; \
+	n; \
+})
+#define slist_merge_sorted_dsc3(head1, head2, cmp, type, member) \
+({ \
+	struct node *x = head1, *y = head2, *n = NULL, **z = &n; \
+	for (; x && y; z = &((*z)->next) ) { \
+		if (container_cmp(cmp, x, y, type, member) < 0) \
+			{ *z = y; y = y->next; } \
+		else \
+			{ *z = x; x = x->next; } \
+	} \
+	*z = x ? x: y; \
+	n; \
+})
+
+/**
+ * snode_walk  - iterate over nodes with declared iterator
+ *
+ * @node        the node with next relation, null terminated
+ * @it:	        the type safe iterator
+ * @member:     the optional name of the node within the struct.
+ */
+
+#define snode_walk(node, ...) \
+	va_dispatch(snode_walk,__VA_ARGS__)(node,__VA_ARGS__)
+#define snode_walk1(node, it) \
+	for ((it) = (node); (it); (it) = (it)->next)
+
+/**
+ * slist_walk  - iterate over list with declared iterator
+ *
+ * @list:       the your list.
+ * @it:	        the type safe iterator
+ * @member:     the optional name of the node within the struct.
+ */
+
+#define slist_walk(list, ...) \
+	va_dispatch(slist_walk,__VA_ARGS__)(list,__VA_ARGS__)
+#define slist_walk1(list, it) \
+	for ((it) = NODE_HEAD(list); (it); (it) = (it)->next)
+
+/**
+ * slist_walk_next - iterate over list with existing iterator
+ *
+ * @it:	        the type safe iterator
+ * @member:     the optional name of the node within the struct.
+ */
+
+#define slist_walk_next(list, ...) \
+	va_dispatch(list_walk_next,__VA_ARGS__)(list,__VA_ARGS__)
+#define slist_walk_next1(list, it) \
+	for ((it) = (it)->next; (it); (it) = (it)->next)
 
 #define slist_for_each(item, member, it) \
 	for (; item; item = it)

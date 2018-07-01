@@ -26,6 +26,7 @@ int log_type = 0;
 void *log_userdata = NULL;
 int log_verbose = 0;
 char progname[256] = {0};
+int log_fd_stdout = -1;
 
 void (*log_write_cb)(struct log_ctx *ctx, const char *msg, int len) = NULL;
 
@@ -41,6 +42,8 @@ log_open(const char *file, int facility)
 		openlog(progname, LOG_CONS | LOG_PID | LOG_NDELAY, facility);
 		break;
 	}
+
+	log_fd_stdout = fileno(stdout);
 }
 
 void
@@ -139,7 +142,7 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 		syslog(ctx->level > 7 ? 7 : ctx->level, "%s", amsg);
 		break;
 	default:
-		write(0, amsg, strlen(amsg));
+		write(log_fd_stdout, amsg, strlen(amsg));
 		break;
 	}
 #endif

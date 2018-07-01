@@ -9,7 +9,6 @@
 #include <string.h>
 
 DEFINE_BENCHMARK(bench);
-
 DEFINE_LIST(list);
 
 static struct user *db;
@@ -37,10 +36,27 @@ static inline int user_cmp(struct user *a, struct user *b)
 	return 0;
 }
 
+static inline int user_node_cmp(struct node *x, struct node *y)
+{
+	struct user *a = __container_of(x, struct user, n); 
+	struct user *b = __container_of(y, struct user, n);
+	int cmp;
+	if ((cmp = strcmp(a->first, b->first)))
+		return cmp;
+	if ((cmp = strcmp(a->last, b->last)))
+		return cmp;
+	return 0;
+}
+
+
+static inline void user_print_ln(struct user *x)
+{
+	printf("%s:%s\n", x->first, x->last);
+}
+
 static inline void user_print(struct user *x)
 {
-	printf("%s:%s:%s:%s:%s\n", 
-	       x->first, x->last, x->race, x->gender, x->email);
+	printf("%s:%s ", x->first, x->last);
 }
 
 static inline void
@@ -84,7 +100,7 @@ load_users_csv(void)
 		parse_line(users, line, len);
 		users++;
 
-		if (users>=10000)
+		if (users >= 30000)
 			break;
 	}
 
@@ -96,31 +112,114 @@ load_users_csv(void)
 	BENCHMARK_INIT(bench);
 }
 
-static void
+_unused static void
 test_default_sort(void)
 {
 	/* initialize user database because we want stable sequential access */
 	load_users_csv();
-	/* sort users using bubble sort in ascending order */
+	/* sort users using insert sort in ascending order */
 	list_sort_asc(&list, user_cmp, struct user, n);
 }
 
-static void
-test_bubble_sort(void)
+_unused static void
+test_array_sort(void)
 {
 	/* initialize user database because we want stable sequential access */
 	load_users_csv();
-	/* sort users using bubble-sort in ascending order */
-	bubble_sort_asc(&list, list, user_cmp, struct user, n);
+	/* sort users using insert-sort in ascending order */
+	insert_sort_asc(&list, list, user_cmp, struct user, n);
 }
 
-static void
-test_merge_sort(void)
+_unused static void
+test_insert_sort(void)
+{
+	/* initialize user database because we want stable sequential access */
+	load_users_csv();
+	/* sort users using insert-sort in ascending order */
+	insert_sort_asc(&list, list, user_cmp, struct user, n);
+}
+
+_unused static void
+test_select_sort(void)
+{
+	/* initialize user database because we want stable sequential access */
+	load_users_csv();
+	/* sort users using insert-sort in ascending order */
+	select_sort_asc(&list, list, user_cmp, struct user, n);
+}
+
+#define __do_merge_sort_r_xy_not_null(x, y, fn, cb) \
+({ \
+	(x) == NULL ? (y): (y) == NULL ? (x): fn((x), (y), (cb)); \
+})
+#define __do_merge_sort_r_a(x, y, fn, cb) \
+({ \
+	x->next = __do_merge_sort_r_xy_not_null(x->next, y, fn, cb); \
+	x->next->prev = x; x->prev = NULL; x; \
+})
+#define __do_merge_sort_r_b(x, y, fn, cb) \
+({ \
+	y->next = __do_merge_sort_r_xy_not_null(x, y->next, fn, cb); \
+	y->next->prev = y; y->prev = NULL; y; \
+})
+
+struct node *
+__do_merge_sort_asc_r(struct node *x, struct node *y, 
+                      int (*fn)(struct node *, struct node *))
+{
+	if (fn(x, y) < 0)
+		return __do_merge_sort_r_a(x, y, __do_merge_sort_asc_r, fn);
+	else
+		return __do_merge_sort_r_b(x, y, __do_merge_sort_asc_r, fn);
+}
+
+struct node *
+do_merge_sort_asc_r(struct node *x, int (*fn)(struct node *, struct node *))
+{
+	if (!x || !x->next)
+		return x;
+
+	struct node *y = snode_split(x);
+	x = do_merge_sort_asc_r(x, fn);
+	y = do_merge_sort_asc_r(y, fn);
+	return __do_merge_sort_r_xy_not_null(x, y, __do_merge_sort_asc_r, fn);
+}
+
+void
+merge_sort_asc_recursive(struct list *self, int (*cmp)(struct node *, struct node *))
+{
+	if (list_empty(self) || list_singular(self))
+		return;
+	struct node *x = list_disable_prev(self);
+	struct node *y = do_merge_sort_asc_r(x, cmp);
+	list_enable_prev(self, y);
+}
+
+_unused static void
+test_merge_sort_asc_recursive(void)
 {
 	/* initialize user database because we want stable sequential access */
 	load_users_csv();
 	/* sort users using merge-sort in ascending order */
-	bubble_sort_asc(&list, list, user_cmp, struct user, n);
+	merge_sort_asc_recursive(&list, user_node_cmp);
+}
+
+_unused static void
+test_merge_sort_asc_iterative(void)
+{
+	/* initialize user database because we want stable sequential access */
+	load_users_csv();
+	/* merge-sort users in ascending order */
+	//merge_sort_asc(&list, list, user_node_cmp);
+	merge_sort_asc(&list, list, user_cmp, struct user, n);
+}
+
+_unused static void
+test_invers_asc(void)
+{
+	printf("Running iterative check inversions: ");
+	unsigned int c = invers_asc(&list,list,user_cmp, struct user, n);
+	printf("%s\n", c ? "failed": "ORDER-ASCENDING");
 }
 
 int 
@@ -128,17 +227,23 @@ main(int argc, char *argv[])
 {
 	load_users_csv();
 
-	BENCHMARK_PRINT(bench,test_bubble_sort(),
-	                "Running bubble-sort for %d users. ", users);
-	BENCHMARK_PRINT(bench,test_merge_sort(),
-	                "Running merge-sort for %d users. ", users);
-	BENCHMARK_PRINT(bench,test_bubble_sort(),
-	                "Running quick-sort for %d users. ", users);
-	BENCHMARK_PRINT(bench,test_default_sort(),
-	                "Running default sort for %d users. ", users);
-	
-	list_for_each(list, it, struct user, n)
-		user_print(it);
+	BENCHMARK_PRINT(bench,test_insert_sort(),
+	"Running iterative insert-sort over intrusive list size: %d", users);
+	BENCHMARK_PRINT(bench,test_insert_sort(),
+	"Running iterative select-sort over intrusive list size: %d", users);
+
+	BENCHMARK_PRINT(bench,test_merge_sort_asc_recursive(),
+	"Running recursive merge-sort  over intrusive list size: %d", users);
+
+//	list_for_each(list, it, struct user, n) user_print_ln(it);
+//	test_invers_asc();
+
+	BENCHMARK_PRINT(bench,test_merge_sort_asc_iterative(),
+	"Running iterative merge-sort  over intrusive list size: %d", users);
+
+//	list_for_each(list, it, struct user, n) user_print_ln(it);
+
+//	test_invers_asc();
 
 	return 0;
 }
