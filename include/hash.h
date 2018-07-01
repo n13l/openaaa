@@ -32,7 +32,9 @@
 #include <math.h>
 #include <limits.h>
 
+#ifndef XXH_INLINE_ALL
 #define XXH_INLINE_ALL
+#endif
 #include "xxhash.h"
 
 static inline u64
