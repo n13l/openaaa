@@ -13,7 +13,7 @@
 #include <sys/time.h>
 #include <sys/timeb.h>
 #include <errno.h>
-
+#include <stdio.h>
 #include <ws2tcpip.h>
 
 #ifndef RTLD_NOLOAD
@@ -116,6 +116,9 @@ void win32_stacktrace(void *ctx);
 
 static inline char **setproctitle_init(int argc, char *argv[]) {return argv; };
 static inline void setproctitle(const char *fmt, ...) { };
+
+ssize_t
+getline(char **buf, size_t *bufsiz, FILE *fp);
 
 #ifndef INET6_ADDRSTRLEN
 #define INET6_ADDRSTRLEN 46

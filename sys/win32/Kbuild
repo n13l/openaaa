@@ -1,2 +1,2 @@
 obj-y := errno.o mman.o lockf.o fsync.o fcntl.o syslog.o dlfcn.o fork.o stack.o clock.o
-obj-y += dirent.o dirname.o basename.o syslog.o time.o signal.o io.o 
+obj-y += dirent.o dirname.o basename.o syslog.o time.o signal.o io.o getline.o
