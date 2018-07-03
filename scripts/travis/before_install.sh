@@ -19,6 +19,14 @@ export VERSION="$BUILD_MAJOR"
 export PATCHLEVEL="$BUILD_MINOR"
 export SUBLEVEL="$BUILD_REVISION"
 
+shell_session_update() { :; }                                                      
+wget http://ftp.gnu.org/pub/gnu/gperf/gperf-3.1.tar.gz                             
+export NEWPWD=$PWD                                                                 
+mkdir $NEWPWD/local                                                                
+tar -xvzf gperf-3.1.tar.gz -C $NEWPWD/local                                        
+echo "enter1: $NEWPWD/local/gperf-3.1"                                             
+sh -c 'cd $NEWPWD/local/gperf-3.1 && ./configure --prefix=$NEWPWD/local && make && make install'
+
 if [ "$BUILD_TARGET" == "win32" ]; then 
   unset CC 
   export CROSS_COMPILE="i686-w64-mingw32-"
