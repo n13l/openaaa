@@ -7,7 +7,7 @@ obj-m := $(libname).o
 $(libname)-objs := pk.o
 
 ifeq ($(COMPILER),clang)
-CFLAGS_pk.o := -Wno-attributes
+CFLAGS_pk.o := -Wno-attributes -Wno-unknown-attributes
 endif
 
 #swflags           := -debug-module 1

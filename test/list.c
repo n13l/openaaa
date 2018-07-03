@@ -249,7 +249,7 @@ struct user {
 	struct node n;
 };
 
-static inline int
+_unused static inline int
 user_name_cmp(struct user *a, struct user *b)
 {
 	return strcmp(a->name, b->name);

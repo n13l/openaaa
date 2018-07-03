@@ -27,7 +27,8 @@
 
 #include <time.h>
 
-#define DEFINE_BENCHMARK(name) struct benchmark name = {0};
+#define DEFINE_BENCHMARK(name) \
+	struct benchmark name = { .init = {0,0}, .fini = {0,0}, .elapsed = {0,0}}
 
 #define BENCHMARK_INIT(name) \
 	timespec_now((struct timespec *)&name.init);

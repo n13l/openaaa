@@ -36,7 +36,7 @@ static inline int user_cmp(struct user *a, struct user *b)
 	return 0;
 }
 
-static inline int user_node_cmp(struct node *x, struct node *y)
+_unused static inline int user_node_cmp(struct node *x, struct node *y)
 {
 	struct user *a = __container_of(x, struct user, n); 
 	struct user *b = __container_of(y, struct user, n);
@@ -49,12 +49,12 @@ static inline int user_node_cmp(struct node *x, struct node *y)
 }
 
 
-static inline void user_print_ln(struct user *x)
+_unused static inline void user_print_ln(struct user *x)
 {
 	printf("%s:%s\n", x->first, x->last);
 }
 
-static inline void user_print(struct user *x)
+_unused static inline void user_print(struct user *x)
 {
 	printf("%s:%s ", x->first, x->last);
 }
