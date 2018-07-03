@@ -152,14 +152,6 @@ script:
 - export
 # - shell_session_update() { :; } # workarround mac os build bug
 - export PATH=$PWD/local/bin:$PATH
-- wget http://ftp.gnu.org/pub/gnu/gperf/gperf-3.1.tar.gz
-- tar -xvzf gperf-3.1.tar.gz
-- cd gperf-3.1/
-- ./configure --prefix=/tmp/local
-- make
-- make install
-- export PATH=/tmp/local/bin:$PATH
-- cd ..
 # mkdir ./rpm
 # cp ./scripts/package/openaaa.spec ./rpm/ 
 - git submodule update --init --recursive
