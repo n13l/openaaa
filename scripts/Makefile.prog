@@ -35,7 +35,7 @@ testld_libs = $(KBUILD_LIBS)
 
 # prog-csingle -> executable
 quiet_cmd_prog-csingle = CC      $@
-      cmd_prog-csingle = $(CC) $(LDFLAGS_$(*F)) $(testc_flags) -o $@ $< $(testld_builtin) \
+      cmd_prog-csingle = $(CC) $(testc_flags) -o $@ $< $(testld_builtin) $(LDFLAGS_$(*F)) \
                                $(testld_libs) $(LIBS_$(*F)) $(KBUILD_LIBS)
 
 $(prog-csingle): $(__obj_fixed)/%: $(__src_fixed)/%.c FORCE
@@ -50,8 +50,8 @@ $(prog-cobjs): $(__obj_fixed)/%.o: $(__src_fixed)/%.c FORCE
 
 # Link an executable based on list of .o files
 quiet_cmd_prog-cmulti	= LD      $@
-      cmd_prog-cmulti	= $(CC) $(testld_flags) -o $@ \
-			  $(addprefix $(obj)/,$($(@F)-y)) $(testld_builtin) \
+      cmd_prog-cmulti	= $(CC) (testld_flags) -o $@ \
+			  $(addprefix $(obj)/,$($(@F)-y)) $(testld_builtin) $(LDFLAGS_$(*F)) \
       			  $(testld_libs) $(LIBS_$(*F)) $(KBUILD_LIBS)
 $(prog-cmulti): $(__obj_fixed)/%: $(prog-cobjs) FORCE
 	$(call if_changed,prog-cmulti)

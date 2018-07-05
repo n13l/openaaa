@@ -2,9 +2,7 @@
 #include <sys/cpu.h>
 #include <sys/log.h>
 #include <list.h>
-
 #include <timespec.h>
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -231,7 +229,6 @@ main(int argc, char *argv[])
 	"Running iterative insert-sort over intrusive list size: %d", users);
 	BENCHMARK_PRINT(bench,test_insert_sort(),
 	"Running iterative select-sort over intrusive list size: %d", users);
-
 	BENCHMARK_PRINT(bench,test_merge_sort_asc_recursive(),
 	"Running recursive merge-sort  over intrusive list size: %d", users);
 

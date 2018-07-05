@@ -1,0 +1,76 @@
+progs-y := bbb
+LIBS_bbb = bbb/built-in.o bbb/$(libname).a
+
+LDFLAGS_bbb = -lssl -lcrypto -lnghttp2
+
+CFLAGS_srv.o += -Wno-unused-value -Wno-unused-function 
+CFLAGS_srv.o += -Wno-comment -Wno-parentheses 
+
+lib                   := http2
+libname               := lib$(lib)
+always                += $(libname).a
+always                += $(if $(CONFIG_MODULES),$(libname).$(so),)
+ifeq ($(CONFIG_JNI),y)
+always                += $(libname).jar
+endif
+
+install-bin-y         += bbb
+install-lib-y         += $(libname).a
+install-lib-y         += $(if $(CONFIG_MODULES),$(libname).$(so),)
+
+ifeq ($(CONFIG_JNI),y)
+install-lib-y         += $(libname).jar
+endif
+
+install-y             += $(install-bin-y) $(install-lib-y)
+
+obj-y                 += api.o jni.o
+obj-$(CONFIG_JNI)     += built-jni.o
+
+ccflags-$(CONFIG_JNI) += -I$(JDK_HOME)/include -I$(JDK_HOME)/include/$(PLATFORM)
+ccflags-$(CONFIG_JNI) += -DBUILD_JNI=1
+
+#swflags              := -debug-module 1
+swopt                 := 
+swopt4j               := -package com.opensec -I$(src) -I./java -java
+
+libbbb-dirs           := sys mem net crypto bbb arch/$(SRCARCH)
+libbbb-objs           := $(patsubst %,%/built-in.o, $(libbbb-dirs))
+libbbb-libs           := $(patsubst %,%/lib.a, $(libs-y))
+libbbb-all            := $(libbbb-objs) $(libbbb-libs) 
+
+$(obj)/$(libname).$(so): $(libbbb-objs) $(libbbb-libs)
+	$(call if_changed,$(libname).$(so))
+
+$(obj)/$(libname).a: $(libbbb-objs) $(libbbb-libs)
+	$(call if_changed,$(libname).a) 
+
+quiet_cmd_$(libname).$(so) = LD [M]  $@
+	cmd_$(libname).$(so) = $(CC) $(LDFLAGS) $(SHLIB_LDFLAGS) -o $@ \
+	                             $(libbbb-all) $(KBUILD_LIBS) -lssl
+quiet_cmd_$(libname).a = AR      $@
+	cmd_$(libname).a = $(AR) cr $@ $(libbbb-all)
+
+
+PHONY += $(libbbb-dirs)
+$(libbbb-dirs): scripts_basic
+	$(Q)$(MAKE) $(build)=$@
+clean-files  += $(libname).$(so) $(libname).jar
+
+$(obj)/$(libname).jar: $(obj)/built-jni.c
+	$(call if_changed,$(libname).jar)
+
+quiet_cmd_$(libname).jar = JR      $@
+	cmd_$(libname).jar = $(JAR) cmf $(obj)/META-INF/MANIFEST.MF $(obj)/$(libname).jar \
+	$(subst $(obj)/, -C bbb , $(wildcard $(obj)/com/opensec/*.class))
+
+$(obj)/Test.java: $(KBUILD_SRC)/$(src)/java/Test.java
+	@cp -R $(KBUILD_SRC)/$(src)/java/META-INF $(obj)/
+	@cp $(KBUILD_SRC)/$(src)/java/Test.java $(obj)/Test.java
+
+$(obj)/built-jni.c: $(src)/java/lib.i $(obj)/Test.java
+	@swig $(swopt4j) -outdir $(obj)/ -o $@ $<
+	@$(JAVAC) $(obj)/*.java -d $(obj)
+
+$(obj)/python.c: $(src)/python/lib.i
+	@swig $(swopt4py) -I$(s) -python -outdir $(obj)/ -o $@ $<

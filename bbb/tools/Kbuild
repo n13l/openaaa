@@ -1,0 +1,4 @@
+toolprogs-y := aaa
+aaa-y := main.o
+
+
