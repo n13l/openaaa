@@ -232,13 +232,15 @@ main(int argc, char *argv[])
 	BENCHMARK_PRINT(bench,test_merge_sort_asc_recursive(),
 	"Running recursive merge-sort  over intrusive list size: %d", users);
 
-//	list_for_each(list, it, struct user, n) user_print_ln(it);
+//	list_for_each(list, it, struct user, n) 
+//		user_print_ln(it);
 //	test_invers_asc();
 
 	BENCHMARK_PRINT(bench,test_merge_sort_asc_iterative(),
 	"Running iterative merge-sort  over intrusive list size: %d", users);
 
-//	list_for_each(list, it, struct user, n) user_print_ln(it);
+//	list_for_each(list, it, struct user, n) 
+//		user_print_ln(it);
 
 //	test_invers_asc();
 

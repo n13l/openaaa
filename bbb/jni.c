@@ -17,7 +17,6 @@ static JavaVM *jvm = 0;
 JNIEXPORT jint JNICALL 
 JNI_OnLoad(JavaVM *jv, void *reserved)
 {
-	debug3("jni:onload()");
 	jvm = jv;
 	return JNI_VERSION_1_2;
 }
@@ -25,7 +24,6 @@ JNI_OnLoad(JavaVM *jv, void *reserved)
 JNIEXPORT void JNICALL
 JNI_OnUnload(JavaVM *vm, void *reserved)
 {
-	debug3("jni:unload()");
 	return;
 }
 
@@ -33,9 +31,7 @@ JNIEnv *
 jnu_get_env(void)
 {
 	JNIEnv *env;
-
 	jint rc = (*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_2);
-
 	if (rc == JNI_EDETACHED)
 		error("jni: current thread not attached");
 	if (rc == JNI_EVERSION)

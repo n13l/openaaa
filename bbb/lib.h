@@ -50,10 +50,10 @@ int
 http2_disconnect(struct http2 *http2);
 
 int
-http2_read(struct http2 *http2, char *buf, int size);
+http2_read(struct http2 *http2, int stream_id, char *buf, int size);
 	
 int
-http2_write(struct http2 *http2, char *buf, int size);
+http2_write(struct http2 *http2, int stream_id, char *buf, int size);
 
 int 
 http2_attr_set(struct http2 *, const char *attr, const char *value);

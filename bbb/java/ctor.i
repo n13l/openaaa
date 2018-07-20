@@ -3,9 +3,9 @@
         try {
                 String lib;
                 if (System.getProperty("os.name").startsWith("Windows"))
-                        lib = "libaaa"; 
+                        lib = "libhttp2"; 
                 else 
-                        lib = "aaa";
+                        lib = "http2";
 
                 System.loadLibrary(lib);
                 System.out.println("native library " + lib + " loaded.");

@@ -30,7 +30,10 @@ usage(void)
 int
 main(int argc, char *argv[])
 {
+	log_open("stdout", 0);
+	log_verbose = 4;
         int c, index;
+
 	do {
 		c = getopt_long (argc, argv, options, long_options, &index);
 		if (c == -1)
@@ -56,6 +59,20 @@ main(int argc, char *argv[])
 		}
 	} while(1);
 
-	usage();
+        char buf[8192];
+	struct http2 *h2 = http2_new();
+
+	int stream_id = http2_connect(h2, "https://www.google.com");
+        if (stream_id < 0)
+                goto cleanup;
+
+        do {
+                int rv = http2_read(h2, stream_id, buf, sizeof(buf));
+                if (rv < 1) break;
+        } while(1);
+
+cleanup:
+	http2_free(h2);
+
 	return 0;
 }

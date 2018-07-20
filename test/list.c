@@ -250,7 +250,7 @@ struct user {
 };
 
 _unused static inline int
-user_name_cmp(struct user *a, struct user *b)
+user_cmp_name(struct user *a, struct user *b)
 {
 	return strcmp(a->name, b->name);
 }
@@ -265,7 +265,7 @@ test5_list(void)
 	list_add(&list, DEFINE_LIST_ITEM(struct user, n, .name = "Daniel"));
 	list_add(&list, DEFINE_LIST_ITEM(struct user, n, .name = "Adam", .id = 1));
 
-	list_sort_asc(&list, user_name_cmp, struct user, n);
+	list_sort_asc(&list, user_cmp_name, struct user, n);
 
 	struct user *it;
 	list_walk(list, it, n) {

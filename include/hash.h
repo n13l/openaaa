@@ -35,7 +35,7 @@
 #ifndef XXH_INLINE_ALL
 #define XXH_INLINE_ALL
 #endif
-#include "xxhash.h"
+#include "hash/xxhash.h"
 
 static inline u64
 hash_u64(u64 x, unsigned int bits)

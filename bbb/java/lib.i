@@ -43,11 +43,11 @@ struct http2 {
                         return http2_disconnect(self);
                 }
 
-                int _read(char* buffer, int size) {
-                        return http2_read(self, buffer, size);
+                int _read(int stream_id, char* buffer, int size) {
+                        return http2_read(self, stream_id, buffer, size);
                 }
-                int _write(char* buffer, int size) {
-                        return http2_write(self, buffer, size);
+                int _write(int stream_id, char* buffer, int size) {
+                        return http2_write(self, stream_id, buffer, size);
                 }
 
                 int _set(const char *key, const char *val) {

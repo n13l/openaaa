@@ -69,13 +69,14 @@ struct symbol {
 		plt_##fn.plt_##fn = dlsym(ssl_module->dll, stringify(fn)); \
 		if (plt_##fn.plt_##fn) break; \
 	} \
-	if (!plt_##fn.plt_##fn) \
-		plt_##fn.plt_##fn = dlsym(RTLD_DEFAULT, stringify(fn)); \
+	if (!plt_##fn.plt_##fn) { \
+		plt_##fn.plt_##fn = dlsym(RTLD_LOCAL, stringify(fn)); \
+        } \
 	if (!plt_##fn.plt_##fn) {\
-		error("symbol addr=%p name=%s", plt_##fn.plt_##fn, stringify(fn)); \
-		return -1; \
-	} \
-	list_add_tail(&openssl_symtab, &plt_##fn.node);
+		error("symbol name=%s not found", stringify(fn)); \
+	} else { \
+	        list_add_tail(&openssl_symtab, &plt_##fn.node); \
+        }
 
 #define EXISTS_ABI(fn) \
 ({ int _X = plt_##fn.plt_##fn != NULL ? 1 : 0; _X; })

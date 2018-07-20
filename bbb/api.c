@@ -20,6 +20,9 @@
 #include <openssl/err.h>
 #include <nghttp2/nghttp2.h>
 
+#include <crypto/abi/lib.h>
+#include <crypto/abi/ssl.h>
+
 enum { IO_NONE, WANT_READ, WANT_WRITE };
 #define MAKE_NV(NAME, VALUE) \
 { \
@@ -35,13 +38,13 @@ enum { IO_NONE, WANT_READ, WANT_WRITE };
 
 static int http2_initialized = 0;
 
-struct Connection {
+struct connection {
 	SSL *ssl;
-	nghttp2_session *session;
-	int want_io;
+	nghttp2_session *sess;
+	int wio;
 };
 
-struct Request {
+struct request {
 	char *host;
 	char *path;
 	char *hostport;
@@ -49,7 +52,7 @@ struct Request {
 	u16 port;
 };
 
-struct URI {
+struct uri {
 	const char *host;
 	const char *path;
 	size_t pathlen;
@@ -69,22 +72,16 @@ strcopy(const char *s, size_t len)
 }
 
 static ssize_t
-send_callback(nghttp2_session *session, const u8 *buf,
-              size_t len, int flags, void *user) 
+on_send(nghttp2_session *sess, const u8 *u8, size_t len, int flags, void *user) 
 {
-	struct Connection *connection;
-	int rv;
-	(void)session;
-	(void)flags;
-
-	connection = (struct Connection *)user;
-	connection->want_io = IO_NONE;
+	struct connection *connection = (struct connection *)user;
+	connection->wio = IO_NONE;
 	ERR_clear_error();
-	rv = SSL_write(connection->ssl, buf, (int)len);
+	int rv = SSL_write(connection->ssl, u8, (int)len);
 	if (rv <= 0) {
 		int err = SSL_get_error(connection->ssl, rv);
 		if (err == SSL_ERROR_WANT_WRITE || err == SSL_ERROR_WANT_READ) {
-			connection->want_io =
+			connection->wio =
 			(err == SSL_ERROR_WANT_READ ? WANT_READ : WANT_WRITE);
 			rv = NGHTTP2_ERR_WOULDBLOCK;
 		} else {
@@ -95,21 +92,21 @@ send_callback(nghttp2_session *session, const u8 *buf,
 }
 
 static ssize_t 
-recv_callback(nghttp2_session *session, u8 *buf, size_t len, int flags, void *user) 
+on_recv(nghttp2_session *session, u8 *buf, size_t len, int flags, void *user) 
 {
-	struct Connection *connection;
+	struct connection *connection;
 	int rv;
 	(void)session;
 	(void)flags;
 
-	connection = (struct Connection *)user;
-	connection->want_io = IO_NONE;
+	connection = (struct connection *)user;
+	connection->wio = IO_NONE;
 	ERR_clear_error();
 	rv = SSL_read(connection->ssl, buf, (int)len);
 	if (rv < 0) {
 		int err = SSL_get_error(connection->ssl, rv);
 		if (err == SSL_ERROR_WANT_WRITE || err == SSL_ERROR_WANT_READ) {
-			connection->want_io =
+			connection->wio =
 		        (err == SSL_ERROR_WANT_READ ? WANT_READ : WANT_WRITE);
 			rv = NGHTTP2_ERR_WOULDBLOCK;
 		} else {
@@ -122,78 +119,75 @@ recv_callback(nghttp2_session *session, u8 *buf, size_t len, int flags, void *us
 }
 
 static int
-on_frame_send_callback(nghttp2_session *session, const nghttp2_frame *frame, void *user) 
+on_frame_send(nghttp2_session *sess, const nghttp2_frame *frame, void *user) 
 {
+        struct http2 *http2 = (struct http2 *)user;
 	size_t i;
-	(void)user;
 
 	switch (frame->hd.type) {
 	case NGHTTP2_HEADERS:
-		if (nghttp2_session_get_stream_user_data(session, frame->hd.stream_id)) {
+		if (nghttp2_session_get_stream_user_data(sess, frame->hd.stream_id)) {
 			const nghttp2_nv *nva = frame->headers.nva;
-			info("[INFO] C ----------------------------> S (HEADERS)");
+			info("C ----------------------------> S (HEADERS)");
+			/*
 			for (i = 0; i < frame->headers.nvlen; ++i) {
 				fwrite(nva[i].name, 1, nva[i].namelen, stdout);
 			printf(": ");
 			fwrite(nva[i].value, 1, nva[i].valuelen, stdout);
 			printf("\n");
-		}
+			}
+			*/
 	}
 	break;
 	case NGHTTP2_RST_STREAM:
-		info("[INFO] C ----------------------------> S (RST_STREAM)");
+		info("C ----------------------------> S (RST_STREAM)");
 		break;
 	case NGHTTP2_GOAWAY:
-		info("[INFO] C ----------------------------> S (GOAWAY)");
+		info("C ----------------------------> S (GOAWAY)");
 		break;
 	}
 	return 0;
 }
 
 static int
-on_frame_recv_callback(nghttp2_session *session,
-const nghttp2_frame *frame, void *user_data) 
+on_frame_recv(nghttp2_session *sess, const nghttp2_frame *frame, void *user) 
 {
-	size_t i;
-	(void)user_data;
-
+        struct http2 *http2 = (struct http2 *)user;
 	switch (frame->hd.type) {
 	case NGHTTP2_HEADERS:
 		if (frame->headers.cat == NGHTTP2_HCAT_RESPONSE) {
 			const nghttp2_nv *nva = frame->headers.nva;
-			struct Request *req;
-			req = nghttp2_session_get_stream_user_data(session, frame->hd.stream_id);
+			struct request *req;
+			req = nghttp2_session_get_stream_user_data(sess, frame->hd.stream_id);
 			if (!req) break;
-			info("[INFO] C <---------------------------- S (HEADERS)");
-			for (i = 0; i < frame->headers.nvlen; ++i) {
+			info("C <---------------------------- S (HEADERS)");
+			/*
+			for (int i = 0; i < frame->headers.nvlen; ++i) {
 				fwrite(nva[i].name, 1, nva[i].namelen, stdout);
 				printf(": ");
 				fwrite(nva[i].value, 1, nva[i].valuelen, stdout);
 				printf("\n");
 			}
+			*/
 		}
 		break;
 	case NGHTTP2_RST_STREAM:
-		info("[INFO] C <---------------------------- S (RST_STREAM)");
+		info("C <---------------------------- S (RST_STREAM)");
 		break;
 	case NGHTTP2_GOAWAY:
-		info("[INFO] C <---------------------------- S (GOAWAY)");
+		info("C <---------------------------- S (GOAWAY)");
 		break;
 	}
 	return 0;
 }
 
 static int
-on_stream_close_callback(nghttp2_session *session, s32 stream_id,
-u32 error_code, void *user) 
+on_stream_close(nghttp2_session *sess, s32 sid, u32 err, void *user) 
 {
-	struct Request *req;
-	(void)error_code;
-	(void)user;
-	req = nghttp2_session_get_stream_user_data(session, stream_id);
+	struct request *req = nghttp2_session_get_stream_user_data(sess, sid);
 	if (req) {
 		int rv;
-		rv = nghttp2_session_terminate_session(session, NGHTTP2_NO_ERROR);
+		rv = nghttp2_session_terminate_session(sess, NGHTTP2_NO_ERROR);
 		if (rv != 0) {
 			info("http2_session_terminate_session");
 			return -1;
@@ -203,19 +197,15 @@ u32 error_code, void *user)
 }
 
 static int
-on_data_chunk_recv_callback(nghttp2_session *session, u8 flags,
-s32 stream_id, const u8 *data, size_t len, void *user) 
+on_chunk_recv(nghttp2_session *sess, u8 flags, s32 sid, const u8 *data,
+                   size_t len, void *user) 
 {
-	struct Request *req;
-	(void)flags;
-	(void)user;
-
-	req = nghttp2_session_get_stream_user_data(session, stream_id);
+	struct request *req = nghttp2_session_get_stream_user_data(sess, sid);
 	if (req) {
-		info("[INFO] C <---------------------------- S (DATA chunk)\n"
+		info("C <---------------------------- S (DATA chunk)"
 		"%lu bytes", (unsigned long int)len);
-		fwrite(data, 1, len, stdout);
-		printf("\n");
+		//fwrite(data, 1, len, stdout);
+		//printf("\n");
 	}
 	return 0;
 }
@@ -223,12 +213,12 @@ s32 stream_id, const u8 *data, size_t len, void *user)
 static void 
 setup_nghttp2_callbacks(nghttp2_session_callbacks *c) 
 {
-	nghttp2_session_callbacks_set_send_callback(c, send_callback);
-	nghttp2_session_callbacks_set_recv_callback(c, recv_callback);
-	nghttp2_session_callbacks_set_on_frame_send_callback(c, on_frame_send_callback);
-	nghttp2_session_callbacks_set_on_frame_recv_callback(c, on_frame_recv_callback);
-	nghttp2_session_callbacks_set_on_stream_close_callback(c, on_stream_close_callback);
-	nghttp2_session_callbacks_set_on_data_chunk_recv_callback(c, on_data_chunk_recv_callback);
+	nghttp2_session_callbacks_set_send_callback(c, on_send);
+	nghttp2_session_callbacks_set_recv_callback(c, on_recv);
+	nghttp2_session_callbacks_set_on_frame_send_callback(c, on_frame_send);
+	nghttp2_session_callbacks_set_on_frame_recv_callback(c, on_frame_recv);
+	nghttp2_session_callbacks_set_on_stream_close_callback(c, on_stream_close);
+	nghttp2_session_callbacks_set_on_data_chunk_recv_callback(c, on_chunk_recv);
 }
 
 #ifndef OPENSSL_NO_NEXTPROTONEG
@@ -237,11 +227,10 @@ select_next_proto_cb(SSL *ssl, unsigned char **out,
 unsigned char *outlen, const unsigned char *in,
 unsigned int inlen, void *arg) 
 {
-	int rv;
 	(void)ssl;
 	(void)arg;
 
-	rv = nghttp2_select_next_protocol(out, outlen, in, inlen);
+	int rv = nghttp2_select_next_protocol(out, outlen, in, inlen);
 	if (rv <= 0) {
 		error("Server did not advertise HTTP/2 protocol");
 		return -1;
@@ -251,7 +240,8 @@ unsigned int inlen, void *arg)
 #endif /* !OPENSSL_NO_NEXTPROTONEG */
 
 static void 
-init_ssl_ctx(SSL_CTX *ssl_ctx) {
+init_ssl_ctx(SSL_CTX *ssl_ctx) 
+{
 	SSL_CTX_set_options(ssl_ctx, SSL_OP_ALL | SSL_OP_NO_SSLv2);
 	SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
 	SSL_CTX_set_mode(ssl_ctx, SSL_MODE_RELEASE_BUFFERS);
@@ -289,19 +279,21 @@ connect_to(const char *host, u16 port)
 
 	snprintf(service, sizeof(service), "%u", port);
 	memset(&hints, 0, sizeof(struct addrinfo));
-	hints.ai_family = AF_UNSPEC;
+	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
+
 	rv = getaddrinfo(host, service, &hints, &res);
 	if (rv != 0) {
 		error("getaddrinfo: %s", gai_strerror(rv));
 		return -1;
 	}
+
 	for (rp = res; rp; rp = rp->ai_next) {
 		fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 		if (fd == -1)
 			continue;
 
-		while ((rv = connect(fd, rp->ai_addr, rp->ai_addrlen)) == -1 && errno == EINTR);
+		rv = connect(fd, rp->ai_addr, rp->ai_addrlen);
 		if (rv == 0)
 			break;
 		
@@ -339,21 +331,17 @@ set_tcp_nodelay(int fd)
 }
 
 static void 
-ctl_poll(struct pollfd *pollfd, struct Connection *connection) 
+ctl_poll(struct pollfd *pollfd, struct connection *conn) 
 {
 	pollfd->events = 0;
-	if (nghttp2_session_want_read(connection->session) ||
-		connection->want_io == WANT_READ) {
+	if (nghttp2_session_want_read(conn->sess) || conn->wio == WANT_READ) 
 			pollfd->events |= POLLIN;
-	}
-	if (nghttp2_session_want_write(connection->session) ||
-		connection->want_io == WANT_WRITE) {
+	if (nghttp2_session_want_write(conn->sess) || conn->wio == WANT_WRITE)
 			pollfd->events |= POLLOUT;
-	}
 }
 
 static void 
-submit_request(struct Connection *connection, struct Request *req) 
+submit_request(struct connection *connection, struct request *req) 
 {
 	s32 stream_id;
 
@@ -362,9 +350,9 @@ submit_request(struct Connection *connection, struct Request *req)
 	MAKE_NV(":scheme", "https"),
 	MAKE_NV_CS(":authority", req->hostport),
 	MAKE_NV("accept", "*/*"),
-	MAKE_NV("user-agent", "nghttp2/" NGHTTP2_VERSION)};
+	MAKE_NV("user-agent", "machine/" NGHTTP2_VERSION)};
 
-	stream_id = nghttp2_submit_request(connection->session, NULL, nva,
+	stream_id = nghttp2_submit_request(connection->sess, NULL, nva,
 	                              sizeof(nva) / sizeof(nva[0]), NULL, req);
 
 	if (stream_id < 0) {
@@ -372,50 +360,49 @@ submit_request(struct Connection *connection, struct Request *req)
 	}
 
 	req->stream_id = stream_id;
-	info("[INFO] Stream ID = %d", stream_id);
+	info("stream_id: %d", stream_id);
 }
 
 static void 
-exec_io(struct Connection *connection) 
+exec_io(struct connection *connection) 
 {
-	int rv = nghttp2_session_recv(connection->session);
+	int rv = nghttp2_session_recv(connection->sess);
 	if (rv != 0) {
 		error("nghttp2_session_recv");
 	}
-	rv = nghttp2_session_send(connection->session);
+	rv = nghttp2_session_send(connection->sess);
 	if (rv != 0) {
 		error("nghttp2_session_send");
 	}
 }
 
 static void 
-request_init(struct Request *req, const struct URI *uri) {
-req->host = strcopy(uri->host, uri->hostlen);
-req->port = uri->port;
-req->path = strcopy(uri->path, uri->pathlen);
-req->hostport = strcopy(uri->hostport, uri->hostportlen);
-req->stream_id = -1;
+request_init(struct request *req, const struct uri *uri) 
+{
+	req->host = strcopy(uri->host, uri->hostlen);
+	req->port = uri->port;
+	req->path = strcopy(uri->path, uri->pathlen);
+	req->hostport = strcopy(uri->hostport, uri->hostportlen);
+	req->stream_id = -1;
 }
 
 static void 
-request_free(struct Request *req) {
+request_free(struct request *req) 
+{
 	free(req->host);
 	free(req->path);
 	free(req->hostport);
 }
 
-/*
- *  * Fetches the resource denoted by |uri|.
- *   */
 static void 
-fetch_uri(const struct URI *uri) 
+fetch_uri(const struct uri *uri) 
 {
-	nghttp2_session_callbacks *callbacks;
+	nghttp2_session_callbacks *cb;
 	int fd;
 	SSL_CTX *ssl_ctx;
 	SSL *ssl;
-	struct Request req;
-	struct Connection connection;
+	struct request req;
+	struct connection connection;
 	int rv;
 	nfds_t npollfds = 1;
 	struct pollfd pollfds[1];
@@ -432,33 +419,37 @@ fetch_uri(const struct URI *uri)
 		error("ssl: %s", ERR_error_string(ERR_get_error(), NULL));
 	}
 	init_ssl_ctx(ssl_ctx);
+	ssl_init_ctxt(ssl_ctx);
+
 	ssl = SSL_new(ssl_ctx);
+	ssl_init_conn(ssl);
+
 	if (ssl == NULL) {
 		error("ssl: %s", ERR_error_string(ERR_get_error(), NULL));
 	}
 	ssl_handshake(ssl, fd);
 
 	connection.ssl = ssl;
-	connection.want_io = IO_NONE;
+	connection.wio = IO_NONE;
 
 	make_non_block(fd);
 	set_tcp_nodelay(fd);
 
-	info("[INFO] SSL/TLS handshake completed");
+	info("SSL/TLS handshake completed");
 
-	rv = nghttp2_session_callbacks_new(&callbacks);
+	rv = nghttp2_session_callbacks_new(&cb);
 	if (rv != 0) {
 		error("nghttp2_session_callbacks_new");
 	}
 
-	setup_nghttp2_callbacks(callbacks);
-	rv = nghttp2_session_client_new(&connection.session, callbacks, &connection);
-	nghttp2_session_callbacks_del(callbacks);
+	setup_nghttp2_callbacks(cb);
+	rv = nghttp2_session_client_new(&connection.sess, cb, &connection);
+	nghttp2_session_callbacks_del(cb);
 	if (rv != 0) {
 		error("nghttp2_session_client_new");
 	}
 
-	rv = nghttp2_submit_settings(connection.session, NGHTTP2_FLAG_NONE, NULL, 0);
+	rv = nghttp2_submit_settings(connection.sess, NGHTTP2_FLAG_NONE, NULL, 0);
 
 	if (rv != 0) {
 		error("nghttp2_submit_settings");
@@ -470,9 +461,8 @@ fetch_uri(const struct URI *uri)
 	pollfds[0].fd = fd;
 	ctl_poll(pollfds, &connection);
 
-	/* Event loop */
-	while (nghttp2_session_want_read(connection.session) ||
-		nghttp2_session_want_write(connection.session)) {
+	while (nghttp2_session_want_read(connection.sess) ||
+		nghttp2_session_want_write(connection.sess)) {
 		int nfds = poll(pollfds, npollfds, -1);
 		if (nfds == -1) {
 			error("poll: %s", strerror(errno));
@@ -485,8 +475,8 @@ fetch_uri(const struct URI *uri)
 		}
 		ctl_poll(pollfds, &connection);
 	}
-	/* Resource cleanup */
-	nghttp2_session_del(connection.session);
+	
+	nghttp2_session_del(connection.sess);
 	SSL_shutdown(ssl);
 	SSL_free(ssl);
 	SSL_CTX_free(ssl_ctx);
@@ -496,16 +486,16 @@ fetch_uri(const struct URI *uri)
 }
 
 static int 
-parse_uri(struct URI *res, const char *uri) 
+parse_uri(struct uri *res, const char *uri) 
 {
 
 	size_t len, i, offset;
 	int ipv6addr = 0;
-	memset(res, 0, sizeof(struct URI));
+	memset(res, 0, sizeof(struct uri));
 	len = strlen(uri);
-	if (len < 9 || memcmp("https://", uri, 8) != 0) {
+	if (len < 9 || memcmp("https://", uri, 8) != 0)
 		return -1;
-	}
+	
 	offset = 8;
 	res->host = res->hostport = &uri[offset];
 	res->hostlen = 0;
@@ -581,15 +571,23 @@ parse_uri(struct URI *res, const char *uri)
 struct http2 *
 http2_new(void)
 {
-	if (!http2_initialized) {
+	if (!http2_initialized)
 		http2_initialized = 1;
-	}
 
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
 	struct http2 *http2 = mm_pool_zalloc(mp, sizeof(*http2));
 
 	http2->mp = mp;
 	http2->mp_attrs = mm_pool_create(CPU_PAGE_SIZE, 0);
+
+        info("ssl init");
+	ssl_set_caps(1);
+        ssl_init(0);
+	
+        log_open("stdout", 0);
+	log_verbose = 4;
+        
+        info("ssl fini");
 	return http2;
 }
 
@@ -601,9 +599,14 @@ http2_free(struct http2 *http2)
 }
 
 int
-http2_connect(struct http2 *http2, const char *uri)
+http2_connect(struct http2 *http2, const char *url)
 {
 	mm_pool_flush(http2->mp_attrs);
+	
+	struct uri uri;
+	parse_uri(&uri, url); 
+	fetch_uri(&uri); 
+
 	return 0;
 }
 
@@ -614,13 +617,13 @@ http2_disconnect(struct http2 *http2)
 }
 
 int
-http2_read(struct http2 *http2, char *buf, int size)
+http2_read(struct http2 *http2, int stream_id, char *buf, int size)
 {
 	return 0;
 }
 	
 int
-http2_write(struct http2 *http2, char *buf, int size)
+http2_write(struct http2 *http2, int stream_id, char *buf, int size)
 {
 	return 0;
 }

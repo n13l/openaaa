@@ -382,7 +382,7 @@ config_init_srv(apr_pool_t *p, server_rec *s)
 static int
 init_server(server_rec *s, apr_pool_t *p, int is_proxy, SSL_CTX *ctx)
 {
-	ssl_init();
+	ssl_init(1);
 	ssl_init_ctxt(ctx);	
 	return 0;
 }

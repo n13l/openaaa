@@ -834,6 +834,9 @@ ssl_get_value_desc(const SSL *s, int code)
 static void
 ssl_info_state(const SSL *s, const char *str)
 {
+        if (!EXISTS_ABI(SSL_state_string_long))
+                return;
+
 	const char *state = CALL_SSL(state_string_long)(s);
 	char *d = printfa("%s:%s", str, state);
 	debug2("msg:%s", d);
@@ -842,6 +845,11 @@ ssl_info_state(const SSL *s, const char *str)
 static void
 ssl_info_alert(int where, int rv)
 {
+        if (!EXISTS_ABI(SSL_alert_type_string_long))
+                return;
+        if (!EXISTS_ABI(SSL_alert_desc_string_long))
+                return;
+
 	const char *type = CALL_SSL(alert_type_string_long)(rv);
 	const char *desc = CALL_SSL(alert_desc_string_long)(rv);
 
@@ -1034,7 +1042,7 @@ DEFINE_SSL_CALL(new)(SSL_CTX *ctx)
 }
 
 void
-DEFINE_CTX_CALL(set_alpn_protos)(SSL_CTX *ctx, const unsigned char *data, unsigned int len)
+DEFINE_CTX_CALL(set_alpn_protos)(SSL_CTX *ctx, const u8 *data, unsigned int len)
 {
 	debug4("len=%u", len);
 }
@@ -1042,8 +1050,7 @@ DEFINE_CTX_CALL(set_alpn_protos)(SSL_CTX *ctx, const unsigned char *data, unsign
 void
 symbol_print(void)
 {
-	list_for_each(openssl_symtab, n) {
-		struct symbol *p = container_of(n, struct symbol, node);
+	list_for_each(openssl_symtab, p, struct symbol, node) {
 		debug4("name=%s abi=%p plt=%p", p->name, p->abi, p->plt);
 		if (!p->abi)
 			die("required symbol not found");
@@ -1068,13 +1075,15 @@ lookup_module(struct dl_phdr_info *info, size_t size, void *ctx)
 	sym = (dll && !sym) ? dlsym(dll, "SSLeay") : sym;
 	if (sym) libcrypto = dll;
 
-	if (!ssl & !sym)
-		return 0;
-
 	char *v = ssl ? "framework" : "cryptolib";
-
 	debug4("module type=%-9s name=%s", v, info->dlpi_name);
 
+	if (!ssl && !sym)
+		return 0;
+/*
+	v = ssl ? "framework" : "cryptolib";
+	debug4("module type=%-9s name=%s", v, info->dlpi_name);
+*/
 	struct ssl_module *ssl_module = malloc(sizeof(*ssl_module));
 	ssl_module->dll = dll;
 	ssl_module->file = strdup(info->dlpi_name);
@@ -1159,14 +1168,14 @@ init_aaa_env(void)
 static int is_ssl_init = 0;
 
 int
-ssl_init(void)
+ssl_init(int server)
 {
 	if (is_ssl_init)
 		return -1;
 
 	is_ssl_init = 1;
 	server_handshake_synch = 0;
-	server_always = 1;
+	server_always = server;
 
 	list_init(&ssl_module_list);
 
@@ -1284,7 +1293,7 @@ crypto_lookup(void)
 	char ssl_module[255] = {0};
 	find_module(ssl_module);
 
-	//debug4("module %s", *ssl_module ? "framework" : "target");
+	debug4("module %s", *ssl_module ? "framework" : "target");
 	void *dll = *ssl_module ? dlopen(ssl_module, RTLD_LAZY | RTLD_NOLOAD): NULL;
 
 	IMPORT_ABI(SSLeay);

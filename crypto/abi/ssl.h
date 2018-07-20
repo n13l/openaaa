@@ -36,7 +36,7 @@
 
 #define	SSL_CAP_SCA 0x1
 
-int ssl_init(void);
+int ssl_init(int server);
 void ssl_init_ctxt(SSL_CTX *ctx);
 void ssl_init_conn(SSL *ssl);
 void ssl_set_caps(int cap);

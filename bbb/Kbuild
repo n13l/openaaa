@@ -1,7 +1,13 @@
-progs-y := bbb
-LIBS_bbb = bbb/built-in.o bbb/$(libname).a
+ifdef OPENSSL_LIB
+ifdef NGHTTP2_LIB
 
-LDFLAGS_bbb = -lssl -lcrypto -lnghttp2
+progs-y := bbb
+LIBS_bbb = bbb/built-in.o bbb/$(libname).a aaa/libaaa.a \
+           $(OPENSSL_LIB) $(NGHTTP2_LIB)
+
+# This instructs the linker to add all symbols, not only used ones, 
+# to the dynamic symbol table
+LDFLAGS_bbb = -rdynamic 
 
 CFLAGS_srv.o += -Wno-unused-value -Wno-unused-function 
 CFLAGS_srv.o += -Wno-comment -Wno-parentheses 
@@ -39,15 +45,16 @@ libbbb-objs           := $(patsubst %,%/built-in.o, $(libbbb-dirs))
 libbbb-libs           := $(patsubst %,%/lib.a, $(libs-y))
 libbbb-all            := $(libbbb-objs) $(libbbb-libs) 
 
-$(obj)/$(libname).$(so): $(libbbb-objs) $(libbbb-libs)
+$(obj)/$(libname).$(so): $(libbbb-objs) $(libbbb-libs) 
 	$(call if_changed,$(libname).$(so))
 
-$(obj)/$(libname).a: $(libbbb-objs) $(libbbb-libs)
+$(obj)/$(libname).a: $(libbbb-objs) $(libbbb-libs) aaa/libaaa.a
 	$(call if_changed,$(libname).a) 
 
 quiet_cmd_$(libname).$(so) = LD [M]  $@
-	cmd_$(libname).$(so) = $(CC) $(LDFLAGS) $(SHLIB_LDFLAGS) -o $@ \
-	                             $(libbbb-all) $(KBUILD_LIBS) -lssl
+	cmd_$(libname).$(so) = $(CC) -rdynamic $(LDFLAGS) $(SHLIB_LDFLAGS) -o $@ \
+	                             $(libbbb-all) $(KBUILD_LIBS) \
+                                   aaa/built-in.o $(OPENSSL_LIB) $(NGHTTP2_LIB)
 quiet_cmd_$(libname).a = AR      $@
 	cmd_$(libname).a = $(AR) cr $@ $(libbbb-all)
 
@@ -74,3 +81,6 @@ $(obj)/built-jni.c: $(src)/java/lib.i $(obj)/Test.java
 
 $(obj)/python.c: $(src)/python/lib.i
 	@swig $(swopt4py) -I$(s) -python -outdir $(obj)/ -o $@ $<
+
+endif
+endif

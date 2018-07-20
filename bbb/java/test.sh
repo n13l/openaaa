@@ -1,6 +1,6 @@
-export PATH=$PWD/obj/aaa:$PATH
+export PATH=$PWD/obj/bbb:$PATH
 export JAVABIN=$JAVA_HOME/bin/java
-export JAVA_LIBRARY=$PWD/obj/aaa
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/obj/aaa
-export DYLD_LIBRARY_PATH==$PWD/obj/aaa
-java -Djava.library.path=$JAVA_LIBRARY -cp ".:obj/aaa:obj/aaa/libaaa.jar" com.opensec.Test $@
+export JAVA_LIBRARY=$PWD/obj/bbb
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/obj/bbb
+export DYLD_LIBRARY_PATH==$PWD/obj/bbb
+java -Djava.library.path=$JAVA_LIBRARY -cp ".:obj/bbb:obj/bbb/libhttp2.jar" com.opensec.Test $@
