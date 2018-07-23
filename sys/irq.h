@@ -32,6 +32,7 @@ int irq_pending(int req);
 void sig_disable(int sig);
 void sig_enable(int sig);
 void sig_ignore(int sig);
+#ifndef CONFIG_ARM
 void sig_action(int signo, void (*handler)(int , siginfo_t *, void *));
-
+#endif
 #endif

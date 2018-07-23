@@ -171,7 +171,7 @@ setproctitle(const char *fmt, ...)
 }
 
 #endif /* HAVE_SETPROCTITLE */
-
+/*
 int                                                                             
 cpu_set_affinity(int id, int mode, int cpu)                                     
 {                                                                               
@@ -184,7 +184,7 @@ cpu_set_affinity(int id, int mode, int cpu)
 
 	return 0;                                                               
 }
-
+*/
 /* 
 if (prctl(PR_SET_PDEATHSIG, SIGHUP) < 0)
 die("prctl reason=%s", strerror(errno));

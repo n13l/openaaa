@@ -118,6 +118,8 @@ struct task {
 	void *user;
 } task_disp;
 
+static inline int gettid(void) { return 0; }
+
 int
 task_type(void)
 {

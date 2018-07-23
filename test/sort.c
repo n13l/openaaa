@@ -2,16 +2,16 @@
 #include <sys/cpu.h>
 #include <sys/log.h>
 #include <list.h>
-#include <timespec.h>
+#include <sys/timestamp.h>
 #include <stdlib.h>
 #include <string.h>
 
 DEFINE_BENCHMARK(bench);
 DEFINE_LIST(list);
 
-static struct user *db;
+static struct myuser *db;
 
-struct user {
+struct myuser {
 	char first[32];
 	char last[32];
 	char gender[32];
@@ -21,10 +21,10 @@ struct user {
 	struct node n;
 };
 
-unsigned int db_size = sizeof(struct user) * 100000;
+unsigned int db_size = sizeof(struct myuser) * 100000;
 unsigned int users = 0;
 
-static inline int user_cmp(struct user *a, struct user *b)
+static inline int user_cmp(struct myuser *a, struct myuser *b)
 {
 	int cmp;
 	if ((cmp = strcmp(a->first, b->first)))
@@ -36,8 +36,8 @@ static inline int user_cmp(struct user *a, struct user *b)
 
 _unused static inline int user_node_cmp(struct node *x, struct node *y)
 {
-	struct user *a = __container_of(x, struct user, n); 
-	struct user *b = __container_of(y, struct user, n);
+	struct myuser *a = __container_of(x, struct myuser, n); 
+	struct myuser *b = __container_of(y, struct myuser, n);
 	int cmp;
 	if ((cmp = strcmp(a->first, b->first)))
 		return cmp;
@@ -47,12 +47,12 @@ _unused static inline int user_node_cmp(struct node *x, struct node *y)
 }
 
 
-_unused static inline void user_print_ln(struct user *x)
+_unused static inline void user_print_ln(struct myuser *x)
 {
 	printf("%s:%s\n", x->first, x->last);
 }
 
-_unused static inline void user_print(struct user *x)
+_unused static inline void user_print(struct myuser *x)
 {
 	printf("%s:%s ", x->first, x->last);
 }
@@ -60,7 +60,7 @@ _unused static inline void user_print(struct user *x)
 static inline void
 parse_line(int index, char *arg, ssize_t len) 
 {
-	struct user *user = db + index;
+	struct myuser *user = db + index;
 	memset(user, 0, sizeof(*user));
 
 	for (char *p = arg; *p; p++)
@@ -116,7 +116,7 @@ test_default_sort(void)
 	/* initialize user database because we want stable sequential access */
 	load_users_csv();
 	/* sort users using insert sort in ascending order */
-	list_sort_asc(&list, user_cmp, struct user, n);
+	list_sort_asc(&list, user_cmp, struct myuser, n);
 }
 
 _unused static void
@@ -125,7 +125,7 @@ test_array_sort(void)
 	/* initialize user database because we want stable sequential access */
 	load_users_csv();
 	/* sort users using insert-sort in ascending order */
-	insert_sort_asc(&list, list, user_cmp, struct user, n);
+	insert_sort_asc(&list, list, user_cmp, struct myuser, n);
 }
 
 _unused static void
@@ -134,7 +134,7 @@ test_insert_sort(void)
 	/* initialize user database because we want stable sequential access */
 	load_users_csv();
 	/* sort users using insert-sort in ascending order */
-	insert_sort_asc(&list, list, user_cmp, struct user, n);
+	insert_sort_asc(&list, list, user_cmp, struct myuser, n);
 }
 
 _unused static void
@@ -143,7 +143,7 @@ test_select_sort(void)
 	/* initialize user database because we want stable sequential access */
 	load_users_csv();
 	/* sort users using insert-sort in ascending order */
-	select_sort_asc(&list, list, user_cmp, struct user, n);
+	select_sort_asc(&list, list, user_cmp, struct myuser, n);
 }
 
 #define __do_merge_sort_r_xy_not_null(x, y, fn, cb) \
@@ -209,14 +209,14 @@ test_merge_sort_asc_iterative(void)
 	load_users_csv();
 	/* merge-sort users in ascending order */
 	//merge_sort_asc(&list, list, user_node_cmp);
-	merge_sort_asc(&list, list, user_cmp, struct user, n);
+	merge_sort_asc(&list, list, user_cmp, struct myuser, n);
 }
 
 _unused static void
 test_invers_asc(void)
 {
 	printf("Running iterative check inversions: ");
-	unsigned int c = invers_asc(&list,list,user_cmp, struct user, n);
+	unsigned int c = invers_asc(&list,list,user_cmp, struct myuser, n);
 	printf("%s\n", c ? "failed": "ORDER-ASCENDING");
 }
 
@@ -232,14 +232,14 @@ main(int argc, char *argv[])
 	BENCHMARK_PRINT(bench,test_merge_sort_asc_recursive(),
 	"Running recursive merge-sort  over intrusive list size: %d", users);
 
-//	list_for_each(list, it, struct user, n) 
+//	list_for_each(list, it, struct myuser, n) 
 //		user_print_ln(it);
 //	test_invers_asc();
 
 	BENCHMARK_PRINT(bench,test_merge_sort_asc_iterative(),
 	"Running iterative merge-sort  over intrusive list size: %d", users);
 
-//	list_for_each(list, it, struct user, n) 
+//	list_for_each(list, it, struct myuser, n) 
 //		user_print_ln(it);
 
 //	test_invers_asc();

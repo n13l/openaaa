@@ -1,7 +1,11 @@
 
 obj-y += $(PLATFORM)/ unix/ plt/ copt/
-obj-y += exit.o units.o log.o irq.o mpm.o pid.o sock.o attr.o timespec.o
+obj-y += exit.o units.o log.o irq.o pid.o sock.o attr.o timestamp.o
 obj-$(CONFIG_DEBUG_LIST) += list.o
+
+ifndef CONFIG_ARM
+obj-y += mpm.o
+endif
 
 CFLAGS_mpm.o += -Wno-unused-value -Wno-unused-function 
 CFLAGS_mpm.o += -Wno-comment -Wno-parentheses 

@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <ap_config.h>
 #include <ap_socache.h>
 #include <apr_strings.h>

@@ -32,7 +32,7 @@
 #include <mem/safe.h>
 #include <mem/debug.h>
 #include <string.h>
-#include <ctype.h>
+//#include <ctype.h>
 
 #ifndef MM_STACK_BLOCK_SIZE
 #define MM_STACK_BLOCK_SIZE CPU_CACHE_LINE
@@ -40,92 +40,11 @@
 
 #if defined __GNUC__
 #ifndef alloca
-# define alloca __builtin_alloca
+#define alloca(size) __builtin_alloca((size))
 #endif
 #else
-# include <alloca.h>
+#include <alloca.h>
 #endif
-
-struct mm_stack {
-	union {
-		void *addr; 
-		u8 *byte;
-		u32  *offset;
-	};
-	u8 *start;
-	u8 *end;
-	u8 *cur;
-};
-
-#ifndef zalloca
-#define zalloca(size) __extension__ \
-	({ void *_X = alloca(size); memset(_X, 0, size); _X; })
-#endif
-
-#ifndef strdupa
-#define strdupa(string) __extension__ \
-({\
-	unsigned ____size = strlen(string) + 1; \
-	char *_X = alloca(____size); memcpy(_X, string, ____size); _X; \
-})
-#endif
-
-#ifndef strndupa
-#define strndupa(string, size) __extension__ \
-({\
-	const char *_S = (string); size_t _L = strnlen(_S,(size)); \
-	char *_X = alloca(_L + 1); \
-	memcpy(_X, _S, _L); _X[_L] = 0; _X; \
-})
-#endif
-
-#ifndef strmema
-#define strmema(string, size) __extension__ \
-({\
-	char *_X = alloca(size + 1); \
-	memcpy(_X, string, size); _X[size] = 0; _X; \
-})
-#endif
-
-#ifndef memdupa
-#define memdupa(string, size) __extension__ \
-({\
-	char *_X = alloca(size); \
-	memcpy(_X, string, size); _X; \
-})
-#endif
-
-
-#ifndef printfa
-#define printfa(...) __extension__ \
-({\
-	char *_S = (char *)alloca(printfza((const char *)__VA_ARGS__)); \
-        sprintf(_S, (const char *)__VA_ARGS__); _S; \
-})
-#endif
-
-#ifndef vprintfa
-#define vprintfa(fmt, args) \
-({\
-	char *_X = alloca(vprintfza(fmt,args)); vsprintf(_X, fmt, args);_X;\
-})
-#endif
-
-/* call conforming function prototype and alloc stack memory */
-#define evala(fn, source, bytes) \
-({\
-	char *_X = alloca(fn##_size(bytes)); fn(source, bytes, _X); _X; \
-})
-
-/* Stack-based network layer functions */
-#define inet_ntopa(af, addr) \
-({\
-	size_t _L = af == AF_INET ? INET_ADDRSTRLEN : INET6_ADDRSTRLEN;\
-	char *_S = alloca(_L + 1);\
-	const char *__D;\
-	__D = inet_ntop(af, addr, _S, _L);\
-	__D; \
-})
 
 _unused _noinline static unsigned int
 printfza(const char *fmt, ...)
@@ -221,4 +140,86 @@ stack_avail:
 	va_end(args); 
 	return size + 1;
 }
+#
+struct mm_stack {
+	union {
+		void *addr; 
+		u8 *byte;
+		u32  *offset;
+	};
+	u8 *start;
+	u8 *end;
+	u8 *cur;
+};
+
+#ifndef zalloca
+#define zalloca(size)  \
+	({ void *_X = alloca(size); memset(_X, 0, size); _X; })
+#endif
+
+#ifndef strdupa
+#define strdupa(string)  \
+({\
+	unsigned ____size = strlen(string) + 1; \
+	char *_X = alloca(____size); memcpy(_X, string, ____size); _X; \
+})
+#endif
+
+#ifndef strndupa
+#define strndupa(string, size)  \
+({\
+	const char *_S = (string); size_t _L = strnlen(_S,(size)); \
+	char *_X = alloca(_L + 1); \
+	memcpy(_X, _S, _L); _X[_L] = 0; _X; \
+})
+#endif
+
+#ifndef strmema
+#define strmema(string, size)  \
+({\
+	char *_X = alloca(size + 1); \
+	memcpy(_X, string, size); _X[size] = 0; _X; \
+})
+#endif
+
+#ifndef memdupa
+#define memdupa(string, size)  \
+({\
+	char *_X = alloca(size); \
+	memcpy(_X, string, size); _X; \
+})
+#endif
+
+
+#ifndef printfa
+#define printfa(...)  \
+({\
+	char *_S = (char *)alloca(printfza(__VA_ARGS__)); \
+        sprintf(_S, __VA_ARGS__); _S; \
+})
+#endif
+
+#ifndef vprintfa
+#define vprintfa(fmt, args) \
+({\
+	char *_X = alloca(vprintfza(fmt,args)); vsprintf(_X, fmt, args);_X;\
+})
+#endif
+
+/* call conforming function prototype and alloc stack memory */
+#define evala(fn, source, bytes) \
+({\
+	char *_X = alloca(fn##_size(bytes)); fn(source, bytes, _X); _X; \
+})
+
+/* Stack-based network layer functions */
+#define inet_ntopa(af, addr) \
+({\
+	size_t _L = af == AF_INET ? INET_ADDRSTRLEN : INET6_ADDRSTRLEN;\
+	char *_S = alloca(_L + 1);\
+	const char *__D;\
+	__D = inet_ntop(af, addr, _S, _L);\
+	__D; \
+})
+
 #endif

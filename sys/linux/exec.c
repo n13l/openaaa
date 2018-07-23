@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <memory.h>
-#include <linux/limits.h>
+//#include <linux/limits.h>
 #include <libgen.h>
 #include <sys/types.h>
 

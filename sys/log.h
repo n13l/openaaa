@@ -8,7 +8,9 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <time.h>
+#ifndef CONFIG_ARM
 #include <syslog.h>
+#endif
 
 #define LOG_CAP_LEVEL     1
 #define LOG_CAP_TIME      2

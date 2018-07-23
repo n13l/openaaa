@@ -6,7 +6,10 @@
 #include <string.h>
 #include <unix/timespec.h>
 
+#ifndef CONFIG_ARM
 #include <syslog.h>
+#endif
+
 #include <sys/log.h>
 
 static const char *log_lnames[] = {
@@ -39,7 +42,9 @@ log_open(const char *file, int facility)
 
 	switch (log_type) {
 	case LOG_TYPE_SYSLOG: 
+#ifndef CONFIG_ARM
 		openlog(progname, LOG_CONS | LOG_PID | LOG_NDELAY, facility);
+#endif
 		break;
 	}
 
@@ -57,7 +62,9 @@ log_close(void)
 {
 	switch (log_type) {
 	case LOG_TYPE_SYSLOG:
+#ifndef CONFIG_ARM
 		closelog();
+#endif
 		break;
 	}
 }
@@ -139,7 +146,9 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 #else
 	switch (log_type) {
 	case LOG_TYPE_SYSLOG:
+#ifndef CONFIG_ARM
 		syslog(ctx->level > 7 ? 7 : ctx->level, "%s", amsg);
+#endif
 		break;
 	default:
 		write(log_fd_stdout, amsg, strlen(amsg));

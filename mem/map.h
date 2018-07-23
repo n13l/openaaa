@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <unistd.h>
-#include <ctype.h>
 
 struct mmap_operations {
 	void (*init)(void *addr);

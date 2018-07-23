@@ -497,7 +497,6 @@ ssl_server_get(SSL *s, uint type, const byte*in, size_t len, int *l, void *a)
 {
 	struct session *sp = session_get0(s);
 	debug2("extension name=%s type=%d recv", tls_strext(type), type);
-
 	if (len && (type == TLS_EXT_SUPPLEMENTAL_DATA))
 		ssl_parse_attrs(sp, (char *)in, len);
 
@@ -512,7 +511,6 @@ ssl_client_add(SSL *s, unsigned int type, const byte **out, size_t *len,
 	struct mm_pool *mp = sp ? sp->mp : NULL;
 
 	sp->endpoint = TLS_EP_CLIENT;
-
 	if (!ssl_sca_enabled)
 		return 0;
 

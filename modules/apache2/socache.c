@@ -18,6 +18,7 @@
 #undef PACKAGE_NAME
 #undef PACKAGE_VERSION
 
+#include <ctype.h>
 #include "httpd.h"
 #include "http_config.h"
 #include "apr.h"

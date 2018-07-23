@@ -1,1 +1,1 @@
-testprogs-y += alloc pool stack
+testprogs-y += alloc pool 

@@ -243,14 +243,14 @@ test4_list(void)
 
 }
 
-struct user {
+struct myuser {
 	char *name;
 	int id;
 	struct node n;
 };
 
 _unused static inline int
-user_cmp_name(struct user *a, struct user *b)
+user_cmp_name(struct myuser *a, struct myuser *b)
 {
 	return strcmp(a->name, b->name);
 }
@@ -261,13 +261,13 @@ test5_list(void)
 /*	
 	DEFINE_LIST(list);
 
-	list_add(&list, DEFINE_LIST_ITEM(struct user, n));
-	list_add(&list, DEFINE_LIST_ITEM(struct user, n, .name = "Daniel"));
-	list_add(&list, DEFINE_LIST_ITEM(struct user, n, .name = "Adam", .id = 1));
+	list_add(&list, DEFINE_LIST_ITEM(struct myuser, n));
+	list_add(&list, DEFINE_LIST_ITEM(struct myuser, n, .name = "Daniel"));
+	list_add(&list, DEFINE_LIST_ITEM(struct myuser, n, .name = "Adam", .id = 1));
 
-	list_sort_asc(&list, user_cmp_name, struct user, n);
+	list_sort_asc(&list, user_cmp_name, struct myuser, n);
 
-	struct user *it;
+	struct myuser *it;
 	list_walk(list, it, n) {
 		printf("user name=%s\n", it->name);
 	};

@@ -51,6 +51,7 @@ volatile sig_atomic_t __restart  = 0;
 #define irqmask sigprocmask
 #endif
 
+//#ifndef CONFIG_ARM
 static void
 irq_handler(int signo, siginfo_t *info, void *context)
 {
@@ -59,6 +60,7 @@ irq_handler(int signo, siginfo_t *info, void *context)
 	case SIGHUP:  __restart  = 1; break;
 	}
 }
+//#endif
 
 int
 irq_pending(int signo)
@@ -70,6 +72,7 @@ irq_pending(int signo)
 	}
 }
 
+//#ifndef CONFIG_ARM
 void
 sig_action(int signo, void (*handler)(int , siginfo_t *, void *))
 {
@@ -104,6 +107,7 @@ irq_default(void)
 	sigaction(SIGUSR1, &sa, NULL);
 	sigaction(SIGUSR2, &sa, NULL);
 }
+//#endif
 
 void
 sig_ignore(int sig)
@@ -142,8 +146,9 @@ irq_constructor(void)
 	sigaddset(&blk_mask, SIGHUP);
 	sigaddset(&blk_mask, SIGUSR1);
 	sigaddset(&blk_mask, SIGUSR2);
-
+#ifndef CONFIG_ARM
 	irq_default();
+#endif
 }
 
 void

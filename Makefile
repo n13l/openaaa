@@ -425,6 +425,20 @@ KBUILD_CFLAGS   := -Wall -Wstrict-prototypes \
 		   -Wno-format-security \
                    -std=gnu1x 
 
+#KBUILD_CFLAGS   += -I/usr/aarch64-linux-gnu/include -Wl,-L/usr/aarch64-linux-gnu/sys-root/lib
+#LDFLAGS += -L/usr/aarch64-linux-gnu/sys-root/lib
+ifdef ANDROID_HOME
+KBUILD_CFLAGS   += --sysroot=$(SYSROOT)
+KBUILD_CFLAGS   += -I$(ANDROID_HOME)/sysroot/usr/include 
+KBUILD_CFLAGS   += -D__arm__
+#KBUILD_CFLAGS   += -Dalloca\(x\)=__builtin_alloca\(\(x\)\)
+#KBUILD_CFLAGS   += -Dlog2\(x\)=\(log\(x\)*1.4426950408889634\)
+
+LDFLAGS  += -L$(SYSROOT)/sysroot/usr/lib/arm-linux-androideabi \
+	    -L$(ANDROID_HOME)/usr/lib \
+
+endif
+
 -include scripts/Makefile.shared
 
 KBUILD_AFLAGS         := -D__ASSEMBLY__

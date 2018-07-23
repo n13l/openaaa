@@ -13,6 +13,9 @@
 #define CLOCK_REALTIME 1
 #endif
 
+
+#ifndef CONFIG_ARM
+
 timestamp_t
 get_timestamp(void)
 {
@@ -22,3 +25,13 @@ get_timestamp(void)
 	return ((timestamp_t) ts.tv_sec) * 1000000000LLU 
 	      +((timestamp_t) ts.tv_nsec);
 }
+
+#else
+
+timestamp_t
+get_timestamp(void)
+{
+        return 0;
+}	
+
+#endif

@@ -7,9 +7,16 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <time.h>
+#include <math.h>
+
+//#include <link.h>
 
 #ifndef PATH_MAX
 #define PATH_MAX 1024
+#endif
+
+#ifndef RTLD_NOLOAD
+#define RTLD_NOLOAD 0
 #endif
 
 #define SHLIB_EX           "so"
@@ -20,9 +27,17 @@
 #define gmtime_s(a,b) gmtime_r(b,a)
 #endif
 
+#ifndef alloca
+#define alloca(size) __builtin_alloca(size)
+#endif
+
+#ifndef WEXITSTATUS
+#define WEXITSTATUS(status) 0
+#endif
+
 const char *
 get_process_file(void);
-
+/*
 #include <sys/syscall.h>
 #ifdef SYS_gettid
 static inline pid_t gettid(void)
@@ -32,8 +47,17 @@ static inline pid_t gettid(void)
 #else
 #error "SYS_gettid unavailable on this system"
 #endif
-
+*/
 char **setproctitle_init(int argc, char *argv[]);
 void setproctitle(const char *fmt, ...);
+
+ssize_t
+getdelim(char **buf, size_t *bufsiz, int delimiter, FILE *fp);
+ssize_t
+getline(char **buf, size_t *bufsiz, FILE *fp);
+
+#ifndef log2
+#define log2(x) (log(x) / log(2.0))
+#endif
 
 #endif
