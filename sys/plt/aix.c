@@ -63,7 +63,8 @@ static int plthook_open_shared_library(plthook_t **plthook_out, const char *file
 	return -1;
 }
 
-static int plthook_open_real(plthook_t **plthook_out, const char *base, const char *filename)
+__unused static int 
+plthook_open_real(plthook_t **plthook_out, const char *base, const char *filename)
 {
 	return -1;
 }
@@ -87,7 +88,8 @@ const char *plthook_error(void)
 	return errmsg;
 }
 
-static void set_errmsg(const char *fmt, ...)
+__unused static void 
+set_errmsg(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);

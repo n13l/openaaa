@@ -5,3 +5,4 @@ endif
 obj-$(CONFIG_DARWIN) += mach.o
 obj-$(CONFIG_WIN32) += pe.o
 obj-$(CONFIG_AIX) += aix.o
+obj-$(CONFIG_ARM) += aix.o

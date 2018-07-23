@@ -35,6 +35,15 @@
 #define WEXITSTATUS(status) 0
 #endif
 
+#ifdef CONFIG_ARM
+struct dl_phdr_info;
+static inline int 
+dl_iterate_phdr(int (*cb)(struct dl_phdr_info*, size_t len, void*u), void*usr) 
+{
+	return -1;
+}
+#endif
+
 const char *
 get_process_file(void);
 /*

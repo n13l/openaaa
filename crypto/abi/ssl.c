@@ -55,6 +55,10 @@
 #include <link.h>
 #endif
 
+#ifdef CONFIG_ARM
+#include <link.h>
+#endif
+
 /* We dont't link agaist openssl but using important signatures */
 #include <crypto/abi/openssl/ssl.h>
 #include <crypto/abi/openssl/crypto.h>
