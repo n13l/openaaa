@@ -711,7 +711,7 @@ ssl_server_aaa(struct session *sp)
 		msg = printfa("%s -pri -a%s -i%s -k%s", 
 		              aaa.handler, host, id, key);
 	
-	int status = system(msg);
+	_unused int status = system(msg);
 	debug("%s", WEXITSTATUS(status)? "failed" : "channel binding");
 
 	if (aaa.group && aaa.role)
@@ -762,7 +762,7 @@ ssl_client_aaa(struct session *sp)
 	const char *msg = printfa("%s%s -k%s -i%s -prx -a%s %s", 
 	                          pre, aaa.handler, key, id, authority, end);
 #endif
-	int status = system(msg);
+	_unused int status = system(msg);
 	return WEXITSTATUS(status);
 }
 

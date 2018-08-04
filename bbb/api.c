@@ -121,16 +121,15 @@ on_recv(nghttp2_session *session, u8 *buf, size_t len, int flags, void *user)
 static int
 on_frame_send(nghttp2_session *sess, const nghttp2_frame *frame, void *user) 
 {
-        struct http2 *http2 = (struct http2 *)user;
-	size_t i;
+        _unused struct http2 *http2 = (struct http2 *)user;
 
 	switch (frame->hd.type) {
 	case NGHTTP2_HEADERS:
 		if (nghttp2_session_get_stream_user_data(sess, frame->hd.stream_id)) {
-			const nghttp2_nv *nva = frame->headers.nva;
+			_unused const nghttp2_nv *nva = frame->headers.nva;
 			info("C ----------------------------> S (HEADERS)");
 			/*
-			for (i = 0; i < frame->headers.nvlen; ++i) {
+			for (int i = 0; i < frame->headers.nvlen; ++i) {
 				fwrite(nva[i].name, 1, nva[i].namelen, stdout);
 			printf(": ");
 			fwrite(nva[i].value, 1, nva[i].valuelen, stdout);
@@ -152,11 +151,11 @@ on_frame_send(nghttp2_session *sess, const nghttp2_frame *frame, void *user)
 static int
 on_frame_recv(nghttp2_session *sess, const nghttp2_frame *frame, void *user) 
 {
-        struct http2 *http2 = (struct http2 *)user;
+        _unused struct http2 *http2 = (struct http2 *)user;
 	switch (frame->hd.type) {
 	case NGHTTP2_HEADERS:
 		if (frame->headers.cat == NGHTTP2_HCAT_RESPONSE) {
-			const nghttp2_nv *nva = frame->headers.nva;
+			_unused const nghttp2_nv *nva = frame->headers.nva;
 			struct request *req;
 			req = nghttp2_session_get_stream_user_data(sess, frame->hd.stream_id);
 			if (!req) break;
