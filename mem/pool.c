@@ -43,6 +43,15 @@ mm_pool_free(void *addr)
 }
 
 void *
+mm_pool_end(struct mm_pool *p, void *end);
+
+size_t
+mm_pool_size(struct mm_pool *p)
+{
+	return 0;
+}
+
+void *
 mm_pool_zalloc(struct mm_pool *pool, size_t size)
 {
 	void *addr = mm_pool_alloc(pool, size);
@@ -143,8 +152,8 @@ mm_pool_create(size_t blocksize, int flags)
 	block = (struct mm_vblock *)vm_vblock_alloc(size);
 	struct mm_pool *pool = (struct mm_pool *)((u8 *)block - size);
 
-	mem_pool_dbg("pool %p created with %u bytes", 
-	             pool, (unsigned int)blocksize);
+	mem_pool_dbg("pool %p created with %llu bytes", 
+	             pool, (unsigned long long)blocksize);
 
 	pool->save.avail[0] = size - sizeof(*pool);
 	pool->save.final[0] = block;

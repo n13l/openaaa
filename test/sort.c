@@ -23,6 +23,7 @@ struct myuser {
 
 unsigned int db_size = sizeof(struct myuser) * 100000;
 unsigned int users = 0;
+unsigned int items = 0;
 
 static inline int user_cmp(struct myuser *a, struct myuser *b)
 {
@@ -95,11 +96,9 @@ load_users_csv(void)
 	if (!(fd = fopen("test/users.csv", "rb")))
 		return;
         while ((nr = getline(&line, &len, fd)) != -1) {
-		parse_line(users, line, len);
-		users++;
-
-		if (users >= 30000)
+		if (users >= items )
 			break;
+		parse_line(++users, line, len);
 	}
 
 	if (line)
@@ -131,7 +130,6 @@ test_array_sort(void)
 _unused static void
 test_insert_sort(void)
 {
-	/* initialize user database because we want stable sequential access */
 	load_users_csv();
 	/* sort users using insert-sort in ascending order */
 	insert_sort_asc(&list, list, user_cmp, struct myuser, n);
@@ -140,63 +138,14 @@ test_insert_sort(void)
 _unused static void
 test_select_sort(void)
 {
-	/* initialize user database because we want stable sequential access */
 	load_users_csv();
 	/* sort users using insert-sort in ascending order */
 	select_sort_asc(&list, list, user_cmp, struct myuser, n);
 }
 
-#define __do_merge_sort_r_xy_not_null(x, y, fn, cb) \
-({ \
-	(x) == NULL ? (y): (y) == NULL ? (x): fn((x), (y), (cb)); \
-})
-#define __do_merge_sort_r_a(x, y, fn, cb) \
-({ \
-	x->next = __do_merge_sort_r_xy_not_null(x->next, y, fn, cb); \
-	x->next->prev = x; x->prev = NULL; x; \
-})
-#define __do_merge_sort_r_b(x, y, fn, cb) \
-({ \
-	y->next = __do_merge_sort_r_xy_not_null(x, y->next, fn, cb); \
-	y->next->prev = y; y->prev = NULL; y; \
-})
-
-struct node *
-__do_merge_sort_asc_r(struct node *x, struct node *y, 
-                      int (*fn)(struct node *, struct node *))
-{
-	if (fn(x, y) < 0)
-		return __do_merge_sort_r_a(x, y, __do_merge_sort_asc_r, fn);
-	else
-		return __do_merge_sort_r_b(x, y, __do_merge_sort_asc_r, fn);
-}
-
-struct node *
-do_merge_sort_asc_r(struct node *x, int (*fn)(struct node *, struct node *))
-{
-	if (!x || !x->next)
-		return x;
-
-	struct node *y = snode_split(x);
-	x = do_merge_sort_asc_r(x, fn);
-	y = do_merge_sort_asc_r(y, fn);
-	return __do_merge_sort_r_xy_not_null(x, y, __do_merge_sort_asc_r, fn);
-}
-
-void
-merge_sort_asc_recursive(struct list *self, int (*cmp)(struct node *, struct node *))
-{
-	if (list_empty(self) || list_singular(self))
-		return;
-	struct node *x = list_disable_prev(self);
-	struct node *y = do_merge_sort_asc_r(x, cmp);
-	list_enable_prev(self, y);
-}
-
 _unused static void
 test_merge_sort_asc_recursive(void)
 {
-	/* initialize user database because we want stable sequential access */
 	load_users_csv();
 	/* sort users using merge-sort in ascending order */
 	merge_sort_asc_recursive(&list, user_node_cmp);
@@ -205,10 +154,9 @@ test_merge_sort_asc_recursive(void)
 _unused static void
 test_merge_sort_asc_iterative(void)
 {
-	/* initialize user database because we want stable sequential access */
 	load_users_csv();
+
 	/* merge-sort users in ascending order */
-	//merge_sort_asc(&list, list, user_node_cmp);
 	merge_sort_asc(&list, list, user_cmp, struct myuser, n);
 }
 
@@ -223,6 +171,7 @@ test_invers_asc(void)
 int 
 main(int argc, char *argv[]) 
 {
+	items = argc > 1 ? atoi(argv[1]): 0;
 	load_users_csv();
 
 	BENCHMARK_PRINT(bench,test_insert_sort(),
@@ -231,18 +180,21 @@ main(int argc, char *argv[])
 	"Running iterative select-sort over intrusive list size: %d", users);
 	BENCHMARK_PRINT(bench,test_merge_sort_asc_recursive(),
 	"Running recursive merge-sort  over intrusive list size: %d", users);
-
-//	list_for_each(list, it, struct myuser, n) 
-//		user_print_ln(it);
-//	test_invers_asc();
-
 	BENCHMARK_PRINT(bench,test_merge_sort_asc_iterative(),
 	"Running iterative merge-sort  over intrusive list size: %d", users);
 
-//	list_for_each(list, it, struct myuser, n) 
-//		user_print_ln(it);
+	if (argc > 2) list_for_each(list, it, struct myuser, n)
+		user_print_ln(it);
 
-//	test_invers_asc();
+	unsigned int s1 = list_size(&list);
+	list_ddup(&list, user_cmp, struct myuser, n);
+	unsigned int s2 = list_size(&list);
+
+	if (argc > 2) list_for_each(list, it, struct myuser, n)
+		user_print_ln(it);
+
+	if (argc > 2 && (s1 - s2))
+		printf("duplicates: %d\n", (s1 - s2));
 
 	return 0;
 }

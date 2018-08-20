@@ -53,11 +53,34 @@ pool_example2(void)
 	}
 }
 
+void
+mm_pool_stat(struct mm_pool *mp)
+{
+	printf("index=%lld\n", (long long)mp->index);
+	printf("avail=%lld\n", (long long)mm_pool_avail(mp));
+}
+
+void
+pool_example3(void)
+{
+	_unused byte buf[CPU_PAGE_SIZE];
+	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, MM_ADDR_ALIGN);
+	struct mm *mm = mm_pool(mp);
+
+	mm_pool_stat(mp);
+	_unused void *addr = mm_alloc(mm, CPU_PAGE_SIZE);
+	mm_pool_stat(mp);
+	addr = mm_alloc(mm, CPU_PAGE_SIZE );
+	_unused void *str = mm_printf(mm, "%s", "fdksjdfkdsjfksdjfkljskldfjklsdfjklsfj");
+	mm_pool_stat(mp);
+
+}
+
 int 
 main(int argc, char *argv[]) 
 {
-	libc_example1();
-	pool_example1();
-	//pool_example2();
+	//libc_example1();
+	//pool_example1();
+	pool_example3();
 	return 0;
 }

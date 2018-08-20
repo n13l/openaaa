@@ -435,6 +435,7 @@ KBUILD_CFLAGS   += -D__arm__
 #KBUILD_CFLAGS   += -Dlog2\(x\)=\(log\(x\)*1.4426950408889634\)
 
 LDFLAGS  += -L$(SYSROOT)/sysroot/usr/lib/arm-linux-androideabi \
+	    -L$(SYSROOT)/usr/lib \
 	    -L$(ANDROID_HOME)/usr/lib \
 
 endif

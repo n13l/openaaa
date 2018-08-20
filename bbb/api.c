@@ -573,20 +573,25 @@ http2_new(void)
 	if (!http2_initialized)
 		http2_initialized = 1;
 
+	SSL_library_init();
+	OpenSSL_add_ssl_algorithms();
+	SSL_load_error_strings();
+	ERR_load_crypto_strings();
+
+	setenv("OPENAAA_PROTOCOL", "aaa", 0);
+
 	struct mm_pool *mp = mm_pool_create(CPU_PAGE_SIZE, 0);
 	struct http2 *http2 = mm_pool_zalloc(mp, sizeof(*http2));
 
 	http2->mp = mp;
 	http2->mp_attrs = mm_pool_create(CPU_PAGE_SIZE, 0);
 
-        info("ssl init");
 	ssl_set_caps(1);
         ssl_init(0);
-	
-        log_open("stdout", 0);
+
+        log_open("syslog", 0);
 	log_verbose = 4;
         
-        info("ssl fini");
 	return http2;
 }
 

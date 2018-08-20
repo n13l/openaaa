@@ -551,4 +551,9 @@
 	inv; \
 })
 
+struct list;
+struct node;
+void
+merge_sort_asc_recursive(struct list *, int (*fb)(struct node *, struct node *));
+
 #endif/*__CCE_GENERIC_SORT_H__*/

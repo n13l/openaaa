@@ -79,7 +79,7 @@ void *
 mm_pool_alloc(struct mm_pool *pool, size_t size);
 
 void *
-mm_pool_realloc(struct mm_pool *poo, void *addr, size_t size);
+mm_pool_realloc(struct mm_pool *pool, void *addr, size_t size);
 
 void
 mm_pool_free(void *addr);
@@ -98,18 +98,12 @@ mm_pool_overlay(void *block, size_t blocksize);
 	
 struct mm_pool *
 mm_pool_create(size_t blocksize, int flags);
-
-void *
-mm_pool_addr(struct mm_pool *p);
-                                                                                
+  
 size_t
 mm_pool_avail(struct mm_pool *p);
 
-void *
-mm_pool_start(struct mm_pool *p, size_t size);
-
-void *
-mm_pool_end(struct mm_pool *p, void *end);
+size_t
+mm_pool_size(struct mm_pool *p);
 
 void *
 mm_pool_extend(struct mm_pool *p, size_t size);

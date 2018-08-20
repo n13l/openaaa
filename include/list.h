@@ -205,7 +205,10 @@ static inline void
 list_enable_prev(struct list *list, struct node *head)
 {
 	struct node *node;
-	for (node = head; node->next; node = node->next);
+	for (node = head; node->next; ) {
+		node->next->prev = node;
+	       	node = node->next;
+	}
 
 	list->head.prev = node;
 	list->head.next = head;

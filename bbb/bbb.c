@@ -59,10 +59,15 @@ main(int argc, char *argv[])
 		}
 	} while(1);
 
+	if (argc < 2)
+		return -1;
+
+	char *url = argv[1];
+
         char buf[8192];
 	struct http2 *h2 = http2_new();
 
-	int stream_id = http2_connect(h2, "https://www.google.com");
+	int stream_id = http2_connect(h2, url);
         if (stream_id < 0)
                 goto cleanup;
 

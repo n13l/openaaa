@@ -69,7 +69,7 @@ endif
 ifeq ($(PLATFORM),linux)
 KBUILD_CFLAGS += -I/usr/arm-linux-gnu/include
 ifeq ($(ARCH),arm)
-KBUILD_LIBS += -lm -ldl 
+KBUILD_LIBS += -lm -ldl -llog
 endif
 ifeq ($(ARCH),x86_64)
 KBUILD_LIBS += -lrt -lm -ldl

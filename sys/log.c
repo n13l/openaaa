@@ -33,15 +33,19 @@ int log_fd_stdout = -1;
 
 void (*log_write_cb)(struct log_ctx *ctx, const char *msg, int len) = NULL;
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include <android/log.h>
-
-#define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG,__VA_ARGS__)
-#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG  , LOG_TAG,__VA_ARGS__)
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO   , LOG_TAG,__VA_ARGS__)
-#define LOGW(...) __android_log_print(ANDROID_LOG_WARN   , LOG_TAG,__VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR  , LOG_TAG,__VA_ARGS__)
-#define LOGSIMPLE(...)
+void
+write_vsyslog(int priority, const char *fmt, va_list args)
+{
+	_unused char line[2048], *pline;
+	byte msg[1024];
+	va_list args2;
+	va_copy(args2, args);
+	_unused int len = vsnprintf(msg, sizeof(msg) - 2, fmt, args2);
+	__android_log_print(ANDROID_LOG_INFO, "aaa", "%s", msg);
+	va_end(args2);
+}
 #else
 void
 write_vsyslog(int priority, const char *fmt, va_list args)
@@ -51,6 +55,7 @@ write_vsyslog(int priority, const char *fmt, va_list args)
 	va_list args2;
 	va_copy(args2, args);
 	_unused int len = vsnprintf(msg, sizeof(msg) - 2, fmt, args2);
+	syslog(priority, "%s", msg);
 	va_end(args2);
 }
 
@@ -65,7 +70,6 @@ write_syslog(int priority, const char *fmt, ...)
 	write_vsyslog(priority, fmt, args);
 	va_end(args);
 }
-
 
 void
 log_open(const char *file, int facility)
@@ -180,9 +184,7 @@ log_vprintf(struct log_ctx *ctx, const char *fmt, va_list args)
 #else
 	switch (log_type) {
 	case LOG_TYPE_SYSLOG:
-#ifndef CONFIG_ARM
-		syslog(ctx->level > 7 ? 7 : ctx->level, "%s", amsg);
-#endif
+		write_syslog(ctx->level > 7 ? 7 : ctx->level, "%s", amsg);
 		break;
 	default:
 		write(log_fd_stdout, amsg, strlen(amsg));
