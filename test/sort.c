@@ -25,6 +25,9 @@ unsigned int db_size = sizeof(struct myuser) * 100000;
 unsigned int users = 0;
 unsigned int items = 0;
 
+void
+merge_sort_asc_recursive(struct list *, int (*fb)(struct node *, struct node *));
+
 static inline int user_cmp(struct myuser *a, struct myuser *b)
 {
 	int cmp;
