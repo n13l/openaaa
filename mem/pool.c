@@ -1,5 +1,6 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
+#include <list.h>
 #include <mem/alloc.h>
 #include <mem/pool.h>
 	
@@ -28,7 +29,6 @@ __pool_alloc_avail(struct mm_pool *pool, size_t size, size_t avail)
 void *
 mm_pool_alloc(struct mm_pool *pool, size_t size)
 {
-	mem_pool_dbg("size=%d avail=%d", (int)size, (int)pool->save.avail[0]);
 	if (size <= pool->save.avail[0]) {
 		void *p = (u8 *)pool->save.final[0] - pool->save.avail[0];
 		pool->save.avail[0] -= size;
@@ -76,7 +76,7 @@ void
 mm_pool_destroy(struct mm_pool *pool)
 {
 	struct mm_vblock *it, *block;
-	mem_pool_dbg("pool %p destroyed", pool);
+	//debug4("mem pool %p destroyed", pool);
 
 	block = (struct mm_vblock *)pool->save.final[1];
 	slist_for_each_delsafe(block, node, it)
@@ -126,8 +126,8 @@ mm_pool_overlay(void *block, size_t blocksize)
 
 	struct mm_pool *pool = (struct mm_pool *)((u8 *)block - size);
 
-	mem_pool_dbg("pool %p attached with %llu bytes", 
-	             pool, (unsigned long long)blocksize);
+	//debug4("mem pool %p attached with %llu bytes", 
+	  //           pool, (unsigned long long)blocksize);
 
 	pool->save.avail[0] = size - sizeof(*pool);
 	pool->save.final[0] = block;
@@ -152,8 +152,8 @@ mm_pool_create(size_t blocksize, int flags)
 	block = (struct mm_vblock *)vm_vblock_alloc(size);
 	struct mm_pool *pool = (struct mm_pool *)((u8 *)block - size);
 
-	mem_pool_dbg("pool %p created with %llu bytes", 
-	             pool, (unsigned long long)blocksize);
+	//debug4("mem pool %p created with %llu bytes", 
+	  //      pool, (unsigned long long)blocksize);
 
 	pool->save.avail[0] = size - sizeof(*pool);
 	pool->save.final[0] = block;

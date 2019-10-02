@@ -486,12 +486,12 @@ ssl_server_add(SSL *s, uint type, const byte **out, size_t *len, int *al, void *
 	*len = sz + 1;
 	sz = 0;
 	dict_for_each(attr, sp->posted.list) {
-		debug("extension %s=%s", attr->key, attr->val);
+		debug1("extension %s=%s", attr->key, attr->val);
 		sz += snprintf(b + sz, *len, "%s=%s\n",attr->key, attr->val);
 	}
 
 	b[sz] = 0;
-	debug("extension name=%s type=%d send",tls_strext(type), type);
+	debug1("extension name=%s type=%d send",tls_strext(type), type);
 	*out = b;
 	return 1;
 }
@@ -531,12 +531,12 @@ ssl_client_add(SSL *s, unsigned int type, const byte **out, size_t *len,
 	*len = sz + 1;
 	sz = 0;
 	dict_for_each(attr, sp->recved.list) {
-		debug("extension %s=%s", attr->key, attr->val);
+		debug1("extension %s=%s", attr->key, attr->val);
 		sz += snprintf(b + sz, *len, "%s=%s\n",attr->key, attr->val);
 	}
 
 	b[sz] = 0;
-	debug("extension name=%s type=%d send ",tls_strext(type), type);
+	debug1("extension name=%s type=%d send ",tls_strext(type), type);
 
 	*out = b;
 	return 1;
@@ -712,7 +712,7 @@ ssl_server_aaa(struct session *sp)
 		              aaa.handler, host, id, key);
 	
 	_unused int status = system(msg);
-	debug("%s", WEXITSTATUS(status)? "failed" : "channel binding");
+	debug1("%s", WEXITSTATUS(status)? "failed" : "channel binding");
 
 	if (aaa.group && aaa.role)
 		msg = printfa("%s -pr4 -s%s -a%s -i%s -k%s -g%s -r%s %s", 
@@ -721,12 +721,12 @@ ssl_server_aaa(struct session *sp)
 		msg = printfa("%s -pr4 -s%s -a%s -i%s -k%s %s", 
 		              aaa.handler, sess_id, host, id, key, synch);
 
-	debug("cmd=%s", msg);
+	debug1("cmd=%s", msg);
 	
 	status = system(msg);
 
 	if (!server_handshake_synch)
-		debug("%s", WEXITSTATUS(status)? "forbidden" : "authenticated");
+		debug1("%s", WEXITSTATUS(status)? "forbidden" : "authenticated");
 
 	if (!server_handshake_synch)
 		return 0;
@@ -956,7 +956,7 @@ DEFINE_SSL_CALL(callback_ctrl)(SSL *ssl, int cmd, void (*fp)(void))
 		void (*fn)(void) = (void (*)(void))ssl_extensions;
 		return CALL_SSL(callback_ctrl)(ssl, cmd, fn);
 	default:
-		debug("cmd=%d", cmd);
+		debug1("cmd=%d", cmd);
 		return CALL_SSL(callback_ctrl)(ssl, cmd, fp);
 	}
 	return 0;
@@ -973,7 +973,7 @@ DEFINE_CTX_CALL(callback_ctrl)(SSL_CTX *ctx, int cmd, void (*fp)(void))
 		ssl_cb.cb_ext = (typeof(ssl_cb.cb_ext))fp;
 		break;
 	default:
-		debug("cmd=%d", cmd);
+		debug1("cmd=%d", cmd);
 		return CALL_CTX(callback_ctrl)(ctx, cmd, fp);
 	}
 	return 0;
@@ -1155,15 +1155,15 @@ init_aaa_env(void)
 
 	//debug("checking for aaa environment");
 	if (aaa.authority)
-		debug("env aaa.authority=%s",aaa.authority);
+		debug1("env aaa.authority=%s",aaa.authority);
 	if (aaa.protocol)
-		debug("env aaa.protocol=%s",aaa.protocol);
+		debug1("env aaa.protocol=%s",aaa.protocol);
 	if (aaa.handler)
-		debug("env aaa.handler=%s",aaa.handler);
+		debug1("env aaa.handler=%s",aaa.handler);
 	if (aaa.group)
-		debug("env aaa.group=%s",aaa.group);
+		debug1("env aaa.group=%s",aaa.group);
 	if (aaa.role)
-		debug("env aaa.role=%s",aaa.role);
+		debug1("env aaa.role=%s",aaa.role);
 
 }
 

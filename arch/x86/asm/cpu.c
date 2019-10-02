@@ -262,31 +262,31 @@ cpu_info(void)
 	debug("cpu.extended model %d", (eax >> 16) & 0xF);
 	debug("cpu.extended family %d", (eax >> 20) & 0xFF);
 */
-	debug("cpu.vendor=%s", cpu_vendor());
-	debug("cpu.arch=%s", CONFIG_ARCH);
-	debug("cpu.bits=%d", sizeof(void *) == 8 ? 64 : 32);
-	debug("cpu.pagesize=%d", CPU_PAGE_SIZE);
-	debug("cpu.cacheline=%d",  L1_CACHE_BYTES);
+	debug1("cpu.vendor=%s", cpu_vendor());
+	debug1("cpu.arch=%s", CONFIG_ARCH);
+	debug1("cpu.bits=%d", sizeof(void *) == 8 ? 64 : 32);
+	debug1("cpu.pagesize=%d", CPU_PAGE_SIZE);
+	debug1("cpu.cacheline=%d",  L1_CACHE_BYTES);
 
-	debug("cpu.has.crc32c=%d", cpu_has_crc32c());
+	debug1("cpu.has.crc32c=%d", cpu_has_crc32c());
 
-	debug("cpu.has.sse4.2=%s", ecx & X86_BIT_SSE42 ? "yes" : "no");
+	debug1("cpu.has.sse4.2=%s", ecx & X86_BIT_SSE42 ? "yes" : "no");
 	if (ecx & X86_BIT_SSE42)
 		return;
 
-	debug("cpu.has.sse4.1=%s", ecx & X86_BIT_SSE41 ? "yes" : "no");
+	debug1("cpu.has.sse4.1=%s", ecx & X86_BIT_SSE41 ? "yes" : "no");
 	if (ecx & X86_BIT_SSE41)
 		return;
 	
-	debug("cpu.has.sse3=%s",   ecx & X86_BIT_SSE3  ? "yes" : "no");
+	debug1("cpu.has.sse3=%s",   ecx & X86_BIT_SSE3  ? "yes" : "no");
 	if (ecx & X86_BIT_SSE3)
 		return;
 	
-	debug("cpu.has.sse2=%s",   ecx & X86_BIT_SSE2  ? "yes" : "no");
+	debug1("cpu.has.sse2=%s",   ecx & X86_BIT_SSE2  ? "yes" : "no");
 	if (ecx & X86_BIT_SSE2)
 		return;
 	
-	debug("cpu.has.sse=%s", ecx & X86_BIT_SSE ? "yes" : "no");
+	debug1("cpu.has.sse=%s", ecx & X86_BIT_SSE ? "yes" : "no");
 	if (ecx & X86_BIT_SSE)
 		return;
 }

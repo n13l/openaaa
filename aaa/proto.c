@@ -1,5 +1,6 @@
 #include <sys/compiler.h>
 #include <sys/log.h>
+#include <list.h>
 #include <mem/alloc.h>
 #include <mem/stack.h>
 #include <mem/pool.h>
@@ -60,7 +61,7 @@ udp_build(struct aaa *aaa, char *op, byte *buf, int size)
 	len += attr_enc(buf, len, size, "msg.id", "1");
 
 	dict_for_each(a, aaa->attrs.list) {
-                /* debug4("attr %s %s", a->key, a->flags & ATTR_CHANGED ? "changed" : ""); */
+                debug4("udp build %s:%s %s ", a->key, a->val, a->flags & ATTR_CHANGED ? "changed" : ""); 
                 if (!(a->flags & ATTR_CHANGED))
                         continue;
 		len += attr_enc(buf, len, size, a->key, a->val);
@@ -118,7 +119,7 @@ udp_bind(struct aaa *aaa)
 
 	u32 hash = hash_string(aaa->sid);
 	int index = hash % sched_workers;
-	debug4("id=%s hash=%d index=%d", aaa->sid, (int)hash, index);
+	debug4("udp commit id=%s index=%d", aaa->sid, index);
 
 	struct sockaddr_in in = {
 		.sin_family = AF_INET,
@@ -176,7 +177,7 @@ udp_commit(struct aaa *aaa)
 
 	u32 hash = hash_string(aaa->sid);
 	int index = hash % sched_workers;
-	debug4("id=%s hash=%d index=%d", aaa->sid, (int)hash, index);
+	debug4("udp commit id=%s index=%d", aaa->sid, index);
 
 	struct sockaddr_in in = {
 		.sin_family = AF_INET,

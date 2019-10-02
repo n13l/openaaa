@@ -29,9 +29,17 @@
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
-#include <mem/alloc.h>
 
 __BEGIN_DECLS
+
+struct vm_info {
+	u64 size; /* Current virtual memory usage */
+	u64 peak; /* Peak virtual memory usage    */
+	u64 rss;  /* Resident set size */
+	u64 hwm;  /* Peak resident set size */
+	u64 pte;  /* Pagetable entries size */
+	u64 swap; /* Swap space used */
+};
 
 void *
 vm_page_reserve(void);
@@ -46,7 +54,10 @@ void *
 vm_page_inquire(void *addr);
 
 void *
-vm_page_extend(void *page, size_t olen, size_t size);
+vm_page_extend(void *page, size_t orig, size_t size);
+
+int
+vm_usage(struct vm_info *vm_info);
 
 __END_DECLS
 

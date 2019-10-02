@@ -30,11 +30,9 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/log.h>
-#include <sys/decls.h>
 #include <mem/alloc.h>
 #include <mem/savep.h>
 #include <mem/block.h>
-#include <mem/generic.h>
 #include <list.h>
 #include <inttypes.h>
 #include <assert.h>

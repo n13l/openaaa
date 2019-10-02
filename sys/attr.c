@@ -1,8 +1,8 @@
 #include <sys/compiler.h>
 #include <sys/log.h>
+#include <list.h>
 #include <mem/alloc.h>
 #include <mem/pool.h>
-#include <list.h>
 #include <dict.h>
 
 int

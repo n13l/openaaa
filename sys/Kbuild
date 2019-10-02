@@ -1,6 +1,7 @@
 
 obj-y += $(PLATFORM)/ unix/ plt/ copt/
-obj-y += exit.o units.o log.o irq.o pid.o sock.o attr.o timestamp.o merge.o
+obj-y += exit.o units.o irq.o pid.o sock.o attr.o timestamp.o merge.o
+obj-y += log/out.o
 obj-$(CONFIG_DEBUG_LIST) += list.o
 
 ifndef CONFIG_ARM

@@ -1,3 +1,1 @@
-obj-y += alloc.o block.o page.o map.o mm.o pool.o
-obj-y += pool.o
-obj-$(CONFIG_USE_EFFICIENT_MMAP) += vm.o
+obj-y += alloc.o block.o page.o mm.o pool.o vm.o

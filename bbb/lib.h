@@ -36,7 +36,6 @@ struct http2;
 typedef void (*callback_t)(int arg, void *userdata);
 
 /* public api functions */
-
 struct http2 *
 http2_new(void);
 
@@ -45,6 +44,9 @@ http2_free(struct http2 *);
 
 int
 http2_connect(struct http2 *http2, const char *uri);
+
+int
+http2_submit(struct http2 *http2, int stream_id, const char *uri);
 
 int
 http2_disconnect(struct http2 *http2);

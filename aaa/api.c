@@ -1,6 +1,7 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/log.h>
+#include <list.h>
 #include <mem/pool.h>
 
 #include <aaa/lib.h>
@@ -136,7 +137,7 @@ aaa_attr_dump(struct aaa *aaa, const char *path)
 
 	for (node = list_first(list); node; node = list_next(list, node)) {
 		struct attr *attr = __container_of(node, struct attr, node);
-		debug("%s:%s", attr->key, attr->val);
+		debug1("%s:%s", attr->key, attr->val);
 	}
 }
 

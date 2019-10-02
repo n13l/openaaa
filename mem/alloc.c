@@ -26,6 +26,7 @@
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
+#include <list.h>
 #include <mem/alloc.h>
 #include <stdlib.h>
 

@@ -1,2 +1,2 @@
 #!/bin/sh
-printf "msg.op:bind\nmsg.id:1\nsess.id:$1\n" | ncat -u $OPENAAA_SERVICE 8888
+printf "msg.op:bind\nmsg.id:1\nsess.id:$1\n" | nc -4u -w1 127.0.0.1 8888

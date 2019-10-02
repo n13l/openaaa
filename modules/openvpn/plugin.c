@@ -4,9 +4,9 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/dll.h>
+#include <list.h>
 #include <mem/pool.h>
 #include <sys/log.h>
-
 #include <aaa/lib.h>
 #include <aaa/prv.h>
 
@@ -42,10 +42,10 @@ struct ovpn_sess {
 plugin_log_t ovpn_log = NULL;
 
 static void 
-ovpn_log_write(struct log_ctx *ctx, const char *msg, int len)
+ovpn_log_write(const char *prefix, const char *msg)
 {
 	char buf[4096] = {0};
-	snprintf(buf, sizeof(buf) - 1, "%s:%s %s", ctx->module, ctx->fn, msg);
+	snprintf(buf, sizeof(buf) - 1, "%s:%s", prefix, msg);
 	if (ovpn_log)
 		ovpn_log(PLOG_NOTE, "ssl", buf);
 }
@@ -99,7 +99,7 @@ openvpn_plugin_open_v3(const int version,
 	struct ovpn_ctxt *ovpn = mm_pool_alloc(mp, sizeof(*ovpn));
 	ovpn_log = args->callbacks->plugin_log;
 
-	log_custom_set(ovpn_log_write, NULL);
+	log_set_handler(ovpn_log_write);
 	log_name("vpn");
 
 	envp_dbg(args->envp);

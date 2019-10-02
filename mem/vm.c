@@ -2,6 +2,7 @@
 #include <sys/cpu.h>
 #include <sys/types.h>
 #include <sys/mman.h>
+#include <list.h>
 #include <mem/alloc.h>
 
 #include <errno.h>
@@ -46,7 +47,7 @@ vm_page_extend(void *page, size_t olen, size_t size)
 {
 	/* TODO: mremap() on base addr when MM_CONT_ALLOC is used */
 	void *addr = vm_page_alloc(size);
-	memcpy(addr, page, min(olen, size));
+	memcpy(addr, page, __min(olen, size));
 	vm_page_free(page, olen);
 	return addr;
 }

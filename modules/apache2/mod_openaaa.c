@@ -59,10 +59,9 @@ static apr_status_t
 destroy_request(void *ctx);
 
 static void
-log_write(struct log_ctx *ctx, const char *msg, int len)
+log_write(const char *pref, const char *msg)
 {
-	server_rec *s = (server_rec *)ctx->user;
-	ap_log_error(ctx->file, ctx->line, APLOG_MODULE_INDEX, APLOG_INFO, 0, s, msg);
+	//ap_log_error("", 0, APLOG_MODULE_INDEX, APLOG_INFO, 0, s, msg);
 }
 
 /*
@@ -75,7 +74,7 @@ static void
 child_init(apr_pool_t *p, server_rec *s)
 {
 	log_verbose = 4;
-	log_custom_set(log_write, s);
+	log_set_handler(log_write);
 
 	struct aaa *a = aaa_new(AAA_ENDPOINT_SERVER, 0);
 

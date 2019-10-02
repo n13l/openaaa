@@ -1,8 +1,8 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/log.h>
-#include <mem/alloc.h>
 #include <list.h>
+#include <mem/alloc.h>
 #include <version.h>
 
 #define DEFINE_SYMBOL(ns, rv, fn, args...) \

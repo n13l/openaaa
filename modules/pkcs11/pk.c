@@ -24,6 +24,7 @@
 #include <sys/cpu.h>
 #include <sys/log.h>
 #include <sys/dll.h>
+#include <list.h>
 #include <mem/stack.h>
 #include <crypto/hex.h>
 
@@ -106,7 +107,7 @@ get_info(struct ck_info *info)
 	info->crypto  = CK_VERSION(PKCS11_MAJOR, PKCS11_MINOR);
 	info->flags = 0;
 
-	debug("crypto version=%d.%d", info->crypto.major, info->crypto.minor);
+	debug1("crypto version=%d.%d", info->crypto.major, info->crypto.minor);
 
 	return CKR_OK;
 }
@@ -126,7 +127,7 @@ static unsigned long
 get_slot_info(ck_ulong id, struct ck_slot_info *slot)
 {
 	char *v = evala(memhex, (byte *)&id, sizeof(id));
-	debug("id=%s", v);
+	debug1("id=%s", v);
 
 	CK_STRING(slot->description,  LIBRARY_DESC);
 	CK_STRING(slot->manufacturer, MANUFACTURER);
@@ -142,70 +143,70 @@ static unsigned long
 get_token_info(ck_ulong id, struct ck_token_info *token)
 {
 	char *v = evala(memhex, (byte *)&id, sizeof(id));
-	debug("id=%s", v);
+	debug1("id=%s", v);
 	return CKR_OK;
 }
                                                                                 
 static unsigned long
 get_mechanism_list(ck_ulong id, ck_ulong *type, ck_ulong *count)
 {
-	debug("pkcs11");
+	debug1("pkcs11");
 	return CKR_OK;
 }
                                                                                 
 static unsigned long
 get_mechanism_info(ck_ulong id, ck_ulong type, struct ck_mechanism_info *info)
 {
-	debug("pkcs11");
+	debug1("pkcs11");
 	return CKR_OK;
 }
 
 static unsigned long
 init_token(ck_ulong id, byte *pin, ck_ulong len, byte *label)
 {
-	debug("pkcs11");
+	debug1("pkcs11");
 	return CKR_OK;
 }
 
 static unsigned long
 open_session(ck_ulong id, ck_flags flags, void *app, ck_notify fn, ck_ulong *s)
 {
-	debug("pkcs11");
+	debug1("pkcs11");
 	return CKR_TOKEN_NOT_PRESENT;
 }
 
 static unsigned long
 close_session(ck_ulong session)
 {
-	debug("pkcs11");
+	debug1("pkcs11");
 	return CKR_TOKEN_NOT_PRESENT;
 }
 
 static unsigned long
 close_all_sessions(ck_ulong id)
 {
-	debug("pkcs11");
+	debug1("pkcs11");
 	return CKR_TOKEN_NOT_PRESENT;
 }
 
 static unsigned long
 get_function_status(ck_ulong id)
 {
-	debug("pkcs11");
+	debug1("pkcs11");
 	return CKR_OK;
 }
 
 static unsigned long
 cancel_function(ck_ulong id)
 {
-	debug("pkcs11");
+	debug1("pkcs11");
 	return CKR_OK;
 }
 
 static unsigned long
 wait_for_slot_event(ck_flags flags, ck_ulong *slot, void *a)
 {
-	debug("pkcs11");
+	debug1("pkcs11");
 	return CKR_NO_EVENT;
 }
 

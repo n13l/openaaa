@@ -54,7 +54,7 @@ test1_list(void)
 	/* iterate over all objects */
 	list_for_each(list, n) {
 		struct person *p = __container_of(n, struct person, n);
-		debug("node=%p person=%p name=%s", n, p, p->name);
+		debug1("node=%p person=%p name=%s", n, p, p->name);
 	}
 
 	/* iterate and unlink adam */
@@ -62,13 +62,13 @@ test1_list(void)
 		struct person *p = __container_of(n, struct person, n);
 		if (!strcmp(p->name, "Adam"))
 			list_del(&p->n);
-		debug("node=%p person=%p name=%s", n, p, p->name);
+		debug1("node=%p person=%p name=%s", n, p, p->name);
 	}
 
 	struct node *it;
 	list_walk(list, it) {
 		struct person *p = __container_of(it, struct person, n);
-		debug("node=%p person=%p name=%s", it, p, p->name);
+		debug1("node=%p person=%p name=%s", it, p, p->name);
 		break;
 	}
 
@@ -84,7 +84,7 @@ test1_list(void)
 
 	list_walk_delsafe(list, it) {
 		struct person *p = __container_of(it, struct person, n);
-		debug("node=%p person=%p name=%s", it, p, p->name);
+		debug1("node=%p person=%p name=%s", it, p, p->name);
 		list_del(&p->n);
 	}
 

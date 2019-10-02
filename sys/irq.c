@@ -176,12 +176,12 @@ irq_enable(void)
 {
 	irqmask(SIG_SETMASK, NULL, &irq_mask);
 	irqmask(SIG_UNBLOCK, &irq_mask, NULL);
-	debug4("irq enabled");
+	//debug4("irq enabled");
 }
 
 void
 irq_disable(void)
 {
 	irqmask(SIG_BLOCK, &blk_mask, &irq_mask);
-	debug4("irq disabled");
+	//debug4("irq disabled");
 }

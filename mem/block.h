@@ -29,8 +29,6 @@
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
-#include <sys/decls.h>
-#include <mem/debug.h>
 #include <mem/vm.h>
 #include <list.h>
 
@@ -54,7 +52,6 @@ vm_vblock_alloc(size_t size)
 	b = (struct mm_vblock *)((u8 *)b + size);
 	b->size = size;
 	snode_init(&b->node);
-	printf("block:alloc(size=%lld)\n", (long long)size);
 	return b;
 }
 
@@ -62,7 +59,6 @@ void
 static inline 
 vm_vblock_free(struct mm_vblock *b)
 {
-	printf("block:free(size=%lld)\n", (long long)b->size);
 	vm_page_free((u8 *)b - b->size, b->size + align_addr(sizeof(*b)));
 }
 
@@ -73,7 +69,6 @@ vm_vblock_extend(void *addr, size_t osize, size_t size)
 	b = (struct mm_vblock *)((u8 *)b + size);
 	b->size = size;
 	snode_init(&b->node);
-	printf("block:extend(org=%lld, size=%lld)\n", (long long)osize, (long long)size);
 	return b;
 }
 

@@ -43,6 +43,10 @@ struct http2 {
                         return http2_disconnect(self);
                 }
 
+                int _submit(int streamid, const char *uri) {
+                        return http2_submit(self, streamid, uri);
+                }
+
                 int _read(int stream_id, char* buffer, int size) {
                         return http2_read(self, stream_id, buffer, size);
                 }

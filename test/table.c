@@ -25,10 +25,10 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/log.h>
+#include <list.h>
 #include <mem/alloc.h>
 #include <mem/cache.h>
 #include <mem/page.h>
-#include <list.h>
 #include <hash.h>
 
 #define HASHTABLE_BITS 9

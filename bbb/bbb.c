@@ -10,7 +10,6 @@
 #define KBUILD_STR(s) #s
 
 static const char *options = "scvVl:o:";
-
 static struct option long_options[] = {
 	{"verbose",  no_argument, 0, 'v'},
 	{"help",     no_argument, 0, 'h'},
@@ -23,7 +22,6 @@ usage(void)
 {
 	printf("usage: http2 [options] <cmd>\n");
 	printf("\noptions: \n");
-
 	exit(0);
 }
 
@@ -58,7 +56,6 @@ main(int argc, char *argv[])
 			die("wrong arguments");
 		}
 	} while(1);
-
 	if (argc < 2)
 		return -1;
 
@@ -66,10 +63,19 @@ main(int argc, char *argv[])
 
         char buf[8192];
 	struct http2 *h2 = http2_new();
-
 	int stream_id = http2_connect(h2, url);
         if (stream_id < 0)
                 goto cleanup;
+
+	const char *sid = http2_attr_get(h2, "aaa.sess.id");
+	info("aaa.sess.id: %s", sid);
+	const char *bid = http2_attr_get(h2, "aaa.bind.id");
+	info("aaa.bind.id: %s", bid);
+	const char *key = http2_attr_get(h2, "aaa.bind.key");
+	info("aaa.bind.key: %s", key);
+
+	const char *authority = http2_attr_get(h2, "aaa.authority");
+	info("aaa.authority: %s", authority);
 
         do {
                 int rv = http2_read(h2, stream_id, buf, sizeof(buf));
@@ -78,6 +84,5 @@ main(int argc, char *argv[])
 
 cleanup:
 	http2_free(h2);
-
 	return 0;
 }

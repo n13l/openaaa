@@ -24,6 +24,7 @@
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
+#include <list.h>
 #include <mem/alloc.h>
 #include <mem/page.h>
 #include <mem/vm.h>

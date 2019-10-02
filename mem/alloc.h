@@ -30,10 +30,8 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/log.h>
-#include <mem/debug.h>
 #include <mem/savep.h>
 #include <mem/stack.h>
-#include <list.h>
 #include <stdarg.h>
 #include <assert.h>
 
@@ -88,8 +86,8 @@ mm_free(struct mm *, void *addr);
 char *
 mm_strmem(struct mm *, const char *str, size_t len);
 
-char *
-mm_memdup(struct mm *, const char *ptr, size_t len);
+void *
+mm_memdup(struct mm *, void *ptr, size_t len);
 
 char *
 mm_strdup(struct mm *, const char *str);
@@ -108,5 +106,25 @@ mm_strcat(struct mm *, ...);
 
 char *
 mm_fsize(struct mm *mm, u64 num);
+
+/*
+ * This memset_safe should never be optimized out by the compiler 
+ * It is good practice and many security related RFCs require that sensitive
+ * data should be removed from memory when it is no long needed so that the 
+ * sensitive data does not accidentally end up in the swap files temp file,
+ * memory dumps etc.
+ *
+ * However the optimizing compiler removes the memset function as part of 
+ * "dead store removal" optimization sometimes.
+ */
+
+static inline void
+mm_set_safe(void *addr, unsigned char byte, size_t size)
+{
+	volatile u8 *p;
+	for (p = (u8 *)addr; size; size--) 
+		*p++ = byte;
+}
+
 
 #endif

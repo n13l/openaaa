@@ -1,5 +1,6 @@
 #include <sys/compiler.h>
 #include <sys/log.h>
+#include <list.h>
 #include <aaa/lib.h>
 #include <aaa/prv.h>
 
@@ -39,7 +40,7 @@ aaa_env_init(void)
 	if (logv)
 		log_verbose = atoi(logv);
 
-	log_open(logf, LOG_AUTHPRIV);
+	log_open(logf);
 
 	if (aaad_host) {
 		debug1("aaa.service.ip=%s", aaad_host);

@@ -28,11 +28,7 @@
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
-#include <mem/alloc.h>
-#include <mem/safe.h>
-#include <mem/debug.h>
 #include <string.h>
-//#include <ctype.h>
 
 #ifndef MM_STACK_BLOCK_SIZE
 #define MM_STACK_BLOCK_SIZE CPU_CACHE_LINE
@@ -49,7 +45,7 @@
 _unused _noinline static unsigned int
 printfza(const char *fmt, ...)
 {
-	char *string = alloca(MM_STACK_BLOCK_SIZE);
+	char *string = (char *) alloca(MM_STACK_BLOCK_SIZE);
 	unsigned int avail =  MM_STACK_BLOCK_SIZE;
 
 	va_list args, args2;
@@ -62,7 +58,7 @@ stack_avail:
 
 	if (unlikely(size < 0)) {
 		avail *= 2;
-		string = alloca(avail);
+		string = (char *) alloca(avail);
 		goto stack_avail;
 	}
 
@@ -75,7 +71,7 @@ struct mm_stack_struct;
 _unused _noinline static unsigned int 
 printfza_safe(struct mm_stack_struct *sp, const char *fmt, ...)
 {
-	char *string = alloca(MM_STACK_BLOCK_SIZE);
+	char *string = (char *) alloca(MM_STACK_BLOCK_SIZE);
 	unsigned int avail =  MM_STACK_BLOCK_SIZE;
 
 	va_list args, args2;
@@ -88,7 +84,7 @@ stack_avail:
 
 	if (unlikely(size < 0)) {
 		avail *= 2;
-		string = alloca(avail);
+		string = (char *) alloca(avail);
 		goto stack_avail;
 	}
 
@@ -99,7 +95,7 @@ stack_avail:
 _unused _noinline static unsigned int 
 vprintfza(const char *fmt, va_list args)
 {
-	char *string = alloca(MM_STACK_BLOCK_SIZE);
+	char *string = (char *) alloca(MM_STACK_BLOCK_SIZE);
 	unsigned int avail  = MM_STACK_BLOCK_SIZE;
 	va_list args2;
 
@@ -110,7 +106,7 @@ stack_avail:
 
 	if (unlikely(size < 0)) {
 		avail *= 2; 
-		string = alloca(avail);
+		string = (char *) alloca(avail);
 		goto stack_avail;
 	}
 
@@ -122,7 +118,7 @@ stack_avail:
 _unused _noinline static unsigned int 
 vprintfza_safe(struct mm_stack_struct *sp, const char *fmt, va_list args)
 {
-	char *string = alloca(MM_STACK_BLOCK_SIZE);
+	char *string = (char *) alloca(MM_STACK_BLOCK_SIZE);
 	unsigned int avail  = MM_STACK_BLOCK_SIZE;
 	va_list args2;
 
@@ -133,7 +129,7 @@ stack_avail:
 
 	if (unlikely(size < 0)) {
 		avail *= 2; 
-		string = alloca(avail);
+		string = (char *) alloca(avail);
 		goto stack_avail;
 	}
 
@@ -161,7 +157,7 @@ struct mm_stack {
 #define strdupa(string)  \
 ({\
 	unsigned ____size = strlen(string) + 1; \
-	char *_X = alloca(____size); memcpy(_X, string, ____size); _X; \
+	char *_X = (char *) alloca(____size); memcpy(_X, string, ____size); _X; \
 })
 #endif
 
@@ -169,7 +165,7 @@ struct mm_stack {
 #define strndupa(string, size)  \
 ({\
 	const char *_S = (string); size_t _L = strnlen(_S,(size)); \
-	char *_X = alloca(_L + 1); \
+	char *_X = (char *) alloca(_L + 1); \
 	memcpy(_X, _S, _L); _X[_L] = 0; _X; \
 })
 #endif
@@ -177,7 +173,7 @@ struct mm_stack {
 #ifndef strmema
 #define strmema(string, size)  \
 ({\
-	char *_X = alloca(size + 1); \
+	char *_X = (char *) alloca(size + 1); \
 	memcpy(_X, string, size); _X[size] = 0; _X; \
 })
 #endif
@@ -185,7 +181,7 @@ struct mm_stack {
 #ifndef memdupa
 #define memdupa(string, size)  \
 ({\
-	char *_X = alloca(size); \
+	char *_X = (char *) alloca(size); \
 	memcpy(_X, string, size); _X; \
 })
 #endif
@@ -194,7 +190,7 @@ struct mm_stack {
 #ifndef printfa
 #define printfa(...)  \
 ({\
-	char *_S = (char *)alloca(printfza(__VA_ARGS__)); \
+	char *_S = (char *) alloca(printfza(__VA_ARGS__)); \
         sprintf(_S, __VA_ARGS__); _S; \
 })
 #endif
@@ -202,21 +198,21 @@ struct mm_stack {
 #ifndef vprintfa
 #define vprintfa(fmt, args) \
 ({\
-	char *_X = alloca(vprintfza(fmt,args)); vsprintf(_X, fmt, args);_X;\
+	char *_X = (char *) alloca(vprintfza(fmt,args)); vsprintf(_X, fmt, args);_X;\
 })
 #endif
 
 /* call conforming function prototype and alloc stack memory */
 #define evala(fn, source, bytes) \
 ({\
-	char *_X = alloca(fn##_size(bytes)); fn(source, bytes, _X); _X; \
+	char *_X = (char *) alloca(fn##_size(bytes)); fn(source, bytes, _X); _X; \
 })
 
 /* Stack-based network layer functions */
 #define inet_ntopa(af, addr) \
 ({\
 	size_t _L = af == AF_INET ? INET_ADDRSTRLEN : INET6_ADDRSTRLEN;\
-	char *_S = alloca(_L + 1);\
+	char *_S = (char *) alloca(_L + 1);\
 	const char *__D;\
 	__D = inet_ntop(af, addr, _S, _L);\
 	__D; \

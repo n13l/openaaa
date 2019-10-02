@@ -26,6 +26,7 @@
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
+#include <list.h>
 #include <mem/alloc.h>
 
 void *
@@ -64,10 +65,10 @@ mm_strmem(struct mm *mm, const char *str, size_t len)
 	return s;
 }
 
-char *
-mm_memdup(struct mm *mm, const char *ptr, size_t len)
+void *
+mm_memdup(struct mm *mm, void *ptr, size_t len)
 {
-	char *s = (char *)mm->alloc(mm, len);
+	void *s = (void *)mm->alloc(mm, len);
 	memcpy(s, ptr, len);
 	return s;
 }

@@ -1,7 +1,7 @@
 #include <sys/compiler.h>
 #include <sys/log.h>
 #include <getopt.h>
-
+#include <list.h>
 #include <aaa/prv.h>
 #include <aaa/lib.h>
 

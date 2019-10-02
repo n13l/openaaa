@@ -95,7 +95,6 @@ load_users_csv(void)
 
 	FILE *fd; char *line = NULL;
 	ssize_t nr; size_t len = 0;
-
 	if (!(fd = fopen("test/users.csv", "rb")))
 		return;
         while ((nr = getline(&line, &len, fd)) != -1) {
@@ -106,9 +105,7 @@ load_users_csv(void)
 
 	if (line)
 		free(line);
-
 	fclose(fd);
-
 	BENCHMARK_INIT(bench);
 }
 
@@ -158,7 +155,6 @@ _unused static void
 test_merge_sort_asc_iterative(void)
 {
 	load_users_csv();
-
 	/* merge-sort users in ascending order */
 	merge_sort_asc(&list, list, user_cmp, struct myuser, n);
 }

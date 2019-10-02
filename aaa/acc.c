@@ -1,7 +1,7 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/time.h>
-
+#include <list.h>
 #include <mem/alloc.h>
 #include <mem/page.h>
 #include <mem/map.h>
@@ -10,14 +10,16 @@
 #include <aaa/prv.h>
 
 #include <buffer.h>
-#include <list.h>
 #include <hash.h>
+
+#define P_FLAGS (PROT_READ | PROT_WRITE)                                        
+#define M_FLAGS (MAP_PRIVATE | MAP_ANON)
 
 #define HTABLE_BITS 9
 
-DEFINE_HASHTABLE_SHARED(htable_sid);
-DEFINE_HASHTABLE_SHARED(htable_bid);
-DEFINE_HASHTABLE_SHARED(htable_uid);
+DEFINE_HASHTABLE(htable_sid, 9);
+DEFINE_HASHTABLE(htable_bid, 9);
+DEFINE_HASHTABLE(htable_uid, 9);
 
 struct attrs {
 	char sid[128];
@@ -71,24 +73,15 @@ struct request {
 	u32  hash_bid;
 };
 
-static struct pagemap *pagemap = NULL;
+static struct pages pagemap;
 
-u32 htab_pages;
-u32 shift = 12, pages = 32768;
+u32 shift = 12, pages = 100000;
 
 int
 acct_init(void)
 {
-	htab_pages = align_to(CPU_PAGE_SIZE, (1<<HTABLE_BITS) * sizeof(struct hlist));
-	htable_sid = mmap_open(NULL, MAP_SHARED | MAP_ANON, shift, htab_pages);
-	if (!htable_sid)
-		die("mm_open() failed reason=%s", strerror(errno));
-
-	hash_init_shared(htable_sid, shift);
-
-	pagemap = mmap_open(NULL, MAP_SHARED | MAP_ANON, shift, pages);
-	if (!pagemap)
-		die("mm_open() failed reason=%s", strerror(errno));
+	if (pages_alloc(&pagemap, P_FLAGS, M_FLAGS, 12, shift, pages))
+		die("pages_alloc() failed reason=%s", strerror(errno));
 
 	return 0;
 }
@@ -96,8 +89,7 @@ acct_init(void)
 int
 acct_fini(void)
 {
-	if (pagemap)
-		mmap_close(pagemap);
+	pages_free(&pagemap);
 	return 0;
 }
 
@@ -152,9 +144,9 @@ session_parse(struct aaa *aaa, byte *buf, unsigned int len)
 			uid2 = value;
 
 		if (attr && (attr->flags & ATTR_CHANGED)) {
-			debug3("%s:%s changed", attr->key, attr->val);
+			debug3("parse %s:<%s> changed", attr->key, attr->val);
 		} else {
-			debug3("%s:%s", key, value);
+			debug3("parse %s:<%s>", key, value);
 			dict_set_nf(&aaa->attrs, key, value);
 		}
 		*a = ':';
@@ -202,10 +194,12 @@ session_build(struct aaa *aaa, byte *buf, int size)
 	int len = 0;
 	dict_for_each(a, aaa->attrs.list) {
 		len += attr_enc(buf, len, size, a->key, a->val);
-		debug2("%s:%s", a->key, a->val);
+		debug2("build %s:%s", a->key, a->val);
 		if (len > size)
 			return -EINVAL;
 	}
+
+	debug2("build session size: %d", len);
 
 	return len;
 }
@@ -221,7 +215,8 @@ expired(struct session *session)
 {
 	debug3("session id=%s expired.", session->attrs.sid);
 	hash_del(&session->sid);
-	page_free(pagemap, (struct page *)session);
+	memset(((u8*)session) + sizeof(*session), 0, (1 << shift) - sizeof(*session));
+	page_free(&pagemap, (struct page *)session);
 }
 
 static int
@@ -260,10 +255,11 @@ static int
 create(struct aaa *aaa, struct cursor *sid)
 {
 	struct page *page = NULL;
-	if (!(page = page_alloc_safe(pagemap)))
+	if (!(page = page_alloc(&pagemap)))
 		goto cleanup;
 
 	struct session *session = (struct session *)page;
+	memset(((u8*)session) + sizeof(*session), 0, (1 << shift) - sizeof(*session)); 
 	session->created = session->modified = sid->now;
 	session->expires = session->created + sid->expires;
 
@@ -281,7 +277,7 @@ create(struct aaa *aaa, struct cursor *sid)
 	return 0;
 cleanup:
 	if (page)
-		page_free(pagemap, page);
+		page_free(&pagemap, page);
 	return -EINVAL;
 }
 
@@ -292,7 +288,7 @@ session_bind(struct aaa *aaa, const char *id)
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
 	acct_cursor(&csid, &sid, aaa->timeout);
 
-        debug3("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
+        debug3("bind() id=%s slot=%d", sid.addr, (int)csid.slot);
 	if (!(lookup(aaa, &csid)))
 		return 0;
 	if (!(create(aaa, &csid)))
@@ -349,12 +345,15 @@ session_commit(struct aaa *aaa, const char *id)
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
 	acct_cursor(&csid, &sid, aaa->timeout);
 
-	debug3("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
+	debug3("commit() id=%s slot=%u processing", sid.addr, (unsigned int)csid.slot);
 
 	if (lookup(aaa, &csid))
-		return -EINVAL;
+		goto failed;
 
 	return commit(aaa, &csid);
+failed:
+	debug3("commit() id=%s slot=%u failed", sid.addr, (unsigned int)csid.slot);
+	return -EINVAL;	
 }
 
 int
@@ -364,7 +363,7 @@ session_touch(struct aaa *aaa, const char *id)
 	struct bb sid = { .addr = (void *)id, .len = strlen(id) };
 	acct_cursor(&csid, &sid, aaa->timeout);
 
-	debug3("id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
+	debug3("touch id=%s hash=%d slot=%d", sid.addr, csid.hash, csid.slot);
 	if (lookup(aaa, &csid))
 		return -EINVAL;
 

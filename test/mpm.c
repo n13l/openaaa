@@ -29,6 +29,7 @@
 #include <sys/log.h>
 #include <sys/irq.h>
 #include <sys/mpm.h>
+#include <list.h>
 #include <mem/alloc.h>
 #include <mem/pool.h>
 

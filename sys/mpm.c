@@ -1,6 +1,7 @@
 
 #include <sys/compiler.h>
 #include <sys/log.h>
+#include <list.h>
 #include <mem/alloc.h>
 #include <mem/page.h>
 #include <mem/pool.h>
@@ -34,6 +35,9 @@
 #include <sys/ev/ev.c>
 #endif
 
+#define P_FLAGS (PROT_READ | PROT_WRITE)
+#define M_FLAGS (MAP_PRIVATE | MAP_ANON)
+
 DEFINE_HASHTABLE(hstatus_id,  7);
 DEFINE_HASHTABLE(hstatus_pid, 7);
 
@@ -64,7 +68,7 @@ task_sget_state(unsigned int id)
 }
 
 
-static struct pagemap *pagemap;
+static struct pages pagemap;
 
 _unused static pid_t process_ppid = 0;
 
@@ -607,7 +611,7 @@ pstatus_init(struct pstatus *pstatus, time_t now)
 static struct pstatus *
 pstatus_alloc(pid_t pid, pid_t id, time_t now)
 {
-	struct pstatus *pstatus = (struct pstatus *)page_alloc_safe(pagemap);
+	struct pstatus *pstatus = (struct pstatus *)page_alloc(&pagemap);
 	if (!pstatus)
 		return NULL;
 
@@ -635,7 +639,7 @@ pstatus_free(struct pstatus *pstatus)
 	
 	hash_del(&pstatus->n.id);
 	hash_del(&pstatus->n.pid);
-	page_free(pagemap, (struct page *)pstatus);
+	page_free(&pagemap, (struct page *)pstatus);
 }
 
 static struct pstatus *
@@ -1213,9 +1217,8 @@ _sched_start(const struct mpm_module *mpm_module)
 	int pages = 512;
 	int shift = 12;
 
-	pagemap = mmap_open(NULL, MAP_SHARED | MAP_ANON, shift, pages);
-	if (!pagemap)
-		die("map():%d:%s", errno, strerror(errno));
+	if (pages_alloc(&pagemap, P_FLAGS, M_FLAGS, 12, shift, pages))
+		die("pages_alloc():%d:%s", errno, strerror(errno));
 
 	unsigned long long pageb = (unsigned long long)pages2b(shift, pages);
 	debug2("status cache hash table entries: %d (shift: %d, %llu bytes)", 
@@ -1242,8 +1245,7 @@ _sched_stop(const struct mpm_module *mpm_module)
 	do_shutdown();
 	do_dtor(&root);
 	
-	if (pagemap)
-		mmap_close(pagemap);
+	pages_free(&pagemap);
 
 }
 #else

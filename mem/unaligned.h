@@ -242,6 +242,18 @@ put_u64(void *p, u64 x) { put_u64_le(p, x); }
 static inline void
 put_u40(void *p, u64 x) { put_u40_le(p, x); }
 
+static inline u32
+be24_cpu(u8 bits[3])
+{
+	return (bits[0] << 16) | (bits[1] << 8) | (bits[2]);
+}
+
+static inline u32
+le24_cpu(u8 bits[3])
+{
+	return (bits[2] << 16) | (bits[1] << 8) | (bits[0]);
+}
+
 #endif
 static inline uint
 get_u8(const void *p) { return *(const byte *)p; } 

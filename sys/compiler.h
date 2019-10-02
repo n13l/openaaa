@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <limits.h>
 #include <assert.h>
 
@@ -77,8 +78,12 @@ typedef u32 endian_bitwise wsum;
 #define _constructor_with_priority(p) __attribute__((constructor(p)))
 
 /* branch prediction */ 
+#ifndef likely
 #define likely(x)      __builtin_expect (!!(x), 1)
+#endif
+#ifndef unlikely
 #define unlikely(x)    __builtin_expect (!!(x), 0)
+#endif
 
 #define bswap16(x)     __builtin_bswap16(x)
 #define bswap32(x)     __builtin_bswap32(x)
@@ -109,8 +114,8 @@ typedef u32 endian_bitwise wsum;
 # define unlikely(x)    (x)
 #endif
 
-#ifndef min
-#define min(a,b) (((a)<(b))?(a):(b))
+#ifndef __min
+#define __min(a,b) (((a)<(b))?(a):(b))
 #endif
 
 #ifndef __max
@@ -144,7 +149,7 @@ typedef u32 endian_bitwise wsum;
  * Align an integer @s to the nearest higher multiple of @a (which should be
  * a power of two) 
  */
-#define align_to(s, a) (((s)+a-1)&~(a-1))
+#define align_to(s, a) (((s)+(a)-1)&~((a)-1))
 
 #define align_struct(s) align_to(s, CPU_STRUCT_ALIGN)
 #define align_page(s) align_to(s, CPU_PAGE_SIZE)
@@ -199,15 +204,21 @@ typedef u32 endian_bitwise wsum;
 	(type *)((byte *)ptr - offsetof(type, member)); \
 })
 
+#define __container_of_safe(ptr, type, member) \
+({ \
+	__typeof__(ptr) ____ptr = (ptr); \
+	____ptr ? __container_of(____ptr, type, member): NULL; \
+})
+
 #define container_of(ptr, type, member) \
 ({ \
 	(type *)((byte *)ptr - offsetof(type, member)); \
 })
 
 
-#define __container_of_safe(ptr, type, member) \
+#define container_of_safe(ptr, type, member) \
 ({ \
-	typeof(ptr) ____ptr = (ptr); \
+	__typeof__(ptr) ____ptr = (ptr); \
 	____ptr ? __container_of(____ptr, type, member): NULL; \
 })
 
@@ -335,10 +346,34 @@ typedef u32 endian_bitwise wsum;
 #define KBUILD_STR(s) #s
 #endif
 
+#if defined(__cplusplus)
+# ifdef __DECLS_NAMESPACE
+#  define __BEGIN_DECLS namespace __DECLS_NAMESPACE { extern "C" {
+#  define __END_DECLS }}
+# else
+#  define __BEGIN_DECLS extern "C" {
+#  define __END_DECLS   }
+# endif
+#else
+# define __BEGIN_DECLS
+# define __END_DECLS
+#endif
+
+#ifndef __BEGIN_DECLS
+#define __BEGIN_DECLS
+#endif
+
+#ifndef __END_DECLS
+#define __END_DECLS
+#endif
+
+__BEGIN_DECLS
 int
 pid_read(const char *file);
 
 int
 pid_write(const char *file);
+
+__END_DECLS
 
 #endif

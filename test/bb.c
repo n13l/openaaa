@@ -1,6 +1,7 @@
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/log.h>
+#include <list.h>
 #include <mem/alloc.h>
 #include <mem/pool.h>
 #include <list.h>
@@ -16,7 +17,7 @@ bb_test1(struct mm *mm)
 int 
 main(int argc, char *argv[]) 
 {
-	log_open("stdout", 0);
+	log_open("stdout");
 	log_verbose = 4;
 
 	struct mm_pool *p = mm_pool_create(CPU_PAGE_SIZE, 0);

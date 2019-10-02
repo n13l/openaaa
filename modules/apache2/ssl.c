@@ -50,6 +50,7 @@
 
 #include <sys/compiler.h>
 #include <sys/cpu.h>
+#include <list.h>
 #include <mem/map.h>
 #include <mem/page.h>
 #include <mem/stack.h>

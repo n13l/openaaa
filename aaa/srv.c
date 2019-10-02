@@ -18,11 +18,10 @@
 #include <sys/irq.h>
 #include <sys/types.h>
 #include <unix/timespec.h>
-
+#include <list.h>
 #include <mem/alloc.h>
 #include <mem/pool.h>
 
-#include <list.h>
 #include <dict.h>
 #include <hash.h>
 
@@ -317,7 +316,7 @@ udp_parse(struct msg *msg, byte *packet, unsigned int len)
 			return -1;
 		*packet++ = 0;
 
-		debug3("%s:%s", key, value);
+		debug3("udp parse %s:<%s>", key, value);
 		if (!strcmp(key, "sess.id"))
 			msg->sid = value;
 		if (!strcmp(key, "user.id"))
@@ -368,7 +367,7 @@ udp_build(struct msg *msg, byte *pkt, int size)
 	debug3("msg.id:%s", "1");
 
 	dict_for_each(a, msg->aaa->attrs.list) {
-		debug3("%s:%s", a->key, a->val);
+		debug3("udp build %s:<%s>", a->key, a->val);
 		len += attr_enc(pkt, len, size, a->key, a->val);
 	}
 
@@ -455,8 +454,7 @@ static const struct cmd_table {
 static int
 cmd_execute(struct cmd *cmd, const struct cmd_table *d)
 {
-	d->handler(cmd);
-	return 0;
+	return d->handler(cmd);
 }
 
 static int
@@ -482,7 +480,7 @@ udp_serve(struct task *task)
 	struct msg *msg = &cmd.msg;
 	msg->aaa = (struct aaa *)task_user_get(task);
 
-	byte pkt[8192];
+	byte pkt[64000];
 	struct sockaddr_in from;
 	socklen_t len = sizeof(from);
 
