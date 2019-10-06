@@ -62,6 +62,7 @@
 #include <sys/time.h>
 #include <sys/log.h>
 #include <sys/tid.h>
+#include <syslog.h>
 
 /* POSIX.1 requires PIPE_BUF to be at least 512 bytes. */
 #ifndef PIPE_BUF
@@ -121,6 +122,8 @@ log_open(const char *file)
 		log_type = LOG_TYPE_STDOUT;
 	else if (!strcmp(file, "stderr"))
 		log_type = LOG_TYPE_STDERR;
+	else if (!strcmp(file, "syslog"))
+		log_type = LOG_TYPE_SYSLOG;
 
 	switch (log_type) {
 	case LOG_TYPE_STDOUT:
@@ -128,6 +131,10 @@ log_open(const char *file)
 		break;
 	case LOG_TYPE_STDERR:
 		log_fd = fileno(stderr);
+		break;
+	case LOG_TYPE_SYSLOG:
+		openlog(progname, LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+		break;
 	default:
 		log_fd = open(file, O_CREAT | O_RDWR | O_TRUNC, 0644);
 		break;
@@ -232,10 +239,14 @@ internal_asafe_vprintf(struct log_ctx *c, const char *fmt, va_list args)
 
 	text = p;
 	p = msg + sz; *p++ = '\n'; *p++ = 0; sz += 1;
+
 	if (log_msg_handler) {
 		log_msg_handler("", text);
-	} else {
+	} 
+	if (log_fd != -1)
 		sz = write(log_fd, msg, sz);
+	else if (log_type == LOG_TYPE_SYSLOG) {
+		syslog(c->type, msg);
 	}
 }
 

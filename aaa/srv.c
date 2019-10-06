@@ -299,7 +299,7 @@ static int
 udp_parse(struct msg *msg, byte *packet, unsigned int len)
 {
 	struct aaa *aaa = msg->aaa;
-	byte *ptr = packet, *end = packet + len;
+	byte *end = packet + len;
 	while (packet < end) {
 		byte *key = packet;
 		while (packet < end && *packet != ':' && *packet != '\n')
@@ -307,7 +307,7 @@ udp_parse(struct msg *msg, byte *packet, unsigned int len)
 		if (packet >= end)
 			return -1;
 		if (*packet != ':')
-			return packet - ptr;
+			return -1;
 		*packet++ = 0;
 		byte *value = packet;
 		while (packet < end && *packet != '\n')
@@ -332,20 +332,27 @@ udp_parse(struct msg *msg, byte *packet, unsigned int len)
 			msg->id = value;
 		
 	}
-	return len;
+
+	size_t sess_id_len = strlen(msg->sid);
+	if (sess_id_len < 8 || sess_id_len > 64) {
+		error("invalid sess_id attribute");
+		return -1;
+	}
+
+	return 0;
 }
 
 static int
 attr_enc(byte *packet, int len, int mlen, char *key, char *val)
 {
 	if (len < 0)
-		return len;
+		goto cleanup;
 
 	int klen = strlen(key), vlen = strlen(val);
 	int linelen = klen + 1 + vlen + 1;
 
-	if (len + linelen > mlen)
-		return -1;
+	if (len + linelen + 1 > mlen)
+		goto cleanup;
 	packet += len;
 	memcpy(packet, key, klen);
 	packet += klen;
@@ -353,14 +360,39 @@ attr_enc(byte *packet, int len, int mlen, char *key, char *val)
 	memcpy(packet, val, vlen);
 	packet += vlen;
 	*packet = '\n';
+	packet++;
+	*packet = '0';
 	return linelen;
+
+cleanup:
+	error("attr encode key: %s val: <%s> len: %d failed", key, val, len);
+	return 0;
+}
+
+static inline int
+validate_key(char *key)
+{
+	size_t len = strlen(key);
+	if (len < 5)
+		return -1;
+	if (!strncmp(key, "sess.", 5))
+		return 0;
+	if (!strncmp(key, "user.", 5))
+		return 0;
+	if (!strncmp(key, "auth.", 5))
+		return 0;
+	if (!strncmp(key, "msg.", 4))
+		return 0;
+
+	error("invalid attr name: %s", key);
+	return -1;
 }
 
 static int
 udp_build(struct msg *msg, byte *pkt, int size)
 {
 	char *status = printfa("%d", msg->status);
-	int len = 0;
+	int len = 0, rv;
 	len += attr_enc(pkt, len, size, "msg.status", status);
 	len += attr_enc(pkt, len, size, "msg.id", "1");
 	debug3("msg.status:%s", status);
@@ -368,7 +400,11 @@ udp_build(struct msg *msg, byte *pkt, int size)
 
 	dict_for_each(a, msg->aaa->attrs.list) {
 		debug3("udp build %s:<%s>", a->key, a->val);
-		len += attr_enc(pkt, len, size, a->key, a->val);
+		if (validate_key(a->key))
+			return -1;
+		if ((rv = attr_enc(pkt, len, size, a->key, a->val)) < 5)
+			return -1;
+		len += rv;
 	}
 
 	return len;
@@ -480,7 +516,7 @@ udp_serve(struct task *task)
 	struct msg *msg = &cmd.msg;
 	msg->aaa = (struct aaa *)task_user_get(task);
 
-	byte pkt[64000];
+	byte pkt[8192];
 	struct sockaddr_in from;
 	socklen_t len = sizeof(from);
 
@@ -488,7 +524,7 @@ udp_serve(struct task *task)
 	ssize_t size = recvfrom(fd, pkt, sizeof(pkt), MSG_TRUNC, &from, &len);
 	irq_disable();
 
-	if (size < 0) switch(errno) {
+	if (size < 1 ) switch(errno) {
 		case EAGAIN:
 			sched_idle(task);
 			return;
@@ -498,6 +534,14 @@ udp_serve(struct task *task)
 			error("unexpected error reason=%s", strerror(errno));
 			request_shutdown = 1;
 			return;
+	}
+
+	if (udp_validate(pkt, (int)size))
+		goto cleanup;
+
+	if (size >= aaa_packet_max) {
+		error("recvfrom() overflow size: %d max: %d", (int)size, aaa_packet_max);
+		goto cleanup;
 	}
 
 	pkt[size] = 0;
@@ -515,6 +559,13 @@ udp_serve(struct task *task)
 		goto cleanup;
 
 	pkt[size] = 0;
+	if (size >= aaa_packet_max) {
+		error("sendto() overflow size: %d max: %d", (int)size, aaa_packet_max);
+		goto cleanup;
+	}
+
+	pkt[size] = 0;
+
 	int sent = sendto(fd, pkt, size, 0, &from, len);
 	debug2("%s sent %d byte(s)", v, sent);
 

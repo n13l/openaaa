@@ -65,10 +65,13 @@ udp_bind(struct aaa *aaa);
 int
 udp_commit(struct aaa *aaa);
 
+int
+udp_validate(u8 *packet, int size);
+
 extern int (*aaa_server)(int argc, char *argv[]);
 
 extern const char *aaad_ip;
-
+extern int aaa_packet_max;
 void
 aaa_env_init(void);
 

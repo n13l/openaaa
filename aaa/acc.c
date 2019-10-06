@@ -76,6 +76,7 @@ struct request {
 static struct pages pagemap;
 
 u32 shift = 12, pages = 100000;
+int aaa_packet_max = (1 << 12) - sizeof(struct session);
 
 int
 acct_init(void)

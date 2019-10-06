@@ -36,13 +36,13 @@ static int
 attr_enc(byte *buf, int len, int maxlen, char *key, char *val)
 {
 	if (len < 0)
-		return len;
+		goto cleanup;
 
 	int klen = strlen(key), vlen = strlen(val);
 	int linelen = klen + 1 + vlen + 1;
 
-	if (len + linelen > maxlen)
-		return -1;
+	if (len + linelen + 1 > maxlen)
+		goto cleanup;
 	buf += len;
 	memcpy(buf, key, klen);
 	buf += klen;
@@ -50,21 +50,66 @@ attr_enc(byte *buf, int len, int maxlen, char *key, char *val)
 	memcpy(buf, val, vlen);
 	buf += vlen;
 	*buf = '\n';
+	buf++;
+	*buf = 0;
 	return linelen;
+cleanup:
+	error("attr encode key: %s val: <%s> len: %d failed", key, val, len);
+	return 0;
+}
+
+int
+udp_validate(u8 *packet, int size)
+{
+	if (size < 6 || strncmp(packet, "msg.op", 5)) {
+		error("expected payload header");
+		return -1;
+	}
+
+	if (size >= aaa_packet_max) {
+		error("payload overflow size: %d max: %d", size, aaa_packet_max);
+		return -1;
+	}
+
+	return 0;
+}
+
+static inline int
+validate_key(char *key)
+{
+	size_t len = strlen(key);
+	if (len < 5)
+		return -1;
+	if (!strncmp(key, "sess.", 5))
+		return 0;
+	if (!strncmp(key, "user.", 5))
+		return 0;
+	if (!strncmp(key, "auth.", 5))
+		return 0;
+	if (!strncmp(key, "msg.", 4))
+		return 0;
+
+	error("invalid attr name: %s", key);
+	return -1;
 }
 
 static int
 udp_build(struct aaa *aaa, char *op, byte *buf, int size)
 {
-	int len = 0;
+	int len = 0, rv = 0;
 	len += attr_enc(buf, len, size, "msg.op", op);
 	len += attr_enc(buf, len, size, "msg.id", "1");
 
 	dict_for_each(a, aaa->attrs.list) {
-                debug4("udp build %s:%s %s ", a->key, a->val, a->flags & ATTR_CHANGED ? "changed" : ""); 
+		debug4("udp build %s:%s %s ", a->key, a->val, 
+		       a->flags & ATTR_CHANGED ? "changed" : ""); 
+		if (validate_key(a->key))
+			return -1;
                 if (!(a->flags & ATTR_CHANGED))
                         continue;
-		len += attr_enc(buf, len, size, a->key, a->val);
+		if ((rv = attr_enc(buf, len, size, a->key, a->val)) < 5)
+			return -1;
+		len += rv;
 	}
 
 	return len;
@@ -73,7 +118,8 @@ udp_build(struct aaa *aaa, char *op, byte *buf, int size)
 static int 
 udp_parse(struct aaa *aaa, byte *packet, unsigned int len)
 {
-	byte *ptr = packet, *end = packet + len;
+	char *sid = NULL;
+	byte *end = packet + len;
 	while (packet < end) {
 		byte *key = packet;
 		while (packet < end && *packet != ':' && *packet != '\n')
@@ -81,7 +127,7 @@ udp_parse(struct aaa *aaa, byte *packet, unsigned int len)
 		if (packet >= end)
 			return -1;
 		if (*packet != ':')
-			return packet - ptr;
+			return -1;
 		*packet++ = 0;
 		byte *value = packet;
 		while (packet < end && *packet != '\n')
@@ -91,17 +137,28 @@ udp_parse(struct aaa *aaa, byte *packet, unsigned int len)
 		*packet++ = 0;
 
 		if (!strncmp(key, "msg.", 4))
-                        continue;
+			continue;
+		if (!strncmp(key, "sess.id", 7))
+			sid = value;
+		if (*key == '.')
+			return -1;
 
                 dict_set_nf(&aaa->attrs, key, value);
 	}
-	return len;
+
+	size_t sess_id_len = sid ? strlen(sid): 0;
+	if (sess_id_len < 8 || sess_id_len > 64) {
+		error("invalid sess_id attribute");
+		return -1;
+	}
+
+	return 0;
 }
 
 int
 udp_bind(struct aaa *aaa)
 {
-        int fd = -1;
+        int fd = -1, rc = -1;
         byte packet[8192];
         memset(packet, 0, sizeof(packet));
 
@@ -128,7 +185,11 @@ udp_bind(struct aaa *aaa)
 	};
 
 	socklen_t len = sizeof(in);
-	
+	if (len >= aaa_packet_max) {
+		error("packet_size overflow max: %d", aaa_packet_max);
+		goto cleanup;
+	}
+
         int sent = sendto(fd, packet, size, 0, (struct sockaddr * )&in, len);
 	if (sent < 0)
 	        error("sendto failed: reason=%s ", strerror(errno));
@@ -147,13 +208,23 @@ udp_bind(struct aaa *aaa)
         }
 
         debug2("%s recv %jd byte(s)", v, (intmax_t)recved);
-        udp_parse(aaa, packet, (unsigned int)recved);
+
+	if (udp_validate(packet, (int)recved))
+		goto cleanup;
+
+	if (size >= aaa_packet_max) {
+		error("packet_size overflow max: %d", aaa_packet_max);
+		goto cleanup;
+	}
+
+        if (!udp_parse(aaa, packet, (unsigned int)recved))
+		rc = 0;
 
 cleanup:        
         if (fd != -1)
                 close(fd);
 
-        return 0;
+        return rc;
 }
 
 int
@@ -186,6 +257,11 @@ udp_commit(struct aaa *aaa)
 	};
 
 	socklen_t len = sizeof(in);
+	if (len >= aaa_packet_max) {
+		error("packet_size overflow max: %d", aaa_packet_max);
+		goto cleanup;
+	}
+
         int sent = sendto(fd, packet, size, 0, (struct sockaddr *)&in, len);
 	if (sent < 0)
 	        error("sendto failed: reason=%s ", strerror(errno));
@@ -204,6 +280,11 @@ udp_commit(struct aaa *aaa)
         }
 
         debug2("%s recv %jd byte(s)", v, (intmax_t)recved);
+	if (recved >= aaa_packet_max) {
+		error("packet_size overflow max: %d", aaa_packet_max);
+		goto cleanup;
+	}
+
         udp_parse(aaa, packet, (unsigned int)recved);
 
 cleanup:        
