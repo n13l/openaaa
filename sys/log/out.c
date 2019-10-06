@@ -133,7 +133,7 @@ log_open(const char *file)
 		log_fd = fileno(stderr);
 		break;
 	case LOG_TYPE_SYSLOG:
-		openlog(progname, LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+		openlog(progname, LOG_PID, LOG_DAEMON);
 		break;
 	default:
 		log_fd = open(file, O_CREAT | O_RDWR | O_TRUNC, 0644);
@@ -246,7 +246,7 @@ internal_asafe_vprintf(struct log_ctx *c, const char *fmt, va_list args)
 	if (log_fd != -1)
 		sz = write(log_fd, msg, sz);
 	else if (log_type == LOG_TYPE_SYSLOG) {
-		syslog(c->type, msg);
+		syslog(LOG_INFO, msg);
 	}
 }
 
