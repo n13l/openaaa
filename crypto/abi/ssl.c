@@ -60,11 +60,11 @@
 #endif
 
 /* We dont't link agaist openssl but using important signatures */
-#include <crypto/abi/openssl/ssl.h>
-#include <crypto/abi/openssl/crypto.h>
-#include <crypto/abi/openssl/bio.h>
-#include <crypto/abi/openssl/tls1.h>
-#include <crypto/abi/openssl/x509.h>
+#include <openssl/ssl.h>
+#include <openssl/crypto.h>
+#include <openssl/bio.h>
+#include <openssl/tls1.h>
+#include <openssl/x509.h>
 
 #include <crypto/abi/ssl.h>
 
@@ -820,9 +820,9 @@ ssl_handshake1(const SSL *ssl)
 
 cleanup:
 	if (subject)
-		CALL_ABI(CRYPTO_free)(subject);
+		CALL_ABI(CRYPTO_free)(subject, __FILE__, __LINE__);
 	if (issuer)
-		CALL_ABI(CRYPTO_free)(issuer);
+		CALL_ABI(CRYPTO_free)(issuer, __FILE__, __LINE__);
 
 	session_fini(sp);
 }
@@ -895,10 +895,11 @@ ssl_state_str(int w)
 {
 	return (w & SSL_ST_CONNECT)     ? "connect" :
 	       (w & SSL_ST_ACCEPT)      ? "accept"  :
-	       (w & SSL_ST_INIT)        ? "init" :
-	       (w & SSL_ST_BEFORE)      ? "before" :
-	       (w & SSL_ST_OK)          ? "ok" :
-	       (w & SSL_ST_RENEGOTIATE) ? "renegotiate" : "negotiate";
+//	       (w & SSL_ST_INIT)        ? "init" :
+//	       (w & SSL_ST_BEFORE)      ? "before" :
+//	       (w & SSL_ST_OK)          ? "ok" :
+//	       (w & SSL_ST_RENEGOTIATE) ? "renegotiate" : "negotiate": "";
+	       "";
 }
 
 void
@@ -1020,9 +1021,6 @@ DEFINE_CTX_CALL(new)(const SSL_METHOD *method)
 	                                ssl_client_get, NULL);
 	CALL_CTX(add_server_custom_ext)(ctx, 1000, ssl_server_add, NULL, NULL, 
 	                                ssl_server_get, NULL);
-#ifdef SSL_OP_NO_TICKET
-	CALL_CTX(ctrl)(ctx, SSL_CTRL_OPTIONS, SSL_OP_NO_TICKET, NULL);
-#endif
 	debug4("ctx=%p", ctx);	
 	return ctx;
 }
@@ -1035,9 +1033,6 @@ DEFINE_SSL_CALL(new)(SSL_CTX *ctx)
 	void (*fn)(void) = (void (*)(void))ssl_extensions;
 	CALL_SSL(set_info_callback)(ssl, ssl_info);
 	CALL_SSL(callback_ctrl)(ssl, SSL_CTRL_SET_TLSEXT_DEBUG_CB, fn);
-#ifdef SSL_OP_NO_TICKET
-	CALL_SSL(ctrl)(ssl, SSL_CTRL_OPTIONS, SSL_OP_NO_TICKET, NULL);
-#endif
 	
 	debug3("ssl=%p", ssl);
 	return ssl;
@@ -1244,10 +1239,6 @@ ssl_init_ctxt(SSL_CTX *ctx)
 {
 	void (*fn)(void) = (void (*)(void))ssl_extensions;
 	CALL_CTX(callback_ctrl)(ctx, SSL_CTRL_SET_TLSEXT_DEBUG_CB, fn);
-#ifdef SSL_OP_NO_TICKET
-	CALL_CTX(ctrl)(ctx, SSL_CTRL_OPTIONS, SSL_OP_NO_TICKET, NULL);
-#endif
-	
 	CALL_CTX(add_client_custom_ext)(ctx, 1000, ssl_client_add, NULL, NULL,
 	                                ssl_client_get, NULL);
 	CALL_CTX(add_server_custom_ext)(ctx, 1000, ssl_server_add, NULL, NULL, 
@@ -1258,10 +1249,6 @@ void
 ssl_init_conn(SSL *ssl)
 {
 	_unused struct session *sp = session_get0(ssl);
-#ifdef SSL_OP_NO_TICKET
-	CALL_SSL(ctrl)(ssl, SSL_CTRL_OPTIONS, SSL_OP_NO_TICKET, NULL);
-#endif
-	
 }
 
 void

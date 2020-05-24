@@ -61,11 +61,12 @@ cleanup:
 int
 udp_validate(u8 *packet, int size)
 {
+/*
 	if (size < 6 || strncmp(packet, "msg.op", 5)) {
 		error("expected payload header");
 		return -1;
 	}
-
+*/
 	if (size >= aaa_packet_max) {
 		error("payload overflow size: %d max: %d", size, aaa_packet_max);
 		return -1;
@@ -85,6 +86,8 @@ validate_key(char *key)
 	if (!strncmp(key, "user.", 5))
 		return 0;
 	if (!strncmp(key, "auth.", 5))
+		return 0;
+	if (!strncmp(key, "acct.", 5))
 		return 0;
 	if (!strncmp(key, "msg.", 4))
 		return 0;

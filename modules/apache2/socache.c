@@ -19,13 +19,13 @@
 #undef PACKAGE_VERSION
 
 #include <ctype.h>
-#include "httpd.h"
-#include "http_config.h"
+#include "httpd/httpd.h"
+#include "httpd/http_config.h"
 #include "apr.h"
 #include "apu_version.h"
-#include "ap_socache.h"
-#include "ap_mpm.h"
-#include "http_log.h"
+#include "httpd/ap_socache.h"
+#include "httpd/ap_mpm.h"
+#include "httpd/http_log.h"
 #include "mod_openaaa.h"
 #include "private.h"
 
@@ -80,16 +80,15 @@ sc_store(ap_socache_instance_t *ctx, server_rec *s,
 	ap_module_trace_scall(s);
 
 	struct srv *srv = ap_get_module_config(s->module_config, &MODULE_ENTRY);
+/*
         struct aaa *aaa = srv->aaa;
 
 	char key[(len * 2) + 1];
-	//memhex(key, (char *)id, len, 0);
 	key[len * 2] = 0;
 
 	s_info(s, "sess.id: %s", key);
 
         char val[(dlen * 2) + 1];
-        //memhex(val, (char *)d, dlen, 0);
 	val[dlen * 2] = 0;
 	aaa_attr_set(aaa, "sess.id", key);
 	if (aaa_bind(aaa))
@@ -97,7 +96,7 @@ sc_store(ap_socache_instance_t *ctx, server_rec *s,
 
 	aaa_attr_set(aaa, "sess.i2d", val);
 	aaa_attr_set(aaa, "sess.expires", printfa("%d", 300));
-
+*/
 	return APR_SUCCESS;
 }
 
@@ -109,10 +108,10 @@ sc_retrieve(ap_socache_instance_t *ctx, server_rec *s,
 	ap_module_trace_scall(s);
 
 	struct srv *srv = ap_get_module_config(s->module_config, &MODULE_ENTRY);
+/*	
 	struct aaa *aaa = srv->aaa;
 
 	char key[(len * 2) + 1];
-	///memhex(key, (char *)id, len, 0);
 	key[len * 2] = 0;
 	s_info(s, "sess.id: %s", key);
 
@@ -131,8 +130,7 @@ sc_retrieve(ap_socache_instance_t *ctx, server_rec *s,
 		return APR_NOTFOUND ;
 
 	*dlen = size / 2;
-	///hexmem((byte *)d, (const char *)v, size / 2, 0);
-
+*/
 	return APR_SUCCESS;
 }
 

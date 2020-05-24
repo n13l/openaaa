@@ -5,28 +5,23 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
-#include <ap_config.h>
-#include <ap_socache.h>
+#include <httpd/ap_config.h>
+#include <httpd/ap_socache.h>
 #include <apr_strings.h>
-#include <httpd.h>
-#include <http_config.h>
-#include <http_connection.h>
-#include <http_core.h>
-#include <http_log.h>
-#include <http_main.h>
-#include <http_request.h>
-#include <http_protocol.h>
-#include <util_filter.h>
-#include <util_script.h>
+#include <httpd/httpd.h>
+#include <httpd/http_config.h>
+#include <httpd/http_connection.h>
+#include <httpd/http_core.h>
+#include <httpd/http_log.h>
+#include <httpd/http_main.h>
+#include <httpd/http_request.h>
+#include <httpd/http_protocol.h>
+#include <httpd/util_filter.h>
+#include <httpd/util_script.h>
 
-#include "httpd.h"
-#include "http_config.h"
-#include "http_main.h"
-#include "http_protocol.h"
-#include "http_core.h"
-
-#include "mod_ssl.h"
-#include "mod_ssl_openssl.h"
+#include <httpd/mod_auth.h>
+#include <httpd/mod_ssl.h>
+#include <httpd/mod_ssl_openssl.h>
 
 #include "mod_openaaa.h"
 #include "private.h"
@@ -42,7 +37,7 @@
 
 APLOG_USE_MODULE(authnz_ssl);
 
-APR_OPTIONAL_FN_TYPE(ssl_is_https)         *ssl_is_https;
+APR_OPTIONAL_FN_TYPE(ssl_is_https)         *is_https;
 APR_OPTIONAL_FN_TYPE(ssl_var_lookup)       *ssl_var_lookup;
 
 /*
@@ -75,17 +70,13 @@ child_init(apr_pool_t *p, server_rec *s)
 {
 	log_verbose = 4;
 	log_set_handler(log_write);
+	apr_pool_cleanup_register(p, s, child_fini, child_fini);
 
-	struct aaa *a = aaa_new(AAA_ENDPOINT_SERVER, 0);
-
-	for (struct srv *srv; s; s = s->next) {
-		srv = ap_get_module_config(s->module_config, &MODULE_ENTRY);
-		srv->pid = getpid();
-		srv->aaa = a;
-		srv->mod_ssl = ap_find_linked_module("mod_ssl.c");
-	}
-
-	apr_pool_cleanup_register(p, a, child_fini, child_fini);
+	struct srv *srv = ap_srv_config_get(s);
+	srv->aaa = aaa_new(AAA_ENDPOINT_SERVER, 0);
+	srv->mod_ssl = ap_find_linked_module("mod_ssl.c");
+	srv->mod_event = ap_find_linked_module("mod_mpm_event.c");
+	apr_thread_mutex_create(&srv->mutex, APR_THREAD_MUTEX_DEFAULT, p);
 }
 
 /*
@@ -96,8 +87,16 @@ child_init(apr_pool_t *p, server_rec *s)
 static apr_status_t
 child_fini(void *ctx)
 {
-	struct aaa *a = (struct aaa*)ctx;
-	aaa_free(a);
+	server_rec *s = (server_rec *)ctx;
+	struct srv *srv = ap_srv_config_get(s);
+
+	if (srv->aaa)
+		aaa_free(srv->aaa);
+	if (srv->mutex)
+		apr_thread_mutex_destroy(srv->mutex);
+
+	srv->aaa = NULL;
+	srv->mutex = NULL;
 	return 0;
 }
 
@@ -114,30 +113,14 @@ static int
 post_config(apr_pool_t *p, apr_pool_t *l, apr_pool_t *t, server_rec *s)
 {
 	ap_add_version_component(p, MODULE_VERSION);
-
-	struct srv *srv = ap_get_module_config(s->module_config, &MODULE_ENTRY);
-
-	module *mod_ssl = ap_find_linked_module("mod_ssl.c");
-	module *mod_mpm_prefork = ap_find_linked_module("prefork.c");
-
-	if (!mod_ssl) {
-		ap_log_error(APLOG_MARK, APLOG_CRIT, 0, s, "required module mod_ssl not found.");
-		return HTTP_INTERNAL_SERVER_ERROR;
-	}
-
-	if (!mod_mpm_prefork) {
-		ap_log_error(APLOG_MARK, APLOG_CRIT, 0, s, "required module mpm prefork not found.");
-		return HTTP_INTERNAL_SERVER_ERROR;
-	}
-
 	return OK;
 }
 
 static void
 optional_fn_retrieve(void)
 {
-	ssl_is_https        = APR_RETRIEVE_OPTIONAL_FN(ssl_is_https);
-	ssl_var_lookup      = APR_RETRIEVE_OPTIONAL_FN(ssl_var_lookup);
+	is_https = APR_RETRIEVE_OPTIONAL_FN(ssl_is_https);
+	ssl_var_lookup = APR_RETRIEVE_OPTIONAL_FN(ssl_var_lookup);
 }
 
 /*
@@ -150,11 +133,16 @@ optional_fn_retrieve(void)
 static int
 create_request(request_rec *r)
 {
-	struct srv *srv = ap_srv_config_get(r->server);
 	struct req *req = apr_pcalloc(r->pool, sizeof(*req));
 	req->r = r;
 	ap_req_config_set(r, req);
 	apr_pool_cleanup_register(r->pool, r, destroy_request,destroy_request);
+
+	if (ap_is_initial_req(r))
+		return DECLINED;
+
+	struct req *parent = ap_req_config_get(r->main);
+	req->attrs = parent->attrs;
 
 	return DECLINED;
 }
@@ -162,7 +150,7 @@ create_request(request_rec *r)
 static apr_status_t
 destroy_request(void *ctx)
 {
-	request_rec *r = ctx;
+	request_rec *r = (request_rec*)ctx;
 	return DECLINED;
 }
 
@@ -195,33 +183,41 @@ pre_connection(conn_rec *c, void *csd)
 static int
 post_read_request(request_rec *r)
 {
-	if (!ap_is_initial_req(r))
-		return DECLINED;
-	if (!ssl_is_https)
-		return DECLINED;
-	if (!ssl_is_https(r->connection))
+	if (!ap_is_initial_req(r) || !is_https || !is_https(r->connection))
 		return DECLINED;
 
-	r_info(r, "%s() uri: %s", __func__, r->uri);
+	r_info(r, "%s()::%pp uri: %s", __func__, r, r->uri);
 	struct srv *srv = ap_srv_config_get(r->server);
+	struct req *req = ap_req_config_get(r);
 	struct aaa *aaa = srv->aaa;
 
-	char ssl_id[1024];
+	char ssl_id[1024] = {0};
 	ssl_get_sess_id(srv->ssl, ssl_id, sizeof(ssl_id) - 1);
+
+	apr_thread_mutex_lock(srv->mutex);
 
 	aaa_reset(aaa);
 	aaa_attr_set(aaa, "sess.id", (char *)ssl_id);
 	if (aaa_bind(aaa) < 0)
-		return DECLINED;
+		goto declined;
 
-	const char *uid = aaa_attr_get(aaa, "user.id");
-	if (!uid || !*uid)
-		return DECLINED;
+	req->attrs = apr_table_make(r->pool, 64); 
+	for (const char *k = aaa_attr_first(aaa, ""); k; k = aaa_attr_next(aaa)) {
+		const char *v = aaa_attr_get(aaa, k);
+		apr_table_set(req->attrs, k, v);
+		r_info(r, "%s()::%pp %s: %s", __func__, r, k, v);
+	}
 
-	/* increase session expiration for authenticated sessions */
+	req->user.id = aaa_attr_get(aaa, "user.id");
+	req->user.name = aaa_attr_get(aaa, "user.name");
+	if (!req->user.id || !*req->user.id)
+		goto declined;
+
 	aaa_touch(aaa);
-	aaa_commit(aaa);
 
+declined:
+	aaa_commit(aaa);
+	apr_thread_mutex_unlock(srv->mutex);
 	return DECLINED;
 }
 
@@ -237,25 +233,20 @@ post_read_request(request_rec *r)
 static int
 check_authn(request_rec *r)
 {
-	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
+	r_info(r, "%s()::%pp type:%s uri: %s", __func__, r, ap_auth_type(r), r->uri);
 	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
-	struct srv *srv = ap_srv_config_get(r->server);
-	struct aaa *aaa = srv->aaa;
-
-	const char *id   = aaa_attr_get(aaa, "user.id");
-	const char *name = aaa_attr_get(aaa, "user.name");
-	if (!name || !*name)
-		name = id;
-
-	if (!name || !*name) {
+	struct req *req = ap_req_config_get(r);
+	if (!req->user.name || !*req->user.name)
+		req->user.name = req->user.id;
+	if (!req->user.name || !*req->user.name) {
 		r_info(r, "%s() HTTP_UNAUTHORIZED", __func__);
 		return HTTP_UNAUTHORIZED;
 	}
 
-	r_info(r, "user.name: %s", name);
-	r->user = apr_pstrdup(r->pool, name);
+	r_info(r, "user.name: %s", req->user.name);
+	r->user = apr_pstrdup(r->pool, req->user.name);
 	return OK;
 }
 
@@ -276,7 +267,7 @@ check_authn(request_rec *r)
 static int
 check_access(request_rec *r)
 {
-	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
+	r_info(r, "%s()::%pp type:%s uri: %s", __func__, r, ap_auth_type(r), r->uri);
 	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
@@ -298,7 +289,7 @@ check_access(request_rec *r)
 static int
 auth_checker(request_rec *r)
 {
-	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
+	r_info(r, "%s()::%pp type:%s uri: %s", __func__, r, ap_auth_type(r), r->uri);
 	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 	return DECLINED;
@@ -319,7 +310,7 @@ auth_checker(request_rec *r)
 static int
 check_authz(request_rec *r)
 {
-	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
+	r_info(r, "%s()::%pp type:%s uri: %s", __func__, r, ap_auth_type(r), r->uri);
 	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
@@ -329,20 +320,15 @@ check_authz(request_rec *r)
 static int
 check_access_ex(request_rec *r)
 {
-	r_info(r, "%s() type:%s uri: %s", __func__, ap_auth_type(r), r->uri);
+	r_info(r, "%s()::%pp type:%s uri: %s", __func__, r, ap_auth_type(r), r->uri);
 	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
-	struct srv *srv = ap_srv_config_get(r->server);
-	struct aaa *aaa = srv->aaa;
-
-	const char *name = aaa_attr_get(aaa, "user.name");
-	if (!name || !*name)
+	struct req *req = ap_req_config_get(r);
+	if (!req->user.name || !*req->user.name)
 		return DECLINED;
-
-	r_info(r, "user.name: %s", name);
-	r->user = apr_pstrdup(r->pool, name);
-
+	r_info(r, "user.name: %s", req->user.name);
+	r->user = apr_pstrdup(r->pool, req->user.name);
 	return DECLINED;
 }
 
@@ -382,6 +368,7 @@ config_init_srv(apr_pool_t *p, server_rec *s)
 static int
 init_server(server_rec *s, apr_pool_t *p, int is_proxy, SSL_CTX *ctx)
 {
+	s_info(s, "%s() proxy: %d", __func__, is_proxy);
 	ssl_init(1);
 	ssl_init_ctxt(ctx);	
 	return 0;
@@ -417,53 +404,50 @@ proxy_post_handshake(conn_rec *c, SSL *ssl)
 }
 
 static void
-header_attr_set(request_rec *r, const char *prefix, const char *key)
+header_attr_set(request_rec *r, const char *prefix,
+                const char *key, const char *val)
 {
-	struct srv *srv = ap_srv_config_get(r->server);
-	struct aaa *aaa = srv->aaa;
-
+	struct req *req = ap_req_config_get(r);
 	char *k = printfa("%s.%s", prefix, key);
 	for (char *p = k; *p; p++)
 		if ((*p = toupper(*p)) == '.') *p = '_';
 
-	const char *val = aaa_attr_get(aaa, key);
-	if (!val || !*val)
-		return;
-
 	char *v = strdupa(val);
 	for (char *p = v; *p; p++)
 		if (*p == ' ') *p = ':';
-
+	
+	r_info(r, "%s()::%pp %s: %s", __func__, r, k, v);
 	apr_table_set(r->subprocess_env, k, v);
 }
 
 static int
 header_parser(request_rec *r)
 {
-	if (!ssl_is_https)
-		return DECLINED;
-	if (!ssl_is_https(r->connection))
+	if (!is_https || !is_https(r->connection))
 		return DECLINED;
 	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
 	struct req *req = ap_req_config_get(r);
-	struct srv *srv = ap_srv_config_get(r->server);
-	struct aaa *aaa = srv->aaa;
+	r_info(r, "%s()::%pp uri: %s", __func__, r, r->uri);
+	if (!req->attrs || apr_is_empty_table(req->attrs))
+		return DECLINED;
 
-	r_info(r, "%s() uri=%s", __func__, r->uri);
+	const apr_array_header_t *tarr = apr_table_elts(req->attrs);
+	const apr_table_entry_t *telts = (const apr_table_entry_t*)tarr->elts;
 
-	for (const char *k = aaa_attr_first(aaa, ""); k; k = aaa_attr_next(aaa)) {
-		header_attr_set(r, "aaa", k);
+	for (int i = 0; i < tarr->nelts; i++) {
+		header_attr_set(r, "aaa", telts[i].key, telts[i].val);
 		if (r->proxyreq != PROXYREQ_REVERSE)
 			continue;
-		header_attr_set(r, "ajp.aaa", k);
+		header_attr_set(r, "ajp.aaa", telts[i].key, telts[i].val);
 	}
 
-	const char *name = aaa_attr_get(aaa, "user.name");
-	if (name)
-		apr_table_set(r->subprocess_env, "REMOTE_USER", name);
-	
+	if (!req->user.name)
+		return DECLINED;
+
+	apr_table_set(r->subprocess_env, "REMOTE_USER", req->user.name);
+	r_info(r, "%s()::%pp REMOTE_USER: %s", __func__, r, req->user.name);
 	return DECLINED;
 }
 
@@ -476,15 +460,15 @@ struct authz_rule {
 static authz_status
 authz_require_group_check(request_rec *r, const char *line, const void *parsed)
 {
-	struct srv *srv = ap_srv_config_get(r->server);
-	struct aaa *aaa = srv->aaa;
+	struct req *req = ap_req_config_get(r);
 	struct authz_rule *rule = (struct authz_rule *)parsed;
 
-	if (!r->user)
+	if (!r->user || !req->attrs || apr_is_empty_table(req->attrs))
 		return AUTHZ_DENIED_NO_USER;
 
 	char *path = printfa("acct.%s.roles[]", rule->group);
-	const char *group = aaa_attr_get(aaa, path);
+	const char *group = apr_table_get(req->attrs, path);
+	//const char *group = aaa_attr_get(aaa, path);
 	if (!group)
 		return AUTHZ_DENIED;
 	if (!rule->role)
@@ -544,25 +528,27 @@ register_hooks(apr_pool_t *p)
 	ap_hook_pre_connection(pre_connection, pre_ssl, NULL, APR_HOOK_MIDDLE);
 	ap_hook_create_request(create_request, NULL, NULL, APR_HOOK_MIDDLE);
 	ap_hook_post_read_request(post_read_request,NULL, asz_succ, APR_HOOK_MIDDLE);
-	ap_hook_check_authn(check_authn, pre_ssl, NULL, APR_HOOK_FIRST, AP_AUTH_INTERNAL_PER_CONF);
-	ap_hook_check_authz(check_authz, pre_ssl, NULL, APR_HOOK_FIRST, AP_AUTH_INTERNAL_PER_CONF);
-	ap_hook_check_access(check_access, NULL, NULL, APR_HOOK_MIDDLE, AP_AUTH_INTERNAL_PER_CONF);
-	ap_hook_check_access_ex(check_access_ex, NULL, NULL, APR_HOOK_LAST, AP_AUTH_INTERNAL_PER_CONF);
+	ap_hook_check_authn(check_authn, pre_ssl, NULL, APR_HOOK_FIRST,
+	                    AP_AUTH_INTERNAL_PER_CONF);
+	ap_hook_check_authz(check_authz, pre_ssl, NULL, APR_HOOK_FIRST,
+	                    AP_AUTH_INTERNAL_PER_CONF);
+	ap_hook_check_access(check_access, NULL, NULL, APR_HOOK_MIDDLE,
+                             AP_AUTH_INTERNAL_PER_CONF);
+	ap_hook_check_access_ex(check_access_ex, NULL, NULL, APR_HOOK_LAST,
+	                        AP_AUTH_INTERNAL_PER_CONF);
 	ap_hook_auth_checker(auth_checker, NULL, NULL, APR_HOOK_MIDDLE);
 
-	APR_OPTIONAL_HOOK(ssl, init_server, init_server, NULL, NULL, APR_HOOK_MIDDLE);
-	APR_OPTIONAL_HOOK(ssl, pre_handshake, pre_handshake, NULL, NULL, APR_HOOK_MIDDLE);
-	APR_OPTIONAL_HOOK(ssl, proxy_post_handshake, proxy_post_handshake, NULL, NULL, APR_HOOK_MIDDLE);
+	APR_OPTIONAL_HOOK(ssl, init_server, init_server, NULL, NULL,
+	                  APR_HOOK_MIDDLE);
+	APR_OPTIONAL_HOOK(ssl, pre_handshake, pre_handshake, NULL, NULL,
+	                  APR_HOOK_MIDDLE);
+	APR_OPTIONAL_HOOK(ssl, proxy_post_handshake, proxy_post_handshake, NULL,
+	                  NULL, APR_HOOK_MIDDLE);
 
-	ap_register_auth_provider(p, 
-	                          AUTHZ_PROVIDER_GROUP, "role",
+	ap_register_auth_provider(p, AUTHZ_PROVIDER_GROUP, "role",
 	                          AUTHZ_PROVIDER_VERSION,
 	                          &authz_provider_require_group,
 	                          AP_AUTH_INTERNAL_PER_CONF);
-
-	ap_register_provider(p, AP_SOCACHE_PROVIDER_GROUP, "OpenAAA",
-	                     AP_SOCACHE_PROVIDER_VERSION, &socache_tls_aaa);
-
 };
 
 module AP_MODULE_DECLARE_DATA __attribute__((visibility("default"))) 

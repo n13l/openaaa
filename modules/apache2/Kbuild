@@ -6,10 +6,10 @@ always             += $(if $(CONFIG_MODULES),$(libname).$(so),)
 obj-m := $(libname).o
 $(libname)-objs := mod_openaaa.o ssl.o socache.o
 
-ccflags-y := -Icrypto/abi -Imodules/apache2/include -Wno-unused-variable -Wno-unused-function
+ccflags-y := -Icrypto/abi -I/usr/include/apr-1 -I/opt/codeit/openssl111/include -Wno-unused-variable -Wno-unused-function
 
 libaaa-pkcs11-dirs := mem net crypto aaa sys arch/$(SRCARCH)
-libaaa-pkcs11-objs := $(patsubst %,%/built-in.o, $(libaaa-pkcs11-dirs)) modules/apache2/$(libname).o
+libaaa-pkcs11-objs := $(patsubst %,%/built-in.o, $(libaaa-pkcs11-dirs)) modules/apache2/$(libname).o 
 libaaa-pkcs11-libs := $(patsubst %,%/lib.a, $(libs-y))
 libaaa-pkcs11-all  := $(libaaa-pkcs11-objs) $(libaaa-pkcs11-libs) $(KBUILD_LIBS)
 

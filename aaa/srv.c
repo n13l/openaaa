@@ -381,6 +381,8 @@ validate_key(char *key)
 		return 0;
 	if (!strncmp(key, "auth.", 5))
 		return 0;
+	if (!strncmp(key, "acct.", 5))
+		return 0;
 	if (!strncmp(key, "msg.", 4))
 		return 0;
 
