@@ -18,7 +18,7 @@
 #define __MOD_AUTH_TLS_H__
 
 /* require mod_ssl / mod_auth_basic / libaaa */
-
+/*
 #include <stdlib.h>
 #include <unistd.h>
 #include <ap_config.h>
@@ -33,7 +33,7 @@
 #include <http_request.h>
 #include <util_filter.h>
 #include <util_script.h>
-
+*/
 #define MODULE_PREFIX "authnz_ssl"
 #define MODULE_VERSION "OpenAAA/1.0.0" 
 #define MODULE_ENTRY authnz_ssl_module

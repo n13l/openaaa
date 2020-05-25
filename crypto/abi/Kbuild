@@ -1,1 +1,2 @@
 obj-y := nss.o gsk.o ssl.o
+ccflags-y += -I/opt/codeit/openssl111/include

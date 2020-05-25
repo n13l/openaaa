@@ -20,19 +20,19 @@
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <ap_config.h>
-#include <ap_socache.h>
+#include <httpd/ap_config.h>
+#include <httpd/ap_socache.h>
 #include <apr_strings.h>
-#include <httpd.h>
-#include <http_config.h>
-#include <http_connection.h>
-#include <http_core.h>
-#include <http_log.h>
-#include <http_main.h>
-#include <http_request.h>
-#include <http_protocol.h>
-#include <util_filter.h>
-#include <util_script.h>
+#include <httpd/httpd.h>
+#include <httpd/http_config.h>
+#include <httpd/http_connection.h>
+#include <httpd/http_core.h>
+#include <httpd/http_log.h>
+#include <httpd/http_main.h>
+#include <httpd/http_request.h>
+#include <httpd/http_protocol.h>
+#include <httpd/util_filter.h>
+#include <httpd/util_script.h>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>

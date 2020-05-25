@@ -17,22 +17,6 @@
 #ifndef __MOD_AUTH_PRIVATE_H__
 #define __MOD_AUTH_PRIVATE_H__
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <ap_config.h>
-#include <httpd.h>
-#include <http_config.h>
-#include <http_connection.h>
-#include <http_core.h>
-#include <http_log.h>
-#include <http_main.h>
-#include <http_request.h>
-#include <http_protocol.h>
-#include <http_request.h>
-#include <util_filter.h>
-#include <util_script.h>
-#include <mod_auth.h>
-
 #define MODULE_TRACE_TYPE (APLOG_NOERRNO | APLOG_INFO)
 
 #define ap_debug(s, fmt, ...) \
@@ -113,15 +97,19 @@ struct srv {
     module *mod_ssl;
     module *mod_mpm;
     module *mod_mpm_prefork;
+    module *mod_event;
+    apr_thread_mutex_t *mutex;
 };
 
 struct user {
+    const char *id;
     const char *uuid;
     const char *name;
 };
 
 struct req {
     request_rec *r;
+    apr_table_t* attrs;
     struct user user;
     char *uri;
     char *sid;
