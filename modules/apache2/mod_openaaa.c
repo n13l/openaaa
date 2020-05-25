@@ -193,9 +193,9 @@ post_read_request(request_rec *r)
 
 	apr_thread_mutex_lock(srv->mutex);
 
-
 	char ssl_id[1024] = {0};
 	ssl_get_sess_id(srv->ssl, ssl_id, sizeof(ssl_id) - 1);
+
 
 	aaa_reset(aaa);
 	aaa_attr_set(aaa, "sess.id", (char *)ssl_id);
@@ -436,9 +436,9 @@ header_parser(request_rec *r)
 	r_info(r, "%s()::%pp uri: %s", __func__, r, r->uri);
 	if (!req->attrs || apr_is_empty_table(req->attrs))
 		return DECLINED;
-
 	const apr_array_header_t *tarr = apr_table_elts(req->attrs);
 	const apr_table_entry_t *telts = (const apr_table_entry_t*)tarr->elts;
+
 	for (int i = 0; i < tarr->nelts; i++) {
 		header_attr_set(r, "aaa", telts[i].key, telts[i].val);
 		if (r->proxyreq != PROXYREQ_REVERSE)
