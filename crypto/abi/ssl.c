@@ -1251,17 +1251,24 @@ ssl_init_conn(SSL *ssl)
 	_unused struct session *sp = session_get0(ssl);
 }
 
-void
+#define CHECK_ERR(cond) if (cond) return -1;
+
+int
 ssl_get_sess_id(SSL *ssl, char *buf, int size)
 {
 	memset(buf, 0, size);
 	
 	SSL_SESSION *sess = CALL_ABI(SSL_get_session)(ssl);
-	unsigned int len;
-	const byte *sessid = CALL_ABI(SSL_SESSION_get_id)(sess, &len);
-	char *sess_id = evala(memhex, (char *)sessid, len);
+	CHECK_ERR(!sess);
 
+	unsigned int len = 32;
+	const byte *sessid = CALL_ABI(SSL_SESSION_get_id)(sess, &len);
+	CHECK_ERR(!sessid || len != 32);
+
+	char *sess_id = evala(memhex, (char *)sessid, len);
 	memcpy(buf, sess_id, strlen(sess_id));
+
+	return 0;
 }
 
 void

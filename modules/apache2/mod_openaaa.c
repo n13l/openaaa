@@ -8,6 +8,7 @@
 #include <httpd/ap_config.h>
 #include <httpd/ap_socache.h>
 #include <apr_strings.h>
+#include <apr_escape.h>
 #include <httpd/httpd.h>
 #include <httpd/http_config.h>
 #include <httpd/http_connection.h>
@@ -168,7 +169,7 @@ destroy_request(void *ctx)
 static int
 pre_connection(conn_rec *c, void *csd)
 {
-	//modssl_register_npn(c, npn_advertise_protos, npn_proto_negotiated);
+	c_info(c, "%s()::%pp id: %ld", __func__, c, c->id);
 	return DECLINED;
 }
 
@@ -186,19 +187,27 @@ post_read_request(request_rec *r)
 	if (!ap_is_initial_req(r) || !is_https || !is_https(r->connection))
 		return DECLINED;
 
-	r_info(r, "%s()::%pp uri: %s", __func__, r, r->uri);
+	r_info(r, "%s()::%pp conn: %pp uri: %s", __func__, r, r->connection, r->uri);
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct req *req = ap_req_config_get(r);
 	struct aaa *aaa = srv->aaa;
 
+	struct conn *conn = ap_conn_config_get(r->connection);
+
 	apr_thread_mutex_lock(srv->mutex);
 
-	char ssl_id[1024] = {0};
-	ssl_get_sess_id(srv->ssl, ssl_id, sizeof(ssl_id) - 1);
+	/* This is evil hack and workaround regarding shared SSL* object between 
+	 * client and proxy connection. */
+	if (!conn->has_id) {
+		if (ssl_get_sess_id(conn->ssl, conn->tls_id, 64))
+			return HTTP_INTERNAL_SERVER_ERROR;
+		conn->has_id = 1;
+	}
 
+	r_info(r, "%s()::%pp tls_sess_id: %s", __func__, r, conn->tls_id);
 
 	aaa_reset(aaa);
-	aaa_attr_set(aaa, "sess.id", (char *)ssl_id);
+	aaa_attr_set(aaa, "sess.id", (char *)conn->tls_id);
 	if (aaa_bind(aaa) < 0)
 		goto declined;
 
@@ -234,7 +243,6 @@ declined:
 static int
 check_authn(request_rec *r)
 {
-	r_info(r, "%s()::%pp type:%s uri: %s", __func__, r, ap_auth_type(r), r->uri);
 	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
 		return DECLINED;
 
@@ -268,11 +276,6 @@ check_authn(request_rec *r)
 static int
 check_access(request_rec *r)
 {
-	const char *type = ap_auth_type(r) ? ap_auth_type(r): "n/a";
-	r_info(r, "%s()::%pp type:%s uri: %s", __func__, r, type, r->uri);
-	if (strcmp(type, "aaa"))
-		return DECLINED;
-
 	return DECLINED;
 }
 
@@ -291,11 +294,6 @@ check_access(request_rec *r)
 static int
 auth_checker(request_rec *r)
 {
-	const char *type = ap_auth_type(r) ? ap_auth_type(r): "n/a";
-	r_info(r, "%s()::%pp type:%s uri: %s", __func__, r, type, r->uri);
-	if (strcmp(type, "aaa"))
-		return DECLINED;
-
 	return DECLINED;
 }
 
@@ -314,11 +312,6 @@ auth_checker(request_rec *r)
 static int
 check_authz(request_rec *r)
 {
-	const char *type = ap_auth_type(r) ? ap_auth_type(r): "n/a";
-	r_info(r, "%s()::%pp type:%s uri: %s", __func__, r, type, r->uri);
-	if (strcmp(type, "aaa"))
-		return DECLINED;
-
 	return DECLINED;
 }
 
@@ -326,7 +319,6 @@ static int
 check_access_ex(request_rec *r)
 {
 	const char *type = ap_auth_type(r) ? ap_auth_type(r): "n/a";
-	r_info(r, "%s()::%pp type:%s uri: %s", __func__, r, type, r->uri);
 	if (strcmp(type, "aaa"))
 		return DECLINED;
 
@@ -374,7 +366,7 @@ config_init_srv(apr_pool_t *p, server_rec *s)
 static int
 init_server(server_rec *s, apr_pool_t *p, int is_proxy, SSL_CTX *ctx)
 {
-	s_info(s, "%s() proxy: %d", __func__, is_proxy);
+	struct srv *srv = ap_srv_config_get(s);
 	ssl_init(1);
 	ssl_init_ctxt(ctx);	
 	return 0;
@@ -390,9 +382,12 @@ init_server(server_rec *s, apr_pool_t *p, int is_proxy, SSL_CTX *ctx)
 static int
 pre_handshake(conn_rec *c, SSL *ssl, int is_proxy)
 {
-	struct srv *srv = ap_srv_config_get(c->base_server);
-	srv->ssl = ssl;
+	struct conn *conn = apr_pcalloc(c->pool, sizeof(*conn));
+	ap_conn_config_set(c, conn);
+
+	conn->ssl = ssl;
 	ssl_init_conn(ssl);
+	c_info(c, "%s() ssl: %pp id: %ld", __func__, ssl, c->id);
 	return 0;
 }
 
@@ -406,6 +401,7 @@ pre_handshake(conn_rec *c, SSL *ssl, int is_proxy)
 static int
 proxy_post_handshake(conn_rec *c, SSL *ssl)
 {
+	c_info(c, "%s() ssl: %pp", __func__, ssl);
 	return 0;
 }
 
@@ -433,7 +429,7 @@ header_parser(request_rec *r)
 		return DECLINED;
 
 	struct req *req = ap_req_config_get(r);
-	r_info(r, "%s()::%pp uri: %s", __func__, r, r->uri);
+	//r_info(r, "%s()::%pp uri: %s", __func__, r, r->uri);
 	if (!req->attrs || apr_is_empty_table(req->attrs))
 		return DECLINED;
 	const apr_array_header_t *tarr = apr_table_elts(req->attrs);
@@ -476,10 +472,9 @@ authz_require_group_check(request_rec *r, const char *line, const void *parsed)
 		return AUTHZ_GRANTED;
 
 	char *t, *ln = strdupa(group);
-	for (char *p = strtok_r(ln, " ", &t); p; p = strtok_r(NULL, " ", &t)) {
+	for (char *p = strtok_r(ln, " ", &t); p; p = strtok_r(NULL, " ", &t))
 		if (!strcmp(rule->role, p))
 			return AUTHZ_GRANTED;
-	}
 
 	return AUTHZ_DENIED;
 }
@@ -526,7 +521,7 @@ register_hooks(apr_pool_t *p)
 	ap_hook_optional_fn_retrieve(optional_fn_retrieve, NULL,NULL,APR_HOOK_MIDDLE);
 	ap_hook_header_parser(header_parser, NULL, asz_succ, APR_HOOK_MIDDLE);
 	ap_hook_post_config(post_config, NULL, NULL, APR_HOOK_MIDDLE);
-	ap_hook_pre_connection(pre_connection, pre_ssl, NULL, APR_HOOK_MIDDLE);
+	ap_hook_pre_connection(pre_connection, pre_ssl, NULL, APR_HOOK_FIRST);
 	ap_hook_create_request(create_request, NULL, NULL, APR_HOOK_MIDDLE);
 	ap_hook_post_read_request(post_read_request,NULL, asz_succ, APR_HOOK_MIDDLE);
 	ap_hook_check_authn(check_authn, pre_ssl, NULL, APR_HOOK_FIRST,

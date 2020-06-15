@@ -37,6 +37,9 @@
 #define r_info(r, mask...) \
 	ap_log_rerror(APLOG_MARK, APLOG_NOERRNO | APLOG_INFO, 0, r, mask)
 
+#define c_info(c, mask...) \
+	ap_log_cerror(APLOG_MARK, APLOG_NOERRNO | APLOG_INFO, 0, c, mask)
+
 #define c_debug(c, fmt...) \
 	ap_log_cdata(APLOG_MARK, APLOG_DEBUG, 0, c, fmt, NULL, 0);
 
@@ -120,6 +123,8 @@ struct req {
 
 struct conn {
 	void *ssl;
+	char tls_id[128];
+	int has_id;
 };
 
 struct dir {
