@@ -44,6 +44,15 @@
  *	 |  |               |      |                 |
  *	 04-29 22:43:20.244 1000  1000               example:  Hi 
  */
+#include <sys/compiler.h>
+#include <sys/log.h>
+#
+#define __s64 s64
+#define __s32 s32
+#define __u64 u64
+#define __u32 u32
+#define __u16 u16
+
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -54,8 +63,6 @@
 #include <time.h>
 #include <ctype.h>
 
-#include <sys/compiler.h>
-#include <sys/log.h>
 #include <list.h>
 #include <mem/alloc.h>
 #include <mem/stack.h>

@@ -3,6 +3,14 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <stdint.h>
+
+#define __s64 s64
+#define __s32 s32
+#define __u64 u64
+#define __u32 u32
+#define __u16 u16
+
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <string.h>
