@@ -31,12 +31,14 @@ aaa_new(enum aaa_endpoint type, int flags)
 	aaa->timeout = AAA_SESSION_EXPIRES;
 
 	dict_init(&aaa->attrs, mm_pool(aaa->mp_attrs));
+	debug1("%s() aaa: %p", __func__, aaa);
 	return aaa;
 }
 
 void
 aaa_free(struct aaa *aaa)
 {
+	debug1("%s() aaa: %p", __func__, aaa);
 	mm_pool_destroy(aaa->mp_attrs);
 	mm_pool_destroy(aaa->mp);
 }
@@ -51,6 +53,7 @@ int
 aaa_bind(struct aaa *aaa)
 {
 	const char *sid = aaa_attr_get(aaa, "sess.id");
+	debug1("%s(sid: <%s>) aaa: %p", __func__, sid, aaa);
 	if (!sid || !*sid)
 		return -EINVAL;
 
@@ -61,24 +64,34 @@ aaa_bind(struct aaa *aaa)
 void
 aaa_reset(struct aaa *aaa)
 {
+	debug1("%s() aaa: %p", __func__, aaa);
 	mm_pool_flush(aaa->mp_attrs);
 	dict_init(&aaa->attrs, mm_pool(aaa->mp_attrs));
 	aaa->attrs_it = NULL;
 }
 
+/*
+ * The maximum safe UDP payload is 508 bytes. This is a packet size of 576 
+ * (the "minimum maximum reassembly buffer size"), minus the maximum 60-byte 
+ * IP header and the 8-byte UDP header.
+ */
+
 int
-aaa_attr_set(struct aaa *aaa, const char *attr, const char *value)
+aaa_attr_set(struct aaa *aaa, const char *name, const char *value)
 {
-	if (!attr || !value)
+	debug1("%s() aaa: %p, %s: <%s>", __func__, aaa, name, value);
+	if (!name || !value || strlen(value) > 255 || strlen(name) > 64)
 		return -EINVAL;
 
-	dict_set(&aaa->attrs, attr, value);
+	dict_set(&aaa->attrs, name, value);
 	return 0;
 }
 
 const char *
 aaa_attr_get(struct aaa *aaa, const char *attr)
 {
+	debug1("%s() aaa: %p attr: %s", __func__, aaa, attr);
+
 	return attr ? dict_get(&aaa->attrs, attr): NULL;
 }
 
@@ -159,6 +172,7 @@ int
 aaa_touch(struct aaa *aaa)
 {
 	const char *sid = aaa_attr_get(aaa, "sess.id");
+	debug1("%s(sid: <%s>) aaa: %p", __func__, sid, aaa);
 	if (!sid || !*sid)
 		return -EINVAL;
 
@@ -175,6 +189,7 @@ int
 aaa_commit(struct aaa *aaa)
 {
 	const char *sid = aaa_attr_get(aaa, "sess.id");
+	debug1("%s(sid: <%s>) aaa: %p", __func__, sid, aaa);
 	if (!sid || !*sid)
 		return -EINVAL;
 

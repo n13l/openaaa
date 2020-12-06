@@ -16,6 +16,7 @@
 #include <sys/cpu.h>
 #include <sys/log.h>
 #include <sys/irq.h>
+#include <sys/tid.h>
 #include <sys/types.h>
 #include <unix/timespec.h>
 #include <list.h>
@@ -122,7 +123,7 @@ struct task {
 int
 task_type(void)
 {
-	return getpid() == gettid();
+	return getpid() == compat_gettid();
 }
 
 void
@@ -861,8 +862,13 @@ sched_fini(void)
 int
 aaa_server1(int argc, char *argv[])
 {
+	if(geteuid() != 0) {
+		printf("Requires root privileges.\n"); exit(1); 
+	}
+
 	irq_init();
 	irq_disable();
+	log_name("aaa");
 
 	int pid;
 	if ((pid = pid_read(pidfile)))

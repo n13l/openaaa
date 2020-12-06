@@ -1,7 +1,8 @@
+/*
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/log.h>
-#include <list.h>
+#include <bsd/list.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -51,13 +52,11 @@ test1_list(void)
 	list_add(&list, &eve.n);
 	list_add(&list, &robot.n);
 
-	/* iterate over all objects */
 	list_for_each(list, n) {
 		struct person *p = __container_of(n, struct person, n);
 		debug1("node=%p person=%p name=%s", n, p, p->name);
 	}
 
-	/* iterate and unlink adam */
 	list_for_each_delsafe(list, n) {
 		struct person *p = __container_of(n, struct person, n);
 		if (!strcmp(p->name, "Adam"))
@@ -254,8 +253,8 @@ user_cmp_name(struct myuser *a, struct myuser *b)
 {
 	return strcmp(a->name, b->name);
 }
-
-_unused static void
+*/
+static void
 test5_list(void)
 {
 /*	
@@ -280,7 +279,7 @@ main(int argc, char *argv[])
 //	test1_list();
 //	test2_list();
 //	test3_list();
-	test4_list();
+//	test4_list();
 
 	return 0;
 }

@@ -1,0 +1,121 @@
+#!/bin/bash
+
+###########################################
+# A set of examples using DETIK functions.
+###########################################
+
+load ../lib/detik
+
+# The client function.
+DETIK_CLIENT_NAME="kubectl"
+
+
+#########################################
+# Counting objects
+#########################################
+
+# Basic examples
+run verify "there are 1 service named 'nginx'"
+run verify "there are 4 pods named 'nginx'"
+
+# The same thing (it is case insensitive)
+run verify "There are 4 pods naMed 'nginx'"
+
+# Use short names for resources ('po' instead of 'pods')
+# See https://kubernetes.io/docs/reference/kubectl/overview/#resource-types
+run verify "there are 4 po named 'nginx'"
+
+# Use a regular expression for the name
+run verify "there are 4 po named 'nginx.*'"
+run verify there are 4 po named "'nginx.*'"
+
+
+#########################################
+# Verifying properties
+#########################################
+
+# Basic example
+run verify "'status' is 'running' for pods named 'nginx'"
+	run verify "'status' is 'running' for pods named 'nginx'"
+
+# The same thing (it is case insensitive)
+run verify "'status' is 'RUNNING' for pods naMed 'nginx'"
+
+# Use short names for resources ('po' instead of 'pods')
+# See https://kubernetes.io/docs/reference/kubectl/overview/#resource-types
+run verify "'status' is 'running' for po named 'nginx'"
+
+# Use a regular expression for the name
+run verify "'status' is 'running' for pods named 'nginx.*'"
+
+# You can also use column names
+# Use kubectl get <resource> -o custom-columns=ALL:* to find column names.
+run verify "'.status.phase' is 'running' for pods named 'nginx'"
+run verify "'.spec.ports[*].targetPort' is '8484' for services named 'nginx'"
+run verify "'.spec.ports[*].targetPort'" is "'8484'" for services named "'nginx'"
+
+
+#########################################
+# Verifying properties (with retries)
+#########################################
+
+# Basic example
+run try "at most 5 times every 5s to get pods named 'nginx' and verify that 'status' is 'running'"
+
+# The same thing (it is case insensitive)
+run try "at most 5 times every 15s to GET pods named 'nginx' and verify that 'status' is 'RUNNING'"
+
+# Use short names for resources ('po' instead of 'pods')
+# See https://kubernetes.io/docs/reference/kubectl/overview/#resource-types
+run try "at most 5 times every 5s to get po named 'nginx' and verify that 'status' is 'running'"
+
+# Use a regular expression for the name
+run try "at most 2 times every 30s to get po named '^ng.*nx' and verify that 'status' is 'running'"
+
+# You can also use column names
+# Use kubectl get <resource> -o custom-columns=ALL:* to find column names.
+run try "at most 2 times every 30s to get po named 'nginx' and verify that '.status.phase' is 'running'"
+run try "at most 2 times every 30s to get svc named 'nginx' and verify that '.spec.ports[*].targetPort' is '8484'"
+
+
+#########################################
+# Counting objects (with retries and properties)
+#########################################
+
+# Basic example
+run try "at most 5 times every 5s to find 2 pods named 'nginx' with 'status' being 'running'"
+
+# The same thing (it is case insensitive)
+run try "at most 5 times every 15s to FIND 2 pods named 'nginx' with 'status' being 'RUNNING'"
+
+# Use short names for resources ('po' instead of 'pods')
+# See https://kubernetes.io/docs/reference/kubectl/overview/#resource-types
+run try "at most 5 times every 5s to find 0 po named 'nginx' with 'status' being 'running'"
+
+# Use a regular expression for the name
+run try "at most 2 times every 30s to find 1 po named '^ng.*nx' with 'status' being 'running'"
+
+# You can also use column names
+# Use kubectl get <resource> -o custom-columns=ALL:* to find column names.
+run try "at most 2 times every 30s to find 4 po named 'nginx' with '.status.phase' being 'running'"
+run try "at most 2 times every 30s to find 1 svc named 'nginx' with '.spec.ports[*].targetPort' being '8484'"
+
+
+#########################################
+# Formatting
+#########################################
+
+# Splitting a request over several lines
+run try "at most 2 times every 30s "\
+    "to get svc named 'nginx' and "\
+    "verify that '.spec.ports[*].targetPort' is '8484'"
+
+# Using quotes differently
+# (make sure to surround single quotes by double ones)
+run try at most 2 times every 30s \
+    to get svc named "'nginx'" and \
+    verify that "'.spec.ports[*].targetPort'" is "'8484'"
+    
+run try "at most 2 times every 30s "\
+	"to find 1 svc named 'nginx' "\
+	"with '.spec.ports[*].targetPort' being '8484'"

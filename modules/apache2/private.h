@@ -40,8 +40,8 @@
 #define c_info(c, mask...) \
 	ap_log_cerror(APLOG_MARK, APLOG_NOERRNO | APLOG_INFO, 0, c, mask)
 
-#define c_debug(c, fmt...) \
-	ap_log_cdata(APLOG_MARK, APLOG_DEBUG, 0, c, fmt, NULL, 0);
+#define c_debug(c, mask...) \
+	ap_log_cerror(APLOG_MARK, APLOG_NOERRNO | APLOG_DEBUG, 0, c, mask)
 
 #define ap_module_trace_scall(s) \
 	ap_log_error(APLOG_MARK, APLOG_INFO, 0, s, "%s:%s()", MODULE_PREFIX, __func__)
@@ -64,7 +64,7 @@
         ap_get_module_config(s->module_config, & MODULE_ENTRY)
 
 
-#define AP_GET_DIR_CONFIG(r) \
+#define ap_get_dir_config(r) \
         ap_get_module_config(r->per_dir_config, & MODULE_ENTRY)
 
 #define ap_req_config_get(r) \
@@ -87,6 +87,8 @@
 
 #define ssl_lookup_args \
     r->pool, r->server, r->connection, r
+
+#define ap_bst(val) val ? "yes": "no"
 
 struct srv {
     void *ctx;
@@ -128,7 +130,9 @@ struct conn {
 };
 
 struct dir {
-    int unused;
+	const char *name;
+	unsigned int enabled;
+	unsigned int pedantic;
 };
 
 /*

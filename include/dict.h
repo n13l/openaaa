@@ -102,7 +102,11 @@ static inline void
 dict_set(struct dict *dict, const char *key, const char *val)
 {
 	struct attr *a = dict_lookup(dict, key, 1);
-	a->val = val ? mm_strdup(dict->mm, val) : NULL;
+	if (!val) {
+		list_del(&a->node);
+		return;
+	}
+	a->val = mm_strdup(dict->mm, val);
 	a->flags |= ATTR_CHANGED;
 }
 

@@ -51,7 +51,7 @@ struct pages {
 struct page {
 	u32 avail;            /* linked list of available pages            */
 	u32 padding;
-	u8 payload[];
+//	u8 payload[];
 } _align_max;
 
 static inline unsigned int

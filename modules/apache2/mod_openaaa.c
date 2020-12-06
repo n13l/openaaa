@@ -26,7 +26,6 @@
 
 #include "mod_openaaa.h"
 #include "private.h"
-
 /* AAA abstraction */
 #include <mem/stack.h>
 #include <aaa/lib.h>
@@ -40,6 +39,17 @@ APLOG_USE_MODULE(authnz_ssl);
 
 APR_OPTIONAL_FN_TYPE(ssl_is_https)         *is_https;
 APR_OPTIONAL_FN_TYPE(ssl_var_lookup)       *ssl_var_lookup;
+
+static const command_rec commands[] = {
+	AP_INIT_FLAG("AAA", ap_set_flag_slot,
+	             (void *)APR_OFFSETOF(struct dir, enabled),
+	             RSRC_CONF | OR_AUTHCFG, "Enable or disable AAA"),
+	AP_INIT_FLAG("AAAPedantic", ap_set_flag_slot,
+	             (void *)APR_OFFSETOF(struct dir, pedantic),
+	             RSRC_CONF | OR_AUTHCFG,
+	             "Enable or disable AAA pedantic tls/h2 protocol stack"),
+	{ NULL }
+};
 
 /*
  * Gives modules a chance to create their request_config entry when the
@@ -73,11 +83,14 @@ child_init(apr_pool_t *p, server_rec *s)
 	log_set_handler(log_write);
 	apr_pool_cleanup_register(p, s, child_fini, child_fini);
 
-	struct srv *srv = ap_srv_config_get(s);
-	srv->aaa = aaa_new(AAA_ENDPOINT_SERVER, 0);
-	srv->mod_ssl = ap_find_linked_module("mod_ssl.c");
-	srv->mod_event = ap_find_linked_module("mod_mpm_event.c");
-	apr_thread_mutex_create(&srv->mutex, APR_THREAD_MUTEX_DEFAULT, p);
+	for (; s; s = s->next) {
+		struct srv *srv = ap_srv_config_get(s);
+		srv->aaa = aaa_new(AAA_ENDPOINT_SERVER, 0);
+		srv->mod_ssl = ap_find_linked_module("mod_ssl.c");
+		srv->mod_event = ap_find_linked_module("mod_mpm_event.c");
+
+		apr_thread_mutex_create(&srv->mutex,APR_THREAD_MUTEX_DEFAULT,p);
+	}
 }
 
 /*
@@ -89,15 +102,17 @@ static apr_status_t
 child_fini(void *ctx)
 {
 	server_rec *s = (server_rec *)ctx;
-	struct srv *srv = ap_srv_config_get(s);
 
-	if (srv->aaa)
-		aaa_free(srv->aaa);
-	if (srv->mutex)
-		apr_thread_mutex_destroy(srv->mutex);
+	for (; s; s = s->next) {
+		struct srv *srv = ap_srv_config_get(s);
+		if (srv->aaa)
+			aaa_free(srv->aaa);
+		if (srv->mutex)
+			apr_thread_mutex_destroy(srv->mutex);
 
-	srv->aaa = NULL;
-	srv->mutex = NULL;
+		srv->aaa = NULL;
+		srv->mutex = NULL;
+		}
 	return 0;
 }
 
@@ -169,7 +184,44 @@ destroy_request(void *ctx)
 static int
 pre_connection(conn_rec *c, void *csd)
 {
-	c_info(c, "%s()::%pp id: %ld", __func__, c, c->id);
+	unsigned m = c->master == NULL;
+	c_debug(c, "%s() conn: %pp, id: %ld, master: %d", __func__, c, c->id, m);
+	return DECLINED;
+}
+
+/**
+ * pre_handshake hook
+ * @param c conn_rec for new connection from client or to backend server
+ * @param ssl OpenSSL SSL Connection for the client or backend server
+ * @param is_proxy 1 if this handshake is for a backend connection, 0 otherwise
+ */
+
+static int
+pre_handshake(conn_rec *c, SSL *ssl, int is_proxy)
+{
+	unsigned m = c->master == NULL;
+	c_debug(c, "%s() conn: %pp, id: %ld, master: %d", __func__, c, c->id,m);
+	if (c->master != NULL)
+		return DECLINED;
+
+	struct conn *conn = apr_pcalloc(c->pool, sizeof(*conn));
+	ap_conn_config_set(c, conn);
+	conn->ssl = ssl;
+	ssl_init_conn(ssl);
+	return DECLINED;
+}
+
+/**
+ * proxy_post_handshake hook -- allow module to abort after successful
+ * handshake with backend server and subsequent peer checks
+ * @param c conn_rec for connection to backend server
+ * @param ssl OpenSSL SSL Connection for the client or backend server
+ */
+
+static int
+proxy_post_handshake(conn_rec *c, SSL *ssl)
+{
+	c_debug(c, "%s() ssl: %pp", __func__, ssl);
 	return DECLINED;
 }
 
@@ -184,18 +236,40 @@ pre_connection(conn_rec *c, void *csd)
 static int
 post_read_request(request_rec *r)
 {
-	if (!ap_is_initial_req(r) || !is_https || !is_https(r->connection))
+	struct dir *dir = ap_get_dir_config(r);
+	r_debug(r, "%s() dir: %s enabled: %s pedantic: %s uri: %s", __func__,
+	        dir->name, ap_bst(dir->enabled), ap_bst(dir->pedantic), r->uri);
+	if (!ap_is_initial_req(r) || !dir->enabled)
 		return DECLINED;
 
-	r_info(r, "%s()::%pp conn: %pp uri: %s", __func__, r, r->connection, r->uri);
+	unsigned secure = !!(is_https && is_https(r->connection));
+	r_debug(r, "%s() secure: %d protocol: %s conn: %pp uri: %s",
+	       __func__, secure, r->protocol, r->connection, r->uri);
+
+	if (dir->pedantic == 1 && !secure) {
+		r_error(r, "%s() tls protocol is required", __func__);
+		return HTTP_INTERNAL_SERVER_ERROR;
+	}
+
+	unsigned h2 = !!(r->protocol && !strncmp(r->protocol, "HTTP/2", 6));
+	if (dir->pedantic == 1 && !h2) {
+		r_error(r, "%s() h2 protocol is required", __func__);
+		return HTTP_INTERNAL_SERVER_ERROR;
+	}
+
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct req *req = ap_req_config_get(r);
 	struct aaa *aaa = srv->aaa;
 
-	struct conn *conn = ap_conn_config_get(r->connection);
+	conn_rec *c = r->connection;
+	struct conn *conn = ap_conn_config_get(c->master ? c->master: c);
+	if (!conn) {
+		return DECLINED;
+		r_error(r, "%s() h2 multiplexing bug", __func__);
+		return HTTP_INTERNAL_SERVER_ERROR;
+	}
 
 	apr_thread_mutex_lock(srv->mutex);
-
 	/* This is evil hack and workaround regarding shared SSL* object between 
 	 * client and proxy connection. */
 	if (!conn->has_id) {
@@ -203,8 +277,6 @@ post_read_request(request_rec *r)
 			return HTTP_INTERNAL_SERVER_ERROR;
 		conn->has_id = 1;
 	}
-
-	r_info(r, "%s()::%pp tls_sess_id: %s", __func__, r, conn->tls_id);
 
 	aaa_reset(aaa);
 	aaa_attr_set(aaa, "sess.id", (char *)conn->tls_id);
@@ -215,7 +287,7 @@ post_read_request(request_rec *r)
 	for (const char *k = aaa_attr_first(aaa, ""); k; k = aaa_attr_next(aaa)) {
 		const char *v = aaa_attr_get(aaa, k);
 		apr_table_set(req->attrs, k, v);
-		r_info(r, "%s()::%pp %s: %s", __func__, r, k, v);
+		r_debug(r, "%s() %s: %s", __func__, k, v);
 	}
 
 	req->user.id = aaa_attr_get(aaa, "user.id");
@@ -243,18 +315,19 @@ declined:
 static int
 check_authn(request_rec *r)
 {
-	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
+	if (!ap_is_initial_req(r))
 		return DECLINED;
 
+	r_debug(r, "%s() uri: %s", __func__, r->uri);
 	struct req *req = ap_req_config_get(r);
 	if (!req->user.name || !*req->user.name)
 		req->user.name = req->user.id;
 	if (!req->user.name || !*req->user.name) {
-		r_info(r, "%s() HTTP_UNAUTHORIZED", __func__);
+		r_debug(r, "%s() HTTP_UNAUTHORIZED", __func__);
 		return HTTP_UNAUTHORIZED;
 	}
 
-	r_info(r, "user.name: %s", req->user.name);
+	r_debug(r, "user.name: %s", req->user.name);
 	r->user = apr_pstrdup(r->pool, req->user.name);
 	return OK;
 }
@@ -318,14 +391,14 @@ check_authz(request_rec *r)
 static int
 check_access_ex(request_rec *r)
 {
-	const char *type = ap_auth_type(r) ? ap_auth_type(r): "n/a";
-	if (strcmp(type, "aaa"))
+	if (!ap_is_initial_req(r))
 		return DECLINED;
 
+	r_debug(r, "%s() uri: %s", __func__, r->uri);
 	struct req *req = ap_req_config_get(r);
 	if (!req->user.name || !*req->user.name)
 		return DECLINED;
-	r_info(r, "user.name: %s", req->user.name);
+	r_debug(r, "user.name: %s", req->user.name);
 	r->user = apr_pstrdup(r->pool, req->user.name);
 	return DECLINED;
 }
@@ -344,6 +417,28 @@ static int
 fixups(request_rec *r)
 {
 	return DECLINED;
+}
+
+static void *
+config_init_dir(apr_pool_t *p, char *loc)
+{
+	struct dir *dir = apr_pcalloc(p, sizeof(*dir));
+	const char *s = loc ? loc : "n/a";
+	dir->name = apr_pstrcat(p, s, NULL);
+	return dir;
+}
+
+void *
+config_merge_dir(apr_pool_t *p, void *a, void *b)
+{
+	struct dir *dir = apr_pcalloc(p, sizeof(*dir));
+	struct dir *x = (struct dir*)a;
+	struct dir *y = (struct dir*)b;
+
+	dir->enabled = y->enabled;
+	dir->pedantic = y->pedantic;
+	dir->name = y->name;
+	return dir;
 }
 
 static void *
@@ -372,45 +467,11 @@ init_server(server_rec *s, apr_pool_t *p, int is_proxy, SSL_CTX *ctx)
 	return 0;
 }
 
-/**
- * pre_handshake hook
- * @param c conn_rec for new connection from client or to backend server
- * @param ssl OpenSSL SSL Connection for the client or backend server
- * @param is_proxy 1 if this handshake is for a backend connection, 0 otherwise
- */
-
-static int
-pre_handshake(conn_rec *c, SSL *ssl, int is_proxy)
-{
-	struct conn *conn = apr_pcalloc(c->pool, sizeof(*conn));
-	ap_conn_config_set(c, conn);
-
-	conn->ssl = ssl;
-	ssl_init_conn(ssl);
-	c_info(c, "%s() ssl: %pp id: %ld", __func__, ssl, c->id);
-	return 0;
-}
-
-/**
- * proxy_post_handshake hook -- allow module to abort after successful
- * handshake with backend server and subsequent peer checks
- * @param c conn_rec for connection to backend server
- * @param ssl OpenSSL SSL Connection for the client or backend server
- */
-
-static int
-proxy_post_handshake(conn_rec *c, SSL *ssl)
-{
-	c_info(c, "%s() ssl: %pp", __func__, ssl);
-	return 0;
-}
-
 static void
-header_attr_set(request_rec *r, const char *prefix,
-                const char *key, const char *val)
+header_attr_set(request_rec *r, const char *x, const char *key, const char *val)
 {
 	struct req *req = ap_req_config_get(r);
-	char *k = printfa("%s.%s", prefix, key);
+	char *k = printfa("%s.%s", x, key);
 	for (char *p = k; *p; p++)
 		if ((*p = toupper(*p)) == '.') *p = '_';
 	char *v = strdupa(val);
@@ -423,13 +484,7 @@ header_attr_set(request_rec *r, const char *prefix,
 static int
 header_parser(request_rec *r)
 {
-	if (!is_https || !is_https(r->connection))
-		return DECLINED;
-	if (!ap_auth_type(r) || strcmp(ap_auth_type(r), "aaa"))
-		return DECLINED;
-
 	struct req *req = ap_req_config_get(r);
-	//r_info(r, "%s()::%pp uri: %s", __func__, r, r->uri);
 	if (!req->attrs || apr_is_empty_table(req->attrs))
 		return DECLINED;
 	const apr_array_header_t *tarr = apr_table_elts(req->attrs);
@@ -550,10 +605,10 @@ register_hooks(apr_pool_t *p)
 module AP_MODULE_DECLARE_DATA __attribute__((visibility("default"))) 
 MODULE_ENTRY = {
 	STANDARD20_MODULE_STUFF,
-	NULL, // config_init_dir,/* dir config constructor */
-	NULL,                    /* dir merger - default is to override */
+	config_init_dir,         /* dir config constructor */
+	config_merge_dir,        /* dir merger - default is to override */
 	config_init_srv,         /* server config constructor */         
 	NULL,                    /* merge server config */
-	NULL,                    /* command table */            
+	commands,                /* command table */            
 	register_hooks,          /* Apache2 register hooks */           
 };
