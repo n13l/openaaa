@@ -49,7 +49,7 @@ struct attr {
 };
 
 struct dict {
-	struct list list;
+	struct dlist list;
 	struct mm *mm;
 };
 
@@ -57,25 +57,25 @@ static inline void
 dict_init(struct dict *dict, struct mm *mm)
 {
 	dict->mm = mm;
-	list_init(&dict->list);
+	dlist_init(&dict->list);
 }
 
 static inline void
 dict_sort(struct dict *dict)
 {
 	struct node *x, *y, *z;
-	for (x = list_head(&dict->list); x; ) {
-		for (z = y = x; (y = list_next(&dict->list, y)); ) {
+	for (x = dlist_head(&dict->list); x; ) {
+		for (z = y = x; (y = dlist_next(&dict->list, y)); ) {
 			struct attr *a = __container_of(y, struct attr, node);
 			struct attr *b = __container_of(z, struct attr, node);
 			if (strcmp(a->key, b->key) < 0)
 				z = y;
 		}
 		if (x == z)
-			x = list_next(&dict->list, x);
+			x = dlist_next(&dict->list, x);
 		else {
-			list_del(z);
-			list_add_before(z, x);
+			dlist_del(z);
+			dlist_add_before(z, x);
 		}
 	}
 }
@@ -94,7 +94,7 @@ dict_lookup(struct dict *dict, const char *key, int create)
 	a->node.next = NULL;
 	a->node.prev = NULL;
 	a->flags = 0;
-	list_add(&dict->list, &a->node);
+	dlist_add(&dict->list, &a->node);
 	return a;
 }
 
@@ -102,7 +102,11 @@ static inline void
 dict_set(struct dict *dict, const char *key, const char *val)
 {
 	struct attr *a = dict_lookup(dict, key, 1);
-	a->val = val ? mm_strdup(dict->mm, val) : NULL;
+	if (!val) {
+		dlist_del(&a->node);
+		return;
+	}
+	a->val = mm_strdup(dict->mm, val);
 	a->flags |= ATTR_CHANGED;
 }
 

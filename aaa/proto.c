@@ -146,7 +146,7 @@ udp_parse(struct aaa *aaa, byte *packet, unsigned int len)
 		if (*key == '.')
 			return -1;
 
-                dict_set_nf(&aaa->attrs, key, value);
+		dict_set_nf(&aaa->attrs, key, value);
 	}
 
 	size_t sess_id_len = sid ? strlen(sid): 0;

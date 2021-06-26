@@ -96,14 +96,14 @@ static const struct sched_callbacks *callback;
 static const struct sched_params *params;
 
 struct workqueue {
-	struct list run;
-	struct list que;
+	struct dlist run;
+	struct dlist que;
 	sig_atomic_t running;
 	sig_atomic_t waiting;
 } workque = { .running = 0, .waiting = 0};
 
 struct workers {
-	struct list list;
+	struct dlist list;
 	sig_atomic_t running;
 	sig_atomic_t total;
 } workers = { .running = 0, .total = 0};
@@ -313,7 +313,7 @@ sched_workque_add(const char *arg)
 	proc->type = TASK_WORKQUE;
 	proc->self.id = getid();
 	proc->arg  = arg ? strdup(arg) : NULL;
-	list_add(&workque.que, &proc->queued);
+	dlist_add(&workque.que, &proc->queued);
 	workque.waiting++;
 	return proc->self.id;
 }
@@ -779,7 +779,7 @@ chld_handler(EV_P_ ev_child *w, int revents)
 {
 	process_status(w->rpid, w->rstatus);
 	struct process *c;
-	list_walk(workers.list, c, node) {
+	dlist_walk(workers.list, c, node) {
 		if (w->rpid != c->self.pid)
 			continue;
 		if (WIFEXITED(w->rstatus))
@@ -792,7 +792,7 @@ chld_handler(EV_P_ ev_child *w, int revents)
 		}
 	}
 
-	list_for_each_delsafe(workque.run, node) {
+	dlist_for_each_delsafe(workque.run, node) {
 		c = __container_of(node, struct process, queued);
 		if (w->rpid != c->self.pid)
 			continue;
@@ -802,7 +802,7 @@ chld_handler(EV_P_ ev_child *w, int revents)
 			workque.running--;
 			c->self.status = w->rstatus;
 			subprocess_detach(c);
-			list_del(&c->queued);
+			dlist_del(&c->queued);
 			subprocess_free(c);
 		}
 	}
@@ -854,7 +854,7 @@ do_restart(void)
 	root.self.version = get_timestamp();
 
 	struct process *c;
-	list_walk(workers.list, c, node) {
+	dlist_walk(workers.list, c, node) {
 		kill(c->self.pid, SIGHUP);
 		int status = subprocess_wait(c->self.pid, timeout_killable);
 		if (WIFEXITED(status) || WIFSIGNALED(status)) {
@@ -878,7 +878,7 @@ static void
 do_idle(void)
 {
 	struct process *c;
-	list_walk(workers.list, c, node) {
+	dlist_walk(workers.list, c, node) {
 		cache_touch(c->self.id);
 	}
 }
@@ -887,14 +887,14 @@ static void
 do_shutdown(void)
 {
 	struct process *c;
-	list_walk(workers.list, c, node) {
+	dlist_walk(workers.list, c, node) {
 		kill(c->self.pid, SIGHUP);
 		subprocess_wait(c->self.pid, timeout_killable);
 		workers.running--;
 		subprocess_detach(c);
 	}
 
-	list_walk(workque.run, c, queued) {
+	dlist_walk(workque.run, c, queued) {
 		kill(c->self.pid, SIGHUP);
 		subprocess_wait(c->self.pid, timeout_killable);
 		workque.running--;
@@ -1098,14 +1098,14 @@ static struct process *
 get_inactive_subprocess(struct process *root)
 {
 	struct process *proc = NULL;
-	list_walk(workers.list, proc, node) {
+	dlist_walk(workers.list, proc, node) {
 		if (proc->self.state != TASK_INACTIVE)
 			continue;
 		return proc;
 	}
 
 	proc = do_subprocess_alloc(root);
-	list_add(&workers.list, &proc->node);	
+	dlist_add(&workers.list, &proc->node);	
 	return proc;
 }
 
@@ -1139,7 +1139,7 @@ do_balance(struct process *root)
 	}
 
 	while(workque.waiting > 0 && (workque.running < job_parallel)) {
-		struct node *node = list_first(&workque.que);
+		struct node *node = dlist_first(&workque.que);
 		struct process *proc = __container_of(node, struct process, queued);
 		do_subprocess_ctor(root, proc);
 
@@ -1157,9 +1157,9 @@ do_balance(struct process *root)
 		workque.running++;
 		workque.waiting--;
 
-		list_del(&proc->queued);
+		dlist_del(&proc->queued);
 		node_init(&proc->queued);
-		list_add(&workque.run, &proc->queued);
+		dlist_add(&workque.run, &proc->queued);
 	}
 }
 
@@ -1193,9 +1193,9 @@ _sched_start(const struct mpm_module *mpm_module)
 	hash_init(hstatus_id);
 	hash_init(hstatus_pid);
 
-	list_init(&workers.list);
-	list_init(&workque.run);
-	list_init(&workque.que);
+	dlist_init(&workers.list);
+	dlist_init(&workque.run);
+	dlist_init(&workque.que);
 
 	params   = mpm_module->params;
 	callback = mpm_module->callbacks;

@@ -38,11 +38,11 @@ do_merge_sort_asc_r(struct node *x, int (*fn)(struct node *, struct node *))
 }
 
 void
-merge_sort_asc_recursive(struct list *self, int (*fn)(struct node *, struct node *))
+merge_sort_asc_recursive(struct dlist *self, int (*fn)(struct node *, struct node *))
 {
-	if (list_empty(self) || list_singular(self))
+	if (dlist_empty(self) || dlist_singular(self))
 		return;
-	struct node *x = list_disable_prev(self);
+	struct node *x = dlist_disable_prev(self);
 	struct node *y = do_merge_sort_asc_r(x, fn);
-	list_enable_prev(self, y);
+	dlist_enable_prev(self, y);
 }

@@ -37,7 +37,7 @@ struct arch_instr_n {
 };
 
 struct arch_prologue {
-	struct list instr;
+	struct dlist instr;
 	void *addr;
 	unsigned int size;
 

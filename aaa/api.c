@@ -3,11 +3,8 @@
 #include <sys/log.h>
 #include <list.h>
 #include <mem/pool.h>
-
 #include <aaa/lib.h>
 #include <aaa/prv.h>
-
-#include <list.h>
 #include <dict.h>
 
 static int aaa_initialized = 0;
@@ -31,12 +28,14 @@ aaa_new(enum aaa_endpoint type, int flags)
 	aaa->timeout = AAA_SESSION_EXPIRES;
 
 	dict_init(&aaa->attrs, mm_pool(aaa->mp_attrs));
+	debug1("%s() aaa: %p", __func__, aaa);
 	return aaa;
 }
 
 void
 aaa_free(struct aaa *aaa)
 {
+	debug1("%s() aaa: %p", __func__, aaa);
 	mm_pool_destroy(aaa->mp_attrs);
 	mm_pool_destroy(aaa->mp);
 }
@@ -51,6 +50,7 @@ int
 aaa_bind(struct aaa *aaa)
 {
 	const char *sid = aaa_attr_get(aaa, "sess.id");
+	debug1("%s(sid: <%s>) aaa: %p", __func__, sid, aaa);
 	if (!sid || !*sid)
 		return -EINVAL;
 
@@ -61,24 +61,34 @@ aaa_bind(struct aaa *aaa)
 void
 aaa_reset(struct aaa *aaa)
 {
+	debug1("%s() aaa: %p", __func__, aaa);
 	mm_pool_flush(aaa->mp_attrs);
 	dict_init(&aaa->attrs, mm_pool(aaa->mp_attrs));
 	aaa->attrs_it = NULL;
 }
 
+/*
+ * The maximum safe UDP payload is 508 bytes. This is a packet size of 576 
+ * (the "minimum maximum reassembly buffer size"), minus the maximum 60-byte 
+ * IP header and the 8-byte UDP header.
+ */
+
 int
-aaa_attr_set(struct aaa *aaa, const char *attr, const char *value)
+aaa_attr_set(struct aaa *aaa, const char *name, const char *value)
 {
-	if (!attr || !value)
+	debug1("%s() aaa: %p, %s: <%s>", __func__, aaa, name, value);
+	if (!name || !value || strlen(value) > 255 || strlen(name) > 64)
 		return -EINVAL;
 
-	dict_set(&aaa->attrs, attr, value);
+	dict_set(&aaa->attrs, name, value);
 	return 0;
 }
 
 const char *
 aaa_attr_get(struct aaa *aaa, const char *attr)
 {
+	debug1("%s() aaa: %p attr: %s", __func__, aaa, attr);
+
 	return attr ? dict_get(&aaa->attrs, attr): NULL;
 }
 
@@ -97,8 +107,8 @@ aaa_attr_has_value(struct aaa *aaa, const char *key, const char *val)
 const char *
 aaa_attr_first(struct aaa *aaa, const char *path)
 {
-	struct list *list = &aaa->attrs.list;
-	struct node *node = list_first(list);
+	struct dlist *list = &aaa->attrs.list;
+	struct node *node = dlist_first(list);
 
 	aaa->attrs_it = NULL;
 	if (!node)
@@ -115,8 +125,10 @@ aaa_attr_first(struct aaa *aaa, const char *path)
 const char *
 aaa_attr_next(struct aaa *aaa)
 {
-	struct list *list = &aaa->attrs.list;
-	struct node *node = list_next(list, aaa->attrs_it);
+	struct dlist *list = &aaa->attrs.list;
+	if (!aaa->attrs_it)
+		return NULL;
+	struct node *node = dlist_next(list, aaa->attrs_it);
 
 	if (!node)
 		return NULL;
@@ -132,10 +144,10 @@ aaa_attr_next(struct aaa *aaa)
 void
 aaa_attr_dump(struct aaa *aaa, const char *path)
 {
-	struct list *list = &aaa->attrs.list;
+	struct dlist *list = &aaa->attrs.list;
 	struct node *node;
 
-	for (node = list_first(list); node; node = list_next(list, node)) {
+	for (node = dlist_first(list); node; node = dlist_next(list, node)) {
 		struct attr *attr = __container_of(node, struct attr, node);
 		debug1("%s:%s", attr->key, attr->val);
 	}
@@ -159,6 +171,7 @@ int
 aaa_touch(struct aaa *aaa)
 {
 	const char *sid = aaa_attr_get(aaa, "sess.id");
+	debug1("%s(sid: <%s>) aaa: %p", __func__, sid, aaa);
 	if (!sid || !*sid)
 		return -EINVAL;
 
@@ -175,6 +188,7 @@ int
 aaa_commit(struct aaa *aaa)
 {
 	const char *sid = aaa_attr_get(aaa, "sess.id");
+	debug1("%s(sid: <%s>) aaa: %p", __func__, sid, aaa);
 	if (!sid || !*sid)
 		return -EINVAL;
 

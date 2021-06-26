@@ -16,6 +16,7 @@
 #include <sys/cpu.h>
 #include <sys/log.h>
 #include <sys/irq.h>
+#include <sys/tid.h>
 #include <sys/types.h>
 #include <unix/timespec.h>
 #include <list.h>
@@ -109,7 +110,7 @@ struct task {
 	struct ev_signal sighup_watcher;
 	struct ev_signal sigusr1_watcher;
 	struct ev_child child_watcher;
-	struct list list;
+	struct dlist list;
 	struct node node;
 	int running;
 	int workers;
@@ -122,7 +123,7 @@ struct task {
 int
 task_type(void)
 {
-	return getpid() == gettid();
+	return getpid() == compat_gettid();
 }
 
 void
@@ -192,7 +193,7 @@ chld_handler(EV_P_ ev_child *w, int revents)
 
 	task_status(w->rpid, w->rstatus);
 
-	list_for_each(task_disp.list, c, struct task, node) {
+	dlist_for_each(task_disp.list, c, struct task, node) {
 		if (w->rpid != c->pid)
 			continue;
 		if (WIFEXITED(w->rstatus) || WIFSIGNALED(w->rstatus)) {
@@ -607,7 +608,7 @@ void
 task_init(struct task *task)
 {
 	node_init(&task->node);
-	list_init(&task->list);
+	dlist_init(&task->list);
 	task->state = TASK_STATE_INIT;
 
 	if (task == &task_disp)
@@ -685,7 +686,7 @@ sched(struct task *task)
 		//debug4("workers=%d running=%d", task->workers, task->running);
 		struct task *child = NULL;
 		int spawned = 1;
-		list_walk(task->list, child, node) {
+		dlist_walk(task->list, child, node) {
 			if (child->state != TASK_STATE_NONE)
 				continue;
 			spawned = 0;
@@ -720,7 +721,7 @@ init:
 		if (!spawned)
 			continue;
 
-		list_add(&task->list, &child->node);	
+		dlist_add(&task->list, &child->node);	
 	}
 }
 
@@ -753,7 +754,7 @@ again:
 void
 task_fini(struct task *task)
 {
-	list_for_each(task->list, child, struct task, node) {
+	dlist_for_each(task->list, child, struct task, node) {
 		kill(child->pid, SIGHUP);
 		wait_subprocess(child->pid, sched_gracefull_timeout);
 	}
@@ -819,7 +820,7 @@ static void
 restart(void)
 {
 	configure();
-	list_for_each(task_disp.list, child, struct task, node) {
+	dlist_for_each(task_disp.list, child, struct task, node) {
 		kill(child->pid, SIGHUP);
 		int status = wait_subprocess(child->pid, sched_gracefull_timeout);
 		if (WIFEXITED(status) || WIFSIGNALED(status)) {
@@ -861,8 +862,13 @@ sched_fini(void)
 int
 aaa_server1(int argc, char *argv[])
 {
+	if(geteuid() != 0) {
+		printf("Requires root privileges.\n"); exit(1); 
+	}
+
 	irq_init();
 	irq_disable();
+	log_name("aaa");
 
 	int pid;
 	if ((pid = pid_read(pidfile)))

@@ -192,16 +192,17 @@ attr_enc(byte *buf, int len, int maxlen, const char *key, const char *val)
 static inline int
 session_build(struct aaa *aaa, byte *buf, int size)
 {
+	memset(buf, 0, size);
 	int len = 0;
 	dict_for_each(a, aaa->attrs.list) {
+		if (!a->val || !*a->val)
+			continue;
 		len += attr_enc(buf, len, size, a->key, a->val);
 		debug2("build %s:%s", a->key, a->val);
 		if (len > size)
 			return -EINVAL;
 	}
-
 	debug2("build session size: %d", len);
-
 	return len;
 }
 

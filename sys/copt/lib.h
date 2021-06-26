@@ -64,7 +64,7 @@ struct option_item;
 
 struct option_section {
 	//struct option_item *items;
-	struct list items;
+	struct dlist items;
 };
 
 struct option_item {

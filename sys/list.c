@@ -1,5 +1,5 @@
 /* This file contains the linked list implementations for DEBUG_LIST. */
-
+/*
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <mem/alloc.h>
@@ -7,7 +7,7 @@
 #include <time.h>
 #include <unix/timespec.h>
 #include <list.h>
-
+*/
 /*
 #define list_debug(fmt, ...) \
 	debug("%s() " fmt, __func__, __VA_ARGS__)

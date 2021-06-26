@@ -1,3 +1,4 @@
+#if 0
 #include <sys/compiler.h>
 #include <sys/cpu.h>
 #include <sys/log.h>
@@ -26,7 +27,7 @@ unsigned int users = 0;
 unsigned int items = 0;
 
 void
-merge_sort_asc_recursive(struct list *, int (*fb)(struct node *, struct node *));
+merge_sort_asc_recursive(struct dlist *, int (*fb)(struct node *, struct node *));
 
 static inline int user_cmp(struct myuser *a, struct myuser *b)
 {
@@ -83,13 +84,13 @@ parse_line(int index, char *arg, ssize_t len)
 		i++;
 	}
 
-	list_add(&list, &user->n);
+	dlist_add(&list, &user->n);
 }
 
 static void
 load_users_csv(void)
 {
-	list_init(&list);
+	dlist_init(&list);
 	users = 0;
 	db = db?:malloc(db_size);
 
@@ -115,7 +116,7 @@ test_default_sort(void)
 	/* initialize user database because we want stable sequential access */
 	load_users_csv();
 	/* sort users using insert sort in ascending order */
-	list_sort_asc(&list, user_cmp, struct myuser, n);
+	dlist_sort_asc(&list, user_cmp, struct myuser, n);
 }
 
 _unused static void
@@ -182,14 +183,14 @@ main(int argc, char *argv[])
 	BENCHMARK_PRINT(bench,test_merge_sort_asc_iterative(),
 	"Running iterative merge-sort  over intrusive list size: %d", users);
 
-	if (argc > 2) list_for_each(list, it, struct myuser, n)
+	if (argc > 2) dlist_for_each(list, it, struct myuser, n)
 		user_print_ln(it);
 
-	unsigned int s1 = list_size(&list);
-	list_ddup(&list, user_cmp, struct myuser, n);
-	unsigned int s2 = list_size(&list);
+	unsigned int s1 = dlist_size(&list);
+	dlist_ddup(&list, user_cmp, struct myuser, n);
+	unsigned int s2 = dlist_size(&list);
 
-	if (argc > 2) list_for_each(list, it, struct myuser, n)
+	if (argc > 2) dlist_for_each(list, it, struct myuser, n)
 		user_print_ln(it);
 
 	if (argc > 2 && (s1 - s2))
@@ -197,3 +198,13 @@ main(int argc, char *argv[])
 
 	return 0;
 }
+
+#else
+
+int 
+main(int argc, char *argv[]) 
+{
+	return 0;
+}
+
+#endif

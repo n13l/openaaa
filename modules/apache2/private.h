@@ -40,8 +40,8 @@
 #define c_info(c, mask...) \
 	ap_log_cerror(APLOG_MARK, APLOG_NOERRNO | APLOG_INFO, 0, c, mask)
 
-#define c_debug(c, fmt...) \
-	ap_log_cdata(APLOG_MARK, APLOG_DEBUG, 0, c, fmt, NULL, 0);
+#define c_debug(c, mask...) \
+	ap_log_cerror(APLOG_MARK, APLOG_NOERRNO | APLOG_DEBUG, 0, c, mask)
 
 #define ap_module_trace_scall(s) \
 	ap_log_error(APLOG_MARK, APLOG_INFO, 0, s, "%s:%s()", MODULE_PREFIX, __func__)
@@ -55,22 +55,22 @@
 #define apr_trace_call(r) \
 	ap_log_rerror(APLOG_MARK, APLOG_NOERRNO | APLOG_DEBUG, 0, r, "%s()", __func__);
 
-/*
-#define ap_srv_config_get(r) \
-        ap_get_module_config(r->server->module_config, & MODULE_ENTRY)
-*/
+#define ap_proc_config_get(s) \
+        ap_get_module_config(s->pconf, & MODULE_ENTRY)
+
+#define ap_proc_config_set(s, obj) \
+        ap_set_module_config(s->pconf, & MODULE_ENTRY, obj)
 
 #define ap_srv_config_get(s) \
         ap_get_module_config(s->module_config, & MODULE_ENTRY)
 
-
-#define AP_GET_DIR_CONFIG(r) \
+#define ap_get_dir_config(r) \
         ap_get_module_config(r->per_dir_config, & MODULE_ENTRY)
 
 #define ap_req_config_get(r) \
         ap_get_module_config(r->request_config, & MODULE_ENTRY)
 
-#define AP_SET_SRV_CONFIG(s, obj) \
+#define ap_set_srv_config(s, obj) \
         ap_set_module_config(s->module_config, & MODULE_ENTRY, obj)
 
 #define ap_req_config_set(r, obj) \
@@ -88,20 +88,27 @@
 #define ssl_lookup_args \
     r->pool, r->server, r->connection, r
 
+#define ap_bst(val) val ? "yes": "no"
+
 struct srv {
-    void *ctx;
-    struct aaa *aaa;
-    int tls_aaa_capability;
-    int pid;
-    const char *aaa_id;
-    const char *keymat_label;
-    unsigned int keymat_len;
-    void *ssl;
-    module *mod_ssl;
-    module *mod_mpm;
-    module *mod_mpm_prefork;
-    module *mod_event;
-    apr_thread_mutex_t *mutex;
+	void *ctx;
+	struct aaa *aaa;
+	int tls_aaa_capability;
+	int pid;
+	const char *aaa_id;
+	const char *keymat_label;
+	unsigned int keymat_len;
+	void *ssl;
+	module *mod_ssl;
+	module *mod_mpm;
+	module *mod_mpm_prefork;
+	module *mod_event;
+	apr_thread_mutex_t *mutex;
+
+};
+
+struct proc {
+	apr_thread_mutex_t *mutex;
 };
 
 struct user {
@@ -128,7 +135,9 @@ struct conn {
 };
 
 struct dir {
-    int unused;
+	const char *name;
+	unsigned int enabled;
+	unsigned int pedantic;
 };
 
 /*

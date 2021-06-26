@@ -165,7 +165,7 @@ struct ssl_cb {
 	ssl_cb_ext cb_ext;
 } ssl_cb;
 
-struct list ssl_module_list;
+struct dlist ssl_module_list;
 
 struct ssl_module {
 	struct node node;
@@ -1047,7 +1047,7 @@ DEFINE_CTX_CALL(set_alpn_protos)(SSL_CTX *ctx, const u8 *data, unsigned int len)
 void
 symbol_print(void)
 {
-	list_for_each(openssl_symtab, p, struct symbol, node) {
+	dlist_for_each(openssl_symtab, p, struct symbol, node) {
 		debug4("name=%s abi=%p plt=%p", p->name, p->abi, p->plt);
 		if (!p->abi)
 			die("required symbol not found");
@@ -1085,7 +1085,7 @@ lookup_module(struct dl_phdr_info *info, size_t size, void *ctx)
 	ssl_module->dll = dll;
 	ssl_module->file = strdup(info->dlpi_name);
 	
-	list_add(&ssl_module_list, &ssl_module->node);
+	dlist_add(&ssl_module_list, &ssl_module->node);
 	if (!ssl)
 		return 0;
 
@@ -1174,7 +1174,7 @@ ssl_init(int server)
 	server_handshake_synch = 0;
 	server_always = server;
 
-	list_init(&ssl_module_list);
+	dlist_init(&ssl_module_list);
 
 	IMPORT_ABI(SSLeay);
 	IMPORT_ABI(SSL_CTX_new);
@@ -1284,7 +1284,7 @@ crypto_lookup(void)
 {
 	init_aaa_env();
 
-	list_init(&ssl_module_list);
+	dlist_init(&ssl_module_list);
 
 	char ssl_module[255] = {0};
 	find_module(ssl_module);

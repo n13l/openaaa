@@ -63,7 +63,7 @@ struct symbol {
 #define CALL_CTX(fn) plt_SSL_CTX_##fn.plt_SSL_CTX_##fn
 
 #define IMPORT_ABI(fn) \
-	list_for_each(ssl_module_list, n) { \
+	dlist_for_each(ssl_module_list, n) { \
 		struct ssl_module *ssl_module = __container_of(n, struct ssl_module, node); \
 		if (!ssl_module->dll) continue; \
 		plt_##fn.plt_##fn = dlsym(ssl_module->dll, stringify(fn)); \
@@ -75,7 +75,7 @@ struct symbol {
 	if (!plt_##fn.plt_##fn) {\
 		error("symbol name=%s not found", stringify(fn)); \
 	} else { \
-	        list_add_tail(&openssl_symtab, &plt_##fn.node); \
+	        dlist_add_tail(&openssl_symtab, &plt_##fn.node); \
         }
 
 #define EXISTS_ABI(fn) \

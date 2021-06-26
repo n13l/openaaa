@@ -33,7 +33,7 @@
 
 __BEGIN_DECLS
 
-#define DEFINE_LIST(name)   struct list name = LIST_INIT(name)
+#define DEFINE_LIST(name)   struct dlist name = DLIST_INIT(name)
 #define DEFINE_NODE(name)   struct node name = NODE_INIT
 #define DEFINE_LIST_ITEM(type,member, ...) \
 ({ \
@@ -41,9 +41,9 @@ __BEGIN_DECLS
 	& __item.member; \
 })
 
-#define LIST_ITEM(item, node) &(item.node)
+#define DLIST_ITEM(item, node) &(item.node)
 #define NODE_INIT            { .next = NULL, .prev = NULL } 
-#define LIST_INIT(name)      {{(struct node *)&(name), (struct node *)&(name)}}
+#define DLIST_INIT(name)      {{(struct node *)&(name), (struct node *)&(name)}}
 
 #define NODE_HEAD(list)             (list).head.next
 #define NODE_HEAD_DELSAFE(list, it) ({it=(list).head.next;NULL;})
@@ -62,7 +62,7 @@ __BEGIN_DECLS
 struct node  { struct node  *next, *prev; };
 struct snode { struct snode *next; };
 struct hnode { struct hnode *next, **prev; };
-struct list  { struct node   head; };
+struct dlist { struct node   head; };
 struct clist { struct node   head; unsigned int size; };
 struct slist { struct snode *head; };
 struct hlist { struct hnode *head; };
@@ -74,56 +74,56 @@ node_init(struct node *node)
 }
 
 static inline void
-list_init(struct list *list)
+dlist_init(struct dlist *list)
 {
 	struct node *head = &list->head;
 	head->next = head->prev = head;
 }
 
 static inline void *
-list_head(struct list *list)
+dlist_head(struct dlist *list)
 {
 	return (list->head.next != &list->head) ? list->head.next: NULL;
 }
 
 static inline void *
-list_first(struct list *list)
+dlist_first(struct dlist *list)
 {
 	return (list->head.next != &list->head) ? list->head.next: NULL;
 }
 
 static inline void *
-list_tail(struct list *list)
+dlist_tail(struct dlist *list)
 {
 	return (list->head.prev != &list->head) ? list->head.prev: NULL;
 }
 
 static inline void *
-list_last(struct list *list)
+dlist_last(struct dlist *list)
 {
 	return (list->head.prev != &list->head) ? list->head.prev: NULL;
 }
 
 static inline void *
-list_next(struct list *list, struct node *node)
+dlist_next(struct dlist *list, struct node *node)
 {
 	return (node->next != &list->head) ? (void *)node->next: NULL;
 }
 
 static inline void *
-list_prev(struct list *list, struct node *node)
+dlist_prev(struct dlist *list, struct node *node)
 {
 	return (node->prev != &list->head) ? (void *)node->prev: NULL;
 }
 
 static inline int
-list_empty(struct list *list)
+dlist_empty(struct dlist *list)
 {
 	return (list->head.next == &list->head);
 }
 
 static inline void
-list_add_after(struct node *node, struct node *after)
+dlist_add_after(struct node *node, struct node *after)
 {
 	struct node *before = after->next;
 	node->next = before;
@@ -133,7 +133,7 @@ list_add_after(struct node *node, struct node *after)
 }
 
 static inline void
-list_add_before(struct node *node, struct node *before)
+dlist_add_before(struct node *node, struct node *before)
 {
 	struct node *after = before->prev;
 	node->next = before;
@@ -143,25 +143,25 @@ list_add_before(struct node *node, struct node *before)
 }
 
 static inline void
-list_add_head(struct list *list, struct node *node)
+dlist_add_head(struct dlist *list, struct node *node)
 {
-	list_add_after(node, &list->head);
+	dlist_add_after(node, &list->head);
 }
 
 static inline void
-list_add_tail(struct list *list, struct node *node)
+dlist_add_tail(struct dlist *list, struct node *node)
 {
-	list_add_before(node, &list->head);
+	dlist_add_before(node, &list->head);
 }
 
 static inline void
-list_add(struct list *list, struct node *node)
+dlist_add(struct dlist *list, struct node *node)
 {
-	list_add_before(node, &list->head);
+	dlist_add_before(node, &list->head);
 }
 
 static inline void 
-list_del(struct node *node)
+dlist_del(struct node *node)
 {
 	struct node *before = node->prev;
 	struct node *after  = node->next;
@@ -170,9 +170,9 @@ list_del(struct node *node)
 }
 
 static inline unsigned int
-list_size(struct list *list)
+dlist_size(struct dlist *list)
 {
-	if (list_empty(list))
+	if (dlist_empty(list))
 		return 0;
 
 	unsigned int size = 0;
@@ -182,16 +182,16 @@ list_size(struct list *list)
 }
 
 static inline int
-list_singular(struct list *list)
+dlist_singular(struct dlist *list)
 {
 	return (list->head.next->next == &list->head);
 }
 
 static inline int
-list_order(struct list *list)
+dlist_order(struct dlist *list)
 {
 	int order = 0;
-	if (list_empty(list) || list_singular(list))
+	if (dlist_empty(list) || dlist_singular(list))
 		return order;
 
 	struct node *n;
@@ -202,7 +202,7 @@ list_order(struct list *list)
 }
 
 static inline void
-list_enable_prev(struct list *list, struct node *head)
+dlist_enable_prev(struct dlist *list, struct node *head)
 {
 	struct node *node;
 	for (node = head; node->next; ) {
@@ -216,14 +216,14 @@ list_enable_prev(struct list *list, struct node *head)
 }
 
 static inline struct node *
-list_disable_prev(struct list *list)
+dlist_disable_prev(struct dlist *list)
 {
 	list->head.prev->next = NULL;
 	return list->head.next;
 }
 
 /**
- * list_del_cmp - compare two lists and delete same items
+ * dlist_del_cmp - compare two lists and delete same items
  *
  * @a:          the first list.
  * @b:          the second list.
@@ -233,84 +233,84 @@ list_disable_prev(struct list *list)
  *
  */
 
-#define list_del_cmp(a, b, ...) \
-	va_dispatch(list_del_cmp,__VA_ARGS__)(a,b,__VA_ARGS__)
-#define list_del_cmp1(a, b, fn) \
+#define dlist_del_cmp(a, b, ...) \
+	va_dispatch(dlist_del_cmp,__VA_ARGS__)(a,b,__VA_ARGS__)
+#define dlist_del_cmp1(a, b, fn) \
 ({ \
-	list_for_each_delsafe(a, x) list_for_each_delsafe(b, y) { \
-		if (fn(x, y)) continue; list_del(x); list_del(y); \
+	dlist_for_each_delsafe(a, x) dlist_for_each_delsafe(b, y) { \
+		if (fn(x, y)) continue; dlist_del(x); dlist_del(y); \
 	} \
 })
-#define list_del_cmp3(a, b, fn, type, member) \
+#define dlist_del_cmp3(a, b, fn, type, member) \
 ({ \
-	list_for_each_delsafe(a, x) list_for_each_delsafe(b, y) { \
+	dlist_for_each_delsafe(a, x) dlist_for_each_delsafe(b, y) { \
 		if (container_cmp(fn,x, y, type, member)) continue; \
-		list_del(x); list_del(y); \
+		dlist_del(x); dlist_del(y); \
 	} \
 })
 
-#define list_move_before(x, y)   ({ list_del(x); list_add_before(x, y); })
-#define list_node struct node
+#define dlist_move_before(x, y)   ({ dlist_del(x); dlist_add_before(x, y); })
+#define dlist_node struct node
 
 /* used internally */
-#define __list_first(list)       ({ list_first(list); })
-#define __list_next(list,x)      ({ list_next(list,x); })
-#define __list_move_before(x, y) ({ list_move_before(x,y); })
-#define __list_node list_node
+#define __dlist_first(list)       ({ dlist_first(list); })
+#define __dlist_next(list,x)      ({ dlist_next(list,x); })
+#define __dlist_move_before(x, y) ({ dlist_move_before(x,y); })
+#define __dlist_node list_node
 
 /**
- * list_walk  - iterate over list with declared iterator
+ * dlist_walk  - iterate over list with declared iterator
  *
  * @list:       the your list.
  * @it:	        the type safe iterator
  * @member:     the optional name of the node within the struct.
  */
 
-#define list_walk(list, ...) \
-	va_dispatch(list_walk,__VA_ARGS__)(list,__VA_ARGS__)
-#define list_walk1(list, it) \
+#define dlist_walk(list, ...) \
+	va_dispatch(dlist_walk,__VA_ARGS__)(list,__VA_ARGS__)
+#define dlist_walk1(list, it) \
 	for ((it) = NODE_HEAD(list); NODE_ITER(list,it); (it) = (it)->next)
-#define list_walk2(list, it, member) \
+#define dlist_walk2(list, it, member) \
 	for ((it) = NODE_HEAD_TYPE(list, typeof(*it), member); \
 	            NODE_ITER_TYPE(list, it, member); \
 	     (it) = NODE_NEXT_TYPE(it, typeof(*it), member))
 
 /**
- * list_walk_next - iterate over list with existing iterator
+ * dlist_walk_next - iterate over list with existing iterator
  *
  * @list:       the your list.
  * @it:	        the type safe iterator
  * @member:     the optional name of the node within the struct.
  */
 
-#define list_walk_next(list, ...) \
+#define dlist_walk_next(list, ...) \
 	va_dispatch(list_walk_next,__VA_ARGS__)(list,__VA_ARGS__)
-#define list_walk_next1(list, it) \
+#define dlist_walk_next1(list, it) \
 	if ((it) != &(list).head) \
 	for ((it) = (it)->next; NODE_ITER(list,it); (it) = (it)->next)
-#define list_walk_next2(list, it, member) \
+#define dlist_walk_next2(list, it, member) \
 	if (&(it)->member != &(list).head) \
 	for ((it) = NODE_NEXT_TYPE(it, typeof(*it), member); \
 	            NODE_ITER_TYPE(list, it, member); \
 	     (it) = NODE_NEXT_TYPE(it, typeof(*it), member))
 
 /**
- * list_walk_delsafe  - iterate over list with declared iterator
+ * dlist_walk_delsafe  - iterate over list with declared iterator
  *
  * @list:       the your list.
  * @it:         the type safe iterator
  * @member:     the optional name of the node within the struct.
  */
 
-#define list_walk_delsafe(list, ...) \
+#define dlist_walk_delsafe(list, ...) \
 	va_dispatch(list_walk_delsafe,__VA_ARGS__)(list,__VA_ARGS__)
-#define list_walk_delsafe1(list, it) \
+#define dlist_walk_delsafe1(list, it) \
 	for (typeof(*it) *(it_next) = NODE_HEAD_DELSAFE(list, it); \
 	     ((it) != &list.head) && ({(it_next) = (it)->next;1;}); \
 	     (it) = it_next)
 
 /**
- * list_for_each - iterate over list 
+ * dlist_for_each - iterate over list 
  *
  * @list:       the your list.
  * @it:	        the type safe iterator
@@ -318,18 +318,18 @@ list_disable_prev(struct list *list)
  * @member:     the optional name of the node within the struct.
  */
 
-#define list_for_each(list, ...) \
-	va_dispatch(list_for_each,__VA_ARGS__)(list,__VA_ARGS__)
-#define list_for_each1(list, it) \
+#define dlist_for_each(list, ...) \
+	va_dispatch(dlist_for_each,__VA_ARGS__)(list,__VA_ARGS__)
+#define dlist_for_each1(list, it) \
 	for (struct node *(it) = NODE_HEAD(list); \
 	    (it) != &(list).head; (it) = (it)->next)
-#define list_for_each3(list, it, type, member) \
+#define dlist_for_each3(list, it, type, member) \
 	for (type *(it) = NODE_HEAD_TYPE(list, type, member); \
 	     &(it->member) != &(list).head; \
 	     (it) = NODE_NEXT_TYPE(it, type, member))
 
 /**
- * list_for_each_delsafe - iterate over list with safety against removal
+ * dlist_for_each_delsafe - iterate over list with safety against removal
  *
  * @list:       the your list.
  * @it:         the type safe iterator 
@@ -337,17 +337,17 @@ list_disable_prev(struct list *list)
  * @member:     the optional name of the node within the struct.
  */
 
-#define list_for_each_delsafe(list, ...) \
-	va_dispatch(list_for_each_delsafe,__VA_ARGS__)(list,__VA_ARGS__)
-#define list_for_each_delsafe1(list, it) \
+#define dlist_for_each_delsafe(list, ...) \
+	va_dispatch(dlist_for_each_delsafe,__VA_ARGS__)(list,__VA_ARGS__)
+#define dlist_for_each_delsafe1(list, it) \
 	for (struct node *__it, *it = (list).head.next; \
 	     (__it) = it->next, (it) != &(list).head; (it) = __it)
-#define list_for_each_delsafe3(list, it, type, member) \
+#define dlist_for_each_delsafe3(list, it, type, member) \
 	for (type *__it, *it = NODE_HEAD_TYPE(list, type, member); \
 	     NODE_ITER_TYPE_DELSAFE(list, it, __it, type, member);(it) = __it)
 
 /**
- * list_sort  - sort list 
+ * dlist_sort  - sort list 
  *
  * @list:       the your list.
  * @fn:	        the type safe comparator
@@ -355,11 +355,11 @@ list_disable_prev(struct list *list)
  * @member:     the optional name of the node within the struct.
  */
 
-#define list_sort(list, ...) \
-  va_dispatch(insert_sort_asc,__VA_ARGS__)(list,__list,__VA_ARGS__)
+#define dlist_sort(list, ...) \
+  va_dispatch(insert_sort_asc,__VA_ARGS__)(list,__dlist,__VA_ARGS__)
 
 /**
- * list_sort_asc  - sort list 
+ * dlist_sort_asc  - sort list 
  *
  * @list:       the your list.
  * @fn:	        the type safe comparator
@@ -367,11 +367,11 @@ list_disable_prev(struct list *list)
  * @member:     the optional name of the node within the struct.
  */
 
-#define list_sort_asc(list, ...) \
-  va_dispatch(insert_sort_asc,__VA_ARGS__)(list,__list,__VA_ARGS__)
+#define dlist_sort_asc(list, ...) \
+  va_dispatch(insert_sort_asc,__VA_ARGS__)(list,__dlist,__VA_ARGS__)
 
 /**
- * list_sort_dsc  - sort list 
+ * dlist_sort_dsc  - sort list 
  *
  * @list:       the your list.
  * @fn:	        the type safe comparator
@@ -379,11 +379,11 @@ list_disable_prev(struct list *list)
  * @member:     the optional name of the node within the struct.
  */
 
-#define list_sort_dsc(list, ...) \
-  va_dispatch(insert_sort_dsc,__VA_ARGS__)(list,__list, __VA_ARGS__)
+#define dlist_sort_dsc(list, ...) \
+  va_dispatch(insert_sort_dsc,__VA_ARGS__)(list,__dlist, __VA_ARGS__)
 
 /**
- * list_ddup  - deduplicate list
+ * dlist_ddup  - deduplicate list
  *
  * @list:       the your list.
  * @fn:	        the type safe comparator
@@ -393,19 +393,19 @@ list_disable_prev(struct list *list)
  * note: require sorted list
  */
 
-#define list_ddup(list, ...) \
-	va_dispatch(list_ddup,__VA_ARGS__)(list,__VA_ARGS__)
-#define list_ddup1(list, typecmp) \
+#define dlist_ddup(list, ...) \
+	va_dispatch(dlist_ddup,__VA_ARGS__)(list,__VA_ARGS__)
+#define dlist_ddup1(list, typecmp) \
 ({ \
-	struct node *__prev = NULL; list_for_each_delsafe(*(list), it) \
+	struct node *__prev = NULL; dlist_for_each_delsafe(*(list), it) \
 		if (__prev && !typecmp(__prev, it)) \
-			list_del(it); else __prev = it; \
+			dlist_del(it); else __prev = it; \
 })
-#define list_ddup3(list, typecmp, type, member) \
+#define dlist_ddup3(list, typecmp, type, member) \
 ({ \
-	type *__prev = NULL; list_for_each_delsafe(*(list), it, type, member) \
+	type *__prev = NULL; dlist_for_each_delsafe(*(list), it, type, member) \
 		if (__prev && !typecmp(__prev, it)) \
-			list_del(&(it->member)); else __prev = it; \
+			dlist_del(&(it->member)); else __prev = it; \
 })
 
 static inline void

@@ -1,0 +1,17 @@
+#!/bin/sh
+AAA_SESS_ID=123456789
+echo "bind()"
+printf "msg.op:bind\nmsg.id:1\nsess.id:$AAA_SESS_ID\n" | nc -4u -w1 127.0.0.1 8888
+echo "set()"
+printf "msg.op:commit\nmsg.id:1\nsess.id:$AAA_SESS_ID\nuser.id:1\n" | nc -4u -w1 127.0.0.1 8888
+echo "bind()"
+printf "msg.op:bind\nmsg.id:1\nsess.id:$AAA_SESS_ID\n" | nc -4u -w1 127.0.0.1 8888
+echo "set() auth.info"
+printf "msg.op:commit\nmsg.id:1\nsess.id:$AAA_SESS_ID\nauth.info:1234\n" | nc -4u -w1 127.0.0.1 8888
+echo "bind()"
+printf "msg.op:bind\nmsg.id:1\nsess.id:$AAA_SESS_ID\n" | nc -4u -w1 127.0.0.1 8888
+echo "delete() auth.info"
+printf "msg.op:commit\nmsg.id:1\nsess.id:$AAA_SESS_ID\nauth.info:\n" | nc -4u -w1 127.0.0.1 8888
+echo "bind()"
+printf "msg.op:bind\nmsg.id:1\nsess.id:$AAA_SESS_ID\n" | nc -4u -w1 127.0.0.1 8888
+

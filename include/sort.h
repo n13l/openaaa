@@ -380,7 +380,7 @@
 ({ \
  	struct node *n = pos; \
 	for (int i = (ctx)->a; i < to; ++i) { \
-		n = slist_merge_sorted_asc((ctx)->p[i], n, cmp); \
+		n = list_merge_sorted_asc((ctx)->p[i], n, cmp); \
 		(ctx)->p[i] = NULL; \
 	} n; \
 })
@@ -388,7 +388,7 @@
 ({ \
  	struct node *n = pos; \
 	for (int i = (ctx)->a; i < to; ++i) { \
-		n = slist_merge_sorted_asc((ctx)->p[i], n, cmp, type,member); \
+		n = list_merge_sorted_asc((ctx)->p[i], n, cmp, type,member); \
 		(ctx)->p[i] = NULL; \
 	} n; \
 })
@@ -401,15 +401,15 @@
 	if (pos > (ctx)->b) { \
 		if (pos > (1 << SORT_MERGE_BOTTOM_UP_SHIFT)) \
 			index = (1 << SORT_MERGE_BOTTOM_UP_SHIFT); \
-		node = slist_merge_sorted_asc(__merge_sort_range_asc((ctx), NULL, \
+		node = list_merge_sorted_asc(__merge_sort_range_asc((ctx), NULL, \
 		                         (ctx)->b, cmp), node, cmp); \
 		for (i = (ctx)->b; i < index; i++) (ctx)->p[i] = NULL; \
 	} else { \
 		if (pos) \
-			node = slist_merge_sorted_asc(__merge_sort_range_asc((ctx), \
+			node = list_merge_sorted_asc(__merge_sort_range_asc((ctx), \
 			                         NULL, pos, cmp), node, cmp); \
 		for (i = pos; i < (ctx)->b && (ctx)->p[i]; i++) { \
-			node = slist_merge_sorted_asc((ctx)->p[i], node, cmp); \
+			node = list_merge_sorted_asc((ctx)->p[i], node, cmp); \
 			(ctx)->p[i] = NULL; \
 		} \
 	} \
@@ -424,15 +424,15 @@
 	if (pos > (ctx)->b) { \
 		if (pos > (1 << SORT_MERGE_BOTTOM_UP_SHIFT)) \
 			index = (1 << SORT_MERGE_BOTTOM_UP_SHIFT); \
-		node = slist_merge_sorted_asc(__merge_sort_range_asc((ctx), NULL, \
+		node = sdlist_merge_sorted_asc(__merge_sort_range_asc((ctx), NULL, \
 		      (ctx)->b, cmp, type, member), node, cmp, type, member); \
 		for (i = (ctx)->b; i < index; i++) (ctx)->p[i] = NULL; \
 	} else { \
 		if (pos) \
-			node = slist_merge_sorted_asc(__merge_sort_range_asc((ctx), \
+			node = sdlist_merge_sorted_asc(__merge_sort_range_asc((ctx), \
 			NULL, pos, cmp, type, member), node, cmp, type, member); \
 		for (i = pos; i < (ctx)->b && (ctx)->p[i]; i++) { \
-			node = slist_merge_sorted_asc((ctx)->p[i], node, cmp, type, member); \
+			node = sdlist_merge_sorted_asc((ctx)->p[i], node, cmp, type, member); \
 			(ctx)->p[i] = NULL; \
 		} \
 	} \
@@ -443,7 +443,7 @@
 
 #define merge_sort_asc1(self, prefix, cmp) \
 ({ \
-	if (!list_empty(self) && !list_singular(self)) { \
+	if (!dlist_empty(self) && !dlist_singular(self)) { \
 	struct { unsigned a, b; \
 	struct node *p[(1 << SORT_MERGE_BOTTOM_UP_SHIFT)]; } ctx = {0,0}; \
 	struct node *x, *y, *z = prefix##_disable_prev(self); \
@@ -460,7 +460,7 @@
 
 #define merge_sort_asc3(self,prefix,cmp,type,member) \
 ({ \
-	if (!list_empty(self) && !list_singular(self)) { \
+	if (!dlist_empty(self) && !dlist_singular(self)) { \
 	struct { unsigned a, b; \
 	struct node *p[(1 << SORT_MERGE_BOTTOM_UP_SHIFT)]; } ctx = {0,0}; \
 	struct node *x, *y, *z = prefix##_disable_prev(self); \
