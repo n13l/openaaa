@@ -88,13 +88,8 @@ child_init(apr_pool_t *p, server_rec *s)
 		srv->aaa = aaa_new(AAA_ENDPOINT_SERVER, 0);
 		srv->mod_ssl = ap_find_linked_module("mod_ssl.c");
 		srv->mod_event = ap_find_linked_module("mod_mpm_event.c");
-<<<<<<< HEAD
 		apr_thread_mutex_create(&srv->mutex, APR_THREAD_MUTEX_DEFAULT,p);
 
-=======
-
-		apr_thread_mutex_create(&srv->mutex,APR_THREAD_MUTEX_DEFAULT,p);
->>>>>>> 6685c60d0378a981cabbc1ecf552ab3b72be7ac9
 	}
 }
 
@@ -107,26 +102,13 @@ static apr_status_t
 child_fini(void *ctx)
 {
 	server_rec *s = (server_rec *)ctx;
-<<<<<<< HEAD
-=======
-
->>>>>>> 6685c60d0378a981cabbc1ecf552ab3b72be7ac9
 	for (; s; s = s->next) {
 		struct srv *srv = ap_srv_config_get(s);
 		if (srv->aaa)
 			aaa_free(srv->aaa);
-<<<<<<< HEAD
 		srv->aaa = NULL;
 	}
 
-=======
-		if (srv->mutex)
-			apr_thread_mutex_destroy(srv->mutex);
-
-		srv->aaa = NULL;
-		srv->mutex = NULL;
-		}
->>>>>>> 6685c60d0378a981cabbc1ecf552ab3b72be7ac9
 	return 0;
 }
 
@@ -250,27 +232,16 @@ proxy_post_handshake(conn_rec *c, SSL *ssl)
 static int
 post_read_request(request_rec *r)
 {
-<<<<<<< HEAD
 	r_debug(r, "%s(%pp:%pp) uri: %s", __func__, r, r->main, r->uri);
 	struct dir *dir = ap_get_dir_config(r);
 	r_debug(r, "%s() dir: %s enabled: %s pedantic: %s uri: %s", __func__,
 	        dir->name, ap_bst(dir->enabled), ap_bst(dir->pedantic), r->uri);
 	if (r->main || !dir->enabled)
-=======
-	struct dir *dir = ap_get_dir_config(r);
-	r_debug(r, "%s() dir: %s enabled: %s pedantic: %s uri: %s", __func__,
-	        dir->name, ap_bst(dir->enabled), ap_bst(dir->pedantic), r->uri);
-	if (!ap_is_initial_req(r) || !dir->enabled)
->>>>>>> 6685c60d0378a981cabbc1ecf552ab3b72be7ac9
 		return DECLINED;
 
 	unsigned secure = !!(is_https && is_https(r->connection));
 	r_debug(r, "%s() secure: %d protocol: %s conn: %pp uri: %s",
 	       __func__, secure, r->protocol, r->connection, r->uri);
-<<<<<<< HEAD
-=======
-
->>>>>>> 6685c60d0378a981cabbc1ecf552ab3b72be7ac9
 	if (dir->pedantic == 1 && !secure) {
 		r_error(r, "%s() tls protocol is required", __func__);
 		return HTTP_INTERNAL_SERVER_ERROR;
@@ -284,11 +255,6 @@ post_read_request(request_rec *r)
 
 	struct srv *srv = ap_srv_config_get(r->server);
 	struct req *req = ap_req_config_get(r);
-<<<<<<< HEAD
-=======
-	struct aaa *aaa = srv->aaa;
-
->>>>>>> 6685c60d0378a981cabbc1ecf552ab3b72be7ac9
 	conn_rec *c = r->connection;
 	struct conn *conn = ap_conn_config_get(c->master ? c->master: c);
 	if (!conn) {
@@ -298,6 +264,7 @@ post_read_request(request_rec *r)
 	}
 
 	apr_thread_mutex_lock(srv->mutex);
+
 	/* This is evil hack and workaround regarding shared SSL* object between 
 	 * client and proxy connection. */
 	if (!conn->has_id) {
@@ -305,18 +272,12 @@ post_read_request(request_rec *r)
 		conn->has_id = 1;
 	}
 
-<<<<<<< HEAD
 	struct aaa *a = srv->aaa;
 	aaa_reset(a);
 	aaa_attr_set(a, "sess.id", (char *)conn->tls_id);
 	r_debug(r, "%s() tls.id: %s", __func__, (char *)conn->tls_id);
 
 	if (aaa_bind(a) < 0)
-=======
-	aaa_reset(aaa);
-	aaa_attr_set(aaa, "sess.id", (char *)conn->tls_id);
-	if (aaa_bind(aaa) < 0)
->>>>>>> 6685c60d0378a981cabbc1ecf552ab3b72be7ac9
 		goto declined;
 
 	req->attrs = apr_table_make(r->pool, 64); 
@@ -523,11 +484,8 @@ static int
 header_parser(request_rec *r)
 {
 	struct req *req = ap_req_config_get(r);
-<<<<<<< HEAD
 	r_debug(r, "%s(%pp:%pp) uri: %s", __func__, r, r->main, r->uri);
 
-=======
->>>>>>> 6685c60d0378a981cabbc1ecf552ab3b72be7ac9
 	if (!req->attrs || apr_is_empty_table(req->attrs))
 		return DECLINED;
 	const apr_array_header_t *tarr = apr_table_elts(req->attrs);

@@ -103,7 +103,7 @@ dict_set(struct dict *dict, const char *key, const char *val)
 {
 	struct attr *a = dict_lookup(dict, key, 1);
 	if (!val) {
-		list_del(&a->node);
+		dlist_del(&a->node);
 		return;
 	}
 	a->val = mm_strdup(dict->mm, val);
