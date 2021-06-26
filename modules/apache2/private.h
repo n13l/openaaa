@@ -64,6 +64,10 @@
 #define ap_srv_config_get(s) \
         ap_get_module_config(s->module_config, & MODULE_ENTRY)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 6685c60d0378a981cabbc1ecf552ab3b72be7ac9
 #define ap_get_dir_config(r) \
         ap_get_module_config(r->per_dir_config, & MODULE_ENTRY)
 
